@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OBE CLO Evaluator EED — Faculty of Engineering</title>
+  <meta name="author" content="Engr. Dr. Nabeel Khalid" />
+  <meta name="developer" content="Engr. Dr. Nabeel Khalid" />
+  <meta name="description" content="Outcome-Based Education Quality Assurance & Assessment Alignment Platform for Pakistan Engineering Council (PEC) & Washington Accord Standards. Conceptualized and implemented by Engr. Dr. Nabeel Khalid." />
+  <link rel="manifest" href="./public/manifest.json" />
+  <meta name="theme-color" content="#F27D26" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#FFF7ED',
+              100: '#FFEDD5',
+              200: '#FED7AA',
+              500: '#F27D26',
+              600: '#DC6812',
+              700: '#C2410C',
+              800: '#9A3412',
+              900: '#7C2D12'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./css/custom.css?v=3.0" />
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased bg-mesh min-h-screen flex flex-col">
+
+  <!-- ==================== STICKY HEADER & MULTI-TAB NAVIGATION ==================== -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]">
+    
+    <!-- Top Brand Bar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between border-b border-slate-100">
+      
+      <!-- Official FOE Logo & Department Title -->
+      <a href="#overview" class="flex items-center gap-3 group">
+        <img src="./public/assets/FOE_Logo_WBG.png" alt="Faculty of Engineering Logo" class="h-11 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105 duration-200" />
+        <div class="border-l-2 border-orange-500/40 pl-3 hidden sm:block">
+          <div class="flex items-center gap-2">
+            <span class="font-black text-slate-950 text-base sm:text-lg tracking-tight">OBE CLO Evaluator EED</span>
+            <span class="text-[10px] uppercase font-black tracking-widest px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-300">PEC Aligned</span>
+          </div>
+          <p class="text-xs text-slate-700 font-bold tracking-wide">Department of Electrical Engineering • Faculty of Engineering</p>
+          <p class="text-[11px] text-orange-700 font-bold tracking-wide flex items-center gap-1.5 mt-0.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+            System Architect &amp; Implementation: <span class="text-slate-950 font-extrabold">Engr. Dr. Nabeel Khalid</span>
+          </p>
+        </div>
+      </a>
+
+      <!-- Right Controls -->
+      <div class="flex items-center gap-3">
+        <!-- API Mode Status Badge with animated pulse -->
+        <button id="btn-open-settings" class="px-4 py-2 rounded-full bg-slate-100/90 border border-slate-200/90 flex items-center gap-2.5 cursor-pointer hover:bg-slate-200/70 transition-all shadow-2xs btn-interactive group" title="Configure Google Gemini API Key">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span id="api-status-badge" class="text-xs font-extrabold text-slate-800 tracking-tight">Simulation Active</span>
+        </button>
+
+        <button class="btn-open-demo-video inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 transition-all shadow-xs btn-interactive" title="Launch Demo Video Studio">
+          <svg class="w-4 h-4 text-white fill-current" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+          <span>Demo Video</span>
+        </button>
+
+        <button id="btn-open-verbs-guide" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 transition-all shadow-xs btn-interactive">
+          <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <span>Bloom Verbs</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Segmented Multi-Tab Navigation Rail -->
+    <div class="bg-white/80 border-b border-slate-200/70 overflow-x-auto scrollbar-none py-2.5">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-start xl:justify-center">
+        
+        <div class="nav-pill-rail">
+          <!-- Tab 1: Overview -->
+          <button class="nav-tab-btn active-tab" data-tab="overview">
+            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Overview</span>
+          </button>
+
+          <!-- Tab 2: CLO Quality Evaluator -->
+          <button class="nav-tab-btn" data-tab="clo-evaluator">
+            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>CLO Quality</span>
+            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-900 font-black">Engine 1</span>
+          </button>
+
+          <!-- Tab 3: Assessment Alignment Audit -->
+          <button class="nav-tab-btn" data-tab="assessment-audit">
+            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Assessment Audit</span>
+            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-900 font-black">Engine 2</span>
+          </button>
+
+          <!-- Tab 4: AI CLO & Topic Suggester -->
+          <button class="nav-tab-btn" data-tab="clo-generator">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Syllabus Suggester</span>
+            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-black">AI</span>
+          </button>
+
+          <!-- Tab: AI Resilience Assessments -->
+          <button class="nav-tab-btn" data-tab="ai-resilience">
+            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>AI Resilience</span>
+            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-900 font-black">AI-RLI</span>
+          </button>
+
+          <!-- Tab 5: PEC Standards & Bloom's Hub -->
+          <button class="nav-tab-btn" data-tab="standards-hub">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span>Standards Hub</span>
+          </button>
+
+          <!-- Tab 6: Accreditation Guidelines -->
+          <button class="nav-tab-btn" data-tab="cqi-guide">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>CQI Guide</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </header>
+
+  <!-- ==================== MAIN TAB CONTENT CONTAINER ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ==================== TAB 1: OVERVIEW & SHOWCASE ==================== -->
+    <div id="tab-panel-overview" class="tab-panel active-panel space-y-12">
+      
+      <!-- Hero Banner -->
+      <div class="relative bg-gradient-to-br from-white via-orange-50/30 to-slate-50 border border-slate-200 rounded-3xl p-8 sm:p-12 shadow-xs text-center">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 mb-6">
+          <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+          <span class="text-xs font-extrabold text-orange-900 tracking-wide">
+            Pakistan Engineering Council (PEC) • Washington Accord Version 4.0 Standard
+          </span>
+        </div>
+
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-950 tracking-tight max-w-4xl mx-auto mb-4 leading-tight">
+          CLO Quality Assessment &amp; Assessment Alignment Platform
+        </h1>
+
+        <p class="text-base sm:text-lg text-slate-700 font-normal max-w-3xl mx-auto mb-6 leading-relaxed">
+          Streamlining accreditation compliance for the Department of Electrical Engineering. Automate syllabus outcome auditing, Bloom's cognitive depth checks, and examination alignment with PEC rubrics.
+        </p>
+
+        <!-- System Architecture & Implementation Credit Badge -->
+        <div class="inline-flex flex-wrap items-center justify-center gap-2.5 px-4 py-2 rounded-2xl bg-white border border-slate-200/90 shadow-2xs mb-8">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-bold text-slate-600">Conceptualized, Architected &amp; Implemented by:</span>
+            <span class="text-xs font-black text-slate-950 tracking-wide">Engr. Dr. Nabeel Khalid</span>
+          </div>
+          <span class="hidden sm:inline text-slate-300">•</span>
+          <span class="text-xs font-bold text-orange-700">Department of Electrical Engineering</span>
+          <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-orange-100 text-orange-900 border border-orange-200">Faculty of Engineering</span>
+        </div>
+
+        <!-- Quick Jump Buttons to Dedicated Tabs -->
+        <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
+          <button class="btn-jump-tab btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-white bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/25 transition-all flex items-center gap-2" data-target="clo-evaluator">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>CLO Evaluator</span>
+          </button>
+          
+          <button class="btn-jump-tab btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/25 transition-all flex items-center gap-2" data-target="clo-generator">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Suggest CLOs &amp; Topics</span>
+          </button>
+
+          <button class="btn-jump-tab btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-purple-900 bg-purple-100 hover:bg-purple-200 border border-purple-300 shadow-xs transition-all flex items-center gap-2" data-target="ai-resilience">
+            <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>AI Resilience</span>
+          </button>
+
+          <button class="btn-jump-tab btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 shadow-xs transition-all flex items-center gap-2" data-target="assessment-audit">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Audit Exam Alignment</span>
+          </button>
+
+          <button class="btn-jump-tab btn-interactive px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center gap-1.5" data-target="standards-hub">
+            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span>11 PEC PLOs</span>
+          </button>
+
+          <button class="btn-open-demo-video btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-black text-white bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-lg shadow-red-600/30 transition-all flex items-center gap-2" title="Watch Automated System Demo &amp; Feature Walkthrough">
+            <svg class="w-4 h-4 fill-current text-white animate-pulse" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+            <span>Watch Demo Video</span>
+          </button>
+
+          <button id="btn-export-overview-pdf" class="btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-white bg-slate-900 hover:bg-slate-800 shadow-md shadow-slate-900/20 transition-all flex items-center gap-2" title="Export Institutional OBE Overview &amp; Policies Dossier in PDF">
+            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Export Executive OBE Summary PDF</span>
+          </button>
+        </div>
+
+        <!-- 5-Metric Framework Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
+          <div class="p-5 bg-white/95 border border-slate-200/90 rounded-2xl shadow-xs text-left hover:border-orange-300 hover:shadow-md transition-all">
+            <div class="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-black text-base mb-2.5">11</div>
+            <h4 class="font-extrabold text-slate-950 text-sm sm:text-base">PEC PLOs</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">PLO-1 to PLO-11 Washington Accord alignment</p>
+          </div>
+          <div class="p-5 bg-white/95 border border-slate-200/90 rounded-2xl shadow-xs text-left hover:border-emerald-300 hover:shadow-md transition-all">
+            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-xs mb-2.5">C1-C6</div>
+            <h4 class="font-extrabold text-slate-950 text-sm sm:text-base">Bloom's Levels</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">Cognitive, Affective, &amp; Psychomotor auditing</p>
+          </div>
+          <div class="p-5 bg-white/95 border border-slate-200/90 rounded-2xl shadow-xs text-left hover:border-purple-300 hover:shadow-md transition-all">
+            <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black text-xs mb-2.5">AI-RLI</div>
+            <h4 class="font-extrabold text-slate-950 text-sm sm:text-base">AI Resilience</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">3-Pillar assessment architect &amp; fracture diagnosis</p>
+          </div>
+          <div class="p-5 bg-white/95 border border-slate-200/90 rounded-2xl shadow-xs text-left hover:border-blue-300 hover:shadow-md transition-all">
+            <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xs mb-2.5">AI</div>
+            <h4 class="font-extrabold text-slate-950 text-sm sm:text-base">Curriculum AI</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">CLOs, topics &amp; lab experiment formulation</p>
+          </div>
+          <div class="p-5 bg-white/95 border border-slate-200/90 rounded-2xl shadow-xs text-left hover:border-slate-400 hover:shadow-md transition-all">
+            <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black text-xs mb-2.5">PDF</div>
+            <h4 class="font-extrabold text-slate-950 text-sm sm:text-base">Audit Dossier</h4>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">Institutional audit reports with FOE letterhead</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Highlights -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="p-7 rounded-3xl bg-white/95 border border-slate-200 shadow-xs hover:border-orange-300 hover:shadow-lg transition-all">
+          <div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center font-black mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="text-lg font-black text-slate-950 mb-2">SMART &amp; Bloom's Verification</h3>
+          <p class="text-sm text-slate-700 leading-relaxed font-normal">Instantly detects non-measurable verbs like "understand" or "know", flagging violations and suggesting actionable engineering replacements aligned with C1 to C6 domains.</p>
+        </div>
+
+        <div class="p-7 rounded-3xl bg-white/95 border border-slate-200 shadow-xs hover:border-blue-300 hover:shadow-lg transition-all">
+          <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center font-black mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <h3 class="text-lg font-black text-slate-950 mb-2">Cognitive Mismatch Audit</h3>
+          <p class="text-sm text-slate-700 leading-relaxed font-normal">Exposes exam questions that claim to evaluate high-order competencies (C6 Design) but only test rote recall (C1), safeguarding assessment integrity.</p>
+        </div>
+
+        <div class="p-7 rounded-3xl bg-white/95 border border-slate-200 shadow-xs hover:border-purple-300 hover:shadow-lg transition-all">
+          <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center font-black mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h3 class="text-lg font-black text-slate-950 mb-2">Accreditation Dossier Export</h3>
+          <p class="text-sm text-slate-700 leading-relaxed font-normal">Generate official, printable quality assurance documents complete with institutional headers, instructor signature lines, and continuous quality improvement rationale.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 2: CLO QUALITY EVALUATOR ==================== -->
+    <div id="tab-panel-clo-evaluator" class="tab-panel space-y-8">
+      
+      <!-- Course Metadata & Scanner Header -->
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <span class="text-xs font-black uppercase tracking-widest text-orange-600 mb-0.5 block">Engine 1</span>
+            <h2 class="text-2xl font-black text-slate-950">Course Plan &amp; CLO Quality Evaluator</h2>
+            <p class="text-sm text-slate-700 font-normal mt-1 leading-relaxed">Audit Course Learning Outcomes (CLOs) and topical course outlines against SMART criteria, Washington Accord breadth, and PEC 11 PLOs.</p>
+          </div>
+          
+          <!-- Sample Loaders -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-slate-600">Quick Samples:</span>
+            <button id="btn-load-sample-ee312" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-orange-50 text-orange-900 border border-orange-200 hover:bg-orange-100 text-xs font-bold transition-all shadow-2xs">
+              EE-312 Embedded Systems
+            </button>
+            <button id="btn-load-sample-ee415" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+              EE-415 Power Electronics
+            </button>
+            <button id="btn-clear-clos" class="btn-interactive text-slate-500 hover:text-rose-600 text-xs font-bold ml-1 px-2 py-1 rounded-lg transition-colors">
+              Clear All
+            </button>
+            <button id="btn-export-clo-pdf-top" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all ml-1" title="Export CLO Quality Audit Report PDF">
+              <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export CLO Audit PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Inputs Grid -->
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-4">
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                Course Code &amp; Title <span class="text-rose-500">*</span>
+              </label>
+              <input 
+                id="input-course-name" 
+                type="text" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-950 text-sm focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all shadow-2xs" 
+                placeholder="e.g. EE-312 Microcontroller &amp; Embedded Systems"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                Course Description &amp; Technical Scope
+              </label>
+              <textarea 
+                id="input-course-desc" 
+                rows="2" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 text-sm focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all leading-relaxed shadow-2xs" 
+                placeholder="Course catalog description for contextual relevance and alignment check..."
+              ></textarea>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                  Course Plan &amp; Topical Syllabus Outline <span class="text-rose-500">*</span>
+                </label>
+                <span class="text-xs text-slate-600 font-semibold">Weekly modules, topic descriptions, contact hours</span>
+              </div>
+              <textarea 
+                id="input-course-plan" 
+                rows="4" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-slate-900 text-sm focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all leading-relaxed shadow-2xs" 
+                placeholder="Week 1-3: Module Title (subtopics, concepts, contact hours)&#10;Week 4-6: Module Title (subtopics, concepts, contact hours)..."
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Syllabus Outline Upload Box -->
+          <div class="p-5 bg-slate-50/90 border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/40 transition-all shadow-2xs" id="syllabus-dropzone">
+            <input type="file" id="syllabus-file-input" class="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt" />
+            <div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-2.5 shadow-2xs">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+            <span class="text-sm font-extrabold text-slate-950">Upload Course Outline</span>
+            <p class="text-xs text-slate-600 mt-0.5">Drag &amp; drop PDF, Word, or Syllabus image</p>
+            <div id="syllabus-upload-status" class="mt-2 text-xs"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Workbench Grid: Left = Inputs, Right = Results -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left: Dynamic CLO Cards -->
+        <div class="lg:col-span-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-slate-950">Course Learning Outcomes Statements</h3>
+              <span id="clo-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-100 text-orange-800 border border-orange-200">3 CLOs</span>
+            </div>
+            <button id="btn-add-clo" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-300 text-slate-800 hover:border-orange-500 hover:text-orange-600 shadow-2xs transition-all flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Add CLO</span>
+            </button>
+          </div>
+
+          <!-- Dynamic List Container -->
+          <div id="clo-inputs-container" class="space-y-4"></div>
+
+          <!-- Big Action Button -->
+          <button id="btn-evaluate-clos" class="btn-interactive w-full py-4 rounded-2xl text-sm font-black uppercase tracking-wider bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Evaluate Course Plan &amp; CLO Quality</span>
+          </button>
+        </div>
+
+        <!-- Right: Results Panel -->
+        <div id="clo-results-card" class="lg:col-span-6">
+          
+          <!-- Empty State -->
+          <div id="clo-results-empty" class="h-full min-h-[420px] bg-white border border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-xs">
+            <div class="w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <h4 class="text-base font-extrabold text-slate-900 mb-1">Awaiting Course Plan & CLO Evaluation</h4>
+            <p class="text-xs text-slate-600 max-w-sm">Provide your Course Plan and CLO statements or click "EE-312 Embedded Systems" sample above, then press "Evaluate Course Plan & CLO Quality" to generate the comprehensive audit.</p>
+          </div>
+
+          <!-- Filled State -->
+          <div id="clo-results-filled" class="hidden space-y-6">
+            
+            <!-- Executive Summary & Dual Scores Card -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 mb-4">
+                <div>
+                  <span class="text-xs font-black uppercase tracking-widest text-slate-500">Accreditation Audit Overview</span>
+                  <h4 id="res-eval-course-title" class="text-lg font-black text-slate-950">Course Plan &amp; Outcomes Audit</h4>
+                  <div id="res-readiness-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black mt-1.5"></div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="text-right p-3 bg-orange-50 rounded-2xl border border-orange-200/90 shadow-2xs">
+                    <span class="text-[11px] font-black uppercase tracking-wider text-orange-900 block">CLO Quality</span>
+                    <span id="res-overall-score" class="text-2xl font-black text-orange-600">8.5 / 10</span>
+                  </div>
+                  <div class="text-right p-3 bg-emerald-50 rounded-2xl border border-emerald-200/90 shadow-2xs">
+                    <span class="text-[11px] font-black uppercase tracking-wider text-emerald-900 block">Outline Quality</span>
+                    <span id="res-outline-score" class="text-2xl font-black text-emerald-600">8.2 / 10</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- View Switcher Tabs: CLO Quality vs Course Plan & Outline -->
+              <div class="flex items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl mb-4 border border-slate-200/80" id="eval-view-switcher">
+                <button id="btn-view-clos-audit" class="btn-interactive flex-1 py-2.5 rounded-xl text-xs font-black transition-all bg-white text-slate-950 shadow-xs border border-slate-200/90">
+                  🎯 CLO Statements Audit (<span id="res-badge-clo-count">3</span>)
+                </button>
+                <button id="btn-view-outline-audit" class="btn-interactive flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all text-slate-700 hover:text-slate-950">
+                  📑 Course Plan &amp; Topics Audit
+                </button>
+              </div>
+
+              <!-- VIEW 1: CLO Quality Content -->
+              <div id="eval-view-clos" class="space-y-4">
+                <p id="res-overall-summary" class="text-sm text-slate-800 leading-relaxed font-normal"></p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div class="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200">
+                    <strong class="text-slate-950 text-xs block mb-1">Cognitive Progression:</strong>
+                    <span id="res-progression" class="text-slate-700 text-xs leading-relaxed font-medium"></span>
+                  </div>
+                  <div class="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200">
+                    <strong class="text-slate-950 text-xs block mb-1">Competency Redundancy:</strong>
+                    <span id="res-redundancy" class="text-slate-700 text-xs leading-relaxed font-medium"></span>
+                  </div>
+                </div>
+
+                <div class="p-4 bg-orange-50/80 rounded-2xl border border-orange-200/80 shadow-2xs">
+                  <strong class="text-xs font-black text-orange-950 block mb-1.5">CLO Accreditation Recommendations:</strong>
+                  <ul id="res-recommendations-list" class="space-y-1.5 text-xs text-slate-800 font-medium leading-relaxed"></ul>
+                </div>
+              </div>
+
+              <!-- VIEW 2: Course Plan & Topics Outline Content -->
+              <div id="eval-view-outline" class="hidden space-y-4">
+                <p id="res-outline-summary" class="text-sm text-slate-800 leading-relaxed font-normal"></p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div class="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200">
+                    <strong class="text-slate-950 text-xs block mb-1">Topical Breadth &amp; Rigor:</strong>
+                    <span id="res-topical-breadth" class="text-slate-700 text-xs leading-relaxed font-medium"></span>
+                  </div>
+                  <div class="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200">
+                    <strong class="text-slate-950 text-xs block mb-1">Pacing &amp; Hours Distribution:</strong>
+                    <span id="res-pacing-assessment" class="text-slate-700 text-xs leading-relaxed font-medium"></span>
+                  </div>
+                </div>
+
+                <!-- Constructive Alignment Gaps Alert -->
+                <div class="p-4 bg-blue-50/80 rounded-2xl border border-blue-200 shadow-2xs text-xs">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <strong class="font-black text-blue-950 text-xs">Topic-to-CLO Constructive Alignment:</strong>
+                    <span id="res-alignment-status-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-100 text-blue-800 border border-blue-200"></span>
+                  </div>
+                  <p id="res-alignment-details" class="text-xs text-blue-950 leading-relaxed mb-2.5 font-medium"></p>
+                  
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2.5 border-t border-blue-200/80">
+                    <div>
+                      <span class="font-extrabold text-amber-950 block mb-0.5">⚠️ Unaddressed / Weak CLOs:</span>
+                      <span id="res-unaddressed-clos" class="text-slate-800 font-medium">None detected</span>
+                    </div>
+                    <div>
+                      <span class="font-extrabold text-slate-950 block mb-0.5">ℹ️ Disconnected / Orphan Topics:</span>
+                      <span id="res-orphan-topics" class="text-slate-800 font-medium">None detected</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Missing Modern Topics & Industry Standards -->
+                <div class="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 shadow-2xs text-xs">
+                  <strong class="text-xs font-black text-emerald-950 block mb-1.5">Recommended Modern Topics &amp; Tools:</strong>
+                  <ul id="res-missing-topics-list" class="space-y-1 text-xs text-emerald-950 font-medium leading-relaxed"></ul>
+                </div>
+
+                <!-- Outline Recommendations -->
+                <div class="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 text-xs">
+                  <strong class="text-xs font-black text-slate-950 block mb-1.5">Outline Improvement Recommendations:</strong>
+                  <ul id="res-outline-recs-list" class="space-y-1 text-xs text-slate-800 leading-relaxed font-medium"></ul>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Single CLO Breakdown View -->
+            <div class="space-y-3" id="clo-breakdown-section">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-600">Individual CLO Audits</span>
+                <button id="btn-export-clo-pdf" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>Export Official PDF Dossier</span>
+                </button>
+              </div>
+
+              <!-- Tabs per outcome -->
+              <div id="clo-result-tabs" class="flex flex-wrap gap-2"></div>
+
+              <!-- Container for selected outcome report -->
+              <div id="single-clo-result-view"></div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 3: ASSESSMENT ALIGNMENT AUDIT ==================== -->
+    <div id="tab-panel-assessment-audit" class="tab-panel space-y-8">
+      
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <span class="text-xs font-black uppercase tracking-widest text-blue-600 mb-0.5 block">Engine 2</span>
+            <h2 class="text-2xl font-black text-slate-950">Assessment Alignment &amp; Cognitive Match Audit</h2>
+            <p class="text-sm text-slate-700 font-normal mt-1 leading-relaxed">Verify exam and quiz questions against intended CLO cognitive depths to prevent cognitive deflation.</p>
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-load-sample-exam" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 text-xs font-bold transition-all shadow-2xs">
+              Load Midterm Exam Sample
+            </button>
+            <button id="btn-add-question" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-300 text-slate-800 hover:border-orange-500 hover:text-orange-600 shadow-2xs flex items-center gap-1 transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Add Question</span>
+            </button>
+            <button id="btn-export-assessment-pdf-top" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all ml-1" title="Export Exam Assessment Audit PDF">
+              <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export Assessment PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left: Questions Input -->
+        <div class="lg:col-span-6 space-y-4">
+          <div id="question-inputs-container" class="space-y-4"></div>
+
+          <button id="btn-evaluate-assessment" class="btn-interactive w-full py-4 rounded-2xl text-sm font-black uppercase tracking-wider bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Audit Exam Alignment &amp; Cognitive Match</span>
+          </button>
+        </div>
+
+        <!-- Right: Results -->
+        <div id="assessment-results-card" class="lg:col-span-6">
+          <div id="assessment-results-empty" class="h-full min-h-[420px] bg-white border border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-xs">
+            <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mb-4">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+            <h4 class="text-base font-extrabold text-slate-900 mb-1">Awaiting Assessment Audit</h4>
+            <p class="text-xs text-slate-600 max-w-sm leading-relaxed">Provide examination questions or load the sample midterm exam, then click "Audit Exam Alignment" to evaluate cognitive depth.</p>
+          </div>
+
+          <div id="assessment-results-filled" class="hidden space-y-6">
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
+              <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                <div>
+                  <span class="text-xs font-black uppercase tracking-widest text-slate-500">Assessment Instrument</span>
+                  <h4 class="text-lg font-black text-slate-950">Cognitive Alignment Index</h4>
+                </div>
+                <div class="text-right p-3 bg-blue-50 rounded-2xl border border-blue-200/90 shadow-2xs">
+                  <span class="text-[11px] font-black uppercase tracking-wider text-blue-900 block">Alignment Score</span>
+                  <span id="res-assessment-score" class="text-2xl font-black text-blue-600">7.4 / 10</span>
+                </div>
+              </div>
+
+              <p id="res-assessment-summary" class="text-sm text-slate-800 leading-relaxed mb-4 font-normal"></p>
+
+              <div class="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 text-xs mb-4">
+                <strong class="text-slate-950 text-xs block mb-1">Marks Distribution:</strong>
+                <span id="res-assessment-weights" class="text-slate-700 text-xs leading-relaxed font-medium"></span>
+              </div>
+
+              <div class="flex justify-end">
+                <button id="btn-export-assessment-pdf" class="btn-interactive px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all">
+                  <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>Export Assessment PDF Report</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="assessment-questions-audit-list" class="space-y-4"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 4: AI CLO & CURRICULUM SUGGESTER ==================== -->
+    <div id="tab-panel-clo-generator" class="tab-panel space-y-8">
+      
+      <!-- Top Title & Presets Card -->
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-black uppercase tracking-widest text-emerald-600">Curriculum Architect</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">New Engine</span>
+            </div>
+            <h2 class="text-2xl font-black text-slate-950">AI CLO &amp; Curriculum Suggester</h2>
+            <p class="text-sm text-slate-700 font-normal mt-1 leading-relaxed">Generate SMART-compliant Course Learning Outcomes, modular topics list, and a Topic-to-CLO Mapping Matrix based on course title and targeted PEC PLOs.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-slate-600">Presets:</span>
+            <!-- Theory Presets -->
+            <div id="gen-presets-theory" class="flex flex-wrap items-center gap-1.5">
+              <button id="btn-gen-preset-dsp" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 text-xs font-bold transition-all shadow-2xs">
+                EE-314 DSP
+              </button>
+              <button id="btn-gen-preset-control" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+                EE-315 Control
+              </button>
+              <button id="btn-gen-preset-signals" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+                EE-221 Signals
+              </button>
+            </div>
+            <!-- Lab Presets (hidden initially) -->
+            <div id="gen-presets-lab" class="hidden flex flex-wrap items-center gap-1.5">
+              <button id="btn-gen-preset-embed-lab" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 text-xs font-bold transition-all shadow-2xs">
+                EE-312L Embedded Lab
+              </button>
+              <button id="btn-gen-preset-dsp-lab" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+                EE-314L DSP Lab
+              </button>
+              <button id="btn-gen-preset-controls-lab" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+                EE-315L Control Lab
+              </button>
+            </div>
+            <button id="btn-export-syllabus-pdf-top" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all ml-1" title="Export Course Syllabus Specification PDF">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export Syllabus PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Course Type Segmented Selector: Theory vs Lab -->
+        <div class="mt-6 p-1.5 bg-slate-100/90 rounded-2xl flex flex-col sm:flex-row items-center gap-1.5 border border-slate-200">
+          <button 
+            type="button" 
+            id="btn-gen-type-theory" 
+            class="btn-interactive w-full sm:flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 bg-white text-emerald-950 shadow-xs border border-emerald-300"
+          >
+            <span class="text-base">📘</span>
+            <span>Theory Course (Classroom Topics &amp; Lecture Modules)</span>
+          </button>
+          <button 
+            type="button" 
+            id="btn-gen-type-lab" 
+            class="btn-interactive w-full sm:flex-1 py-3 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 text-slate-700 hover:text-slate-950"
+          >
+            <span class="text-base">🔬</span>
+            <span>Laboratory Course (Hands-on Experiments)</span>
+          </button>
+        </div>
+
+        <!-- Inputs Form Grid -->
+        <div class="mt-6 space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                <span id="label-gen-course-name">Course Code &amp; Title</span> <span class="text-rose-500">*</span>
+              </label>
+              <input 
+                id="input-gen-course-name" 
+                type="text" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-950 text-sm focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none transition-all shadow-2xs" 
+                placeholder="e.g. EE-314 Digital Signal Processing"
+                value="EE-314 Digital Signal Processing"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                Number of CLOs Desired
+              </label>
+              <div class="grid grid-cols-5 gap-1.5" id="clo-count-selector">
+                <button type="button" class="btn-clo-count btn-interactive py-2 text-xs font-black rounded-xl border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 transition-all shadow-2xs" data-count="2">2</button>
+                <button type="button" class="btn-clo-count btn-interactive py-2 text-xs font-black rounded-xl border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 transition-all shadow-2xs" data-count="3">3</button>
+                <button type="button" class="btn-clo-count btn-interactive active-count py-2 text-xs font-black rounded-xl border border-emerald-500 bg-emerald-600 text-white shadow-xs transition-all" data-count="4">4</button>
+                <button type="button" class="btn-clo-count btn-interactive py-2 text-xs font-black rounded-xl border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 transition-all shadow-2xs" data-count="5">5</button>
+                <button type="button" class="btn-clo-count btn-interactive py-2 text-xs font-black rounded-xl border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 transition-all shadow-2xs" data-count="6">6</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== COURSE-MAPPED PLOS SECTION ==================== -->
+          <div class="p-5 rounded-2xl bg-slate-50/90 border border-slate-200 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
+              <div>
+                <label class="block text-xs font-black uppercase tracking-wider text-slate-950 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  <span>Course Mapped PLOs (PEC Washington Accord Framework)</span>
+                  <span class="text-rose-500">*</span>
+                </label>
+                <p class="text-xs text-slate-600 mt-0.5 font-medium">Provide the Program Learning Outcomes (PLOs) with which this course is officially mapped in your curriculum matrix.</p>
+              </div>
+
+              <!-- Quick Presets -->
+              <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                <button id="btn-select-core-plos" type="button" class="btn-interactive px-3 py-1 rounded-lg font-bold bg-white border border-slate-200 text-slate-800 hover:text-emerald-700 hover:border-emerald-300 shadow-2xs transition-all">Core Theory (1, 2, 3)</button>
+                <button id="btn-select-lab-plos" type="button" class="btn-interactive px-3 py-1 rounded-lg font-bold bg-white border border-slate-200 text-slate-800 hover:text-orange-700 hover:border-orange-300 shadow-2xs transition-all">Lab / Practical (4, 5, 9, 10)</button>
+                <button id="btn-select-design-plos" type="button" class="btn-interactive px-3 py-1 rounded-lg font-bold bg-white border border-slate-200 text-slate-800 hover:text-blue-700 hover:border-blue-300 shadow-2xs transition-all">Design &amp; Tools (3, 5)</button>
+                <button id="btn-select-all-plos" type="button" class="btn-interactive px-3 py-1 rounded-lg font-bold bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-2xs transition-all">All 11</button>
+                <button id="btn-clear-all-plos" type="button" class="btn-interactive px-2 py-1 rounded-lg font-bold text-rose-600 hover:bg-rose-50 transition-all">Clear</button>
+              </div>
+            </div>
+
+            <!-- Quick Text Input & Active Badge Sync -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                  Quick PLO Text / Code Entry (Syncs with pills below)
+                </label>
+                <span id="gen-selected-plos-count-badge" class="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  4 PLOs Mapped
+                </span>
+              </div>
+              <div class="relative">
+                <input 
+                  id="input-gen-plos-text" 
+                  type="text" 
+                  class="w-full pl-4 pr-32 py-2.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-950 text-xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none transition-all placeholder:text-slate-400 font-mono shadow-2xs"
+                  placeholder="e.g. PLO-1, PLO-2, PLO-3 or 1, 2, 3"
+                  value="PLO-1, PLO-2, PLO-3, PLO-5"
+                />
+                <span class="absolute right-3 top-2.5 text-xs text-slate-500 font-sans pointer-events-none font-medium">Type or paste PLOs</span>
+              </div>
+            </div>
+
+            <!-- Checkbox pills for 11 PLOs -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-xs" id="gen-plo-checkboxes">
+              <!-- Dynamically populated by app.js -->
+            </div>
+
+            <!-- ==================== CLO-to-PLO DISTRIBUTION CONTROLS ==================== -->
+            <div class="pt-3 border-t border-slate-200/80">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                <div>
+                  <span class="text-xs font-black uppercase tracking-wider text-slate-800 block">
+                    CLO-to-PLO Mapping Distribution
+                  </span>
+                  <span class="text-xs text-slate-600 font-medium">Define how requested CLOs align with your provided course-mapped PLOs.</span>
+                </div>
+                <div class="flex items-center gap-1 p-1 bg-slate-200/70 rounded-xl text-xs font-extrabold">
+                  <button type="button" id="btn-dist-auto" class="btn-interactive px-3 py-1 rounded-lg bg-white text-emerald-950 shadow-2xs border border-emerald-200 transition-all">
+                    Auto-Distribute
+                  </button>
+                  <button type="button" id="btn-dist-custom" class="btn-interactive px-3 py-1 rounded-lg text-slate-700 hover:text-slate-950 transition-all">
+                    Custom Assign per CLO
+                  </button>
+                </div>
+              </div>
+
+              <!-- Container for per-CLO assignment dropdowns (visible in custom mode) -->
+              <div id="gen-clo-plo-distribution-container" class="hidden mt-3 p-3 bg-white border border-slate-200 rounded-xl">
+                <!-- Dynamically populated when Custom is clicked or CLO count changes -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Course Duration & Weekly Schedule -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50/90 border border-slate-200">
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center justify-between">
+                <span>Course Duration</span>
+                <span class="text-xs font-bold text-slate-600 lowercase">(weeks)</span>
+              </label>
+              <div class="relative">
+                <input 
+                  id="input-gen-course-duration" 
+                  type="number" 
+                  min="1" 
+                  max="52" 
+                  value="16" 
+                  class="w-full pl-4 pr-16 py-2.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-950 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none transition-all shadow-2xs"
+                  placeholder="16"
+                />
+                <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-600 pointer-events-none">Weeks</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-1 font-medium">Typical semester: 16 weeks</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5 flex items-center justify-between">
+                <span>Hours Per Week</span>
+                <span class="text-xs font-bold text-slate-600 lowercase">(contact hrs)</span>
+              </label>
+              <div class="relative">
+                <input 
+                  id="input-gen-hours-per-week" 
+                  type="number" 
+                  min="1" 
+                  max="40" 
+                  value="3" 
+                  class="w-full pl-4 pr-16 py-2.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-950 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none transition-all shadow-2xs"
+                  placeholder="3"
+                />
+                <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-600 pointer-events-none">Hrs/Wk</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-1 font-medium">Standard 3 credit course: 3 hrs/wk</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                Total Contact Hours Budget
+              </label>
+              <div class="h-[42px] px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-200/90 flex items-center justify-between shadow-2xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span id="gen-total-hours-calc" class="text-sm font-black text-emerald-950">48 Contact Hours</span>
+                </div>
+                <span id="gen-duration-breakdown-badge" class="text-[11px] font-extrabold text-emerald-800 bg-white px-2 py-0.5 rounded-md border border-emerald-200">16 wks × 3 hrs</span>
+              </div>
+              <p class="text-xs text-emerald-800 mt-1 font-medium">Auto-computed for topics breakdown</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+              Course Scope &amp; Technical Focus (Optional context)
+            </label>
+            <textarea 
+              id="input-gen-course-scope" 
+              rows="2" 
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 text-sm focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none transition-all leading-relaxed shadow-2xs" 
+              placeholder="Discrete-time signals, Z-transform, DFT/FFT algorithms, FIR and IIR digital filter design, DSP processor implementation..."
+            >Discrete-time signals, sampling theorem, Z-transform, DFT/FFT algorithms, FIR and IIR digital filter synthesis, and real-time DSP processor implementation.</textarea>
+          </div>
+
+          <!-- Generation Button -->
+          <button id="btn-generate-curriculum" class="btn-interactive w-full py-4 rounded-2xl text-sm font-black uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span id="btn-gen-text">Generate Theory CLOs, Topics &amp; Mapping Matrix</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Results Display Section -->
+      <div id="gen-results-container">
+        
+        <!-- Empty State -->
+        <div id="gen-results-empty" class="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-xs">
+          <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+          </div>
+          <h4 class="text-base font-extrabold text-slate-900 mb-1">Awaiting Curriculum Generation</h4>
+          <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">Select target PEC PLOs and number of outcomes, then click "Generate CLOs, Topics &amp; Mapping Matrix" to design an accreditation-grade syllabus.</p>
+        </div>
+
+        <!-- Filled State -->
+        <div id="gen-results-filled" class="hidden space-y-8">
+          
+          <!-- Top Overview & Transfer Toolbar -->
+          <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-emerald-600">Generated Syllabus Blueprint</span>
+                <span id="gen-res-type-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-100 text-blue-800 border border-blue-200">Theory Course</span>
+                <span id="gen-res-duration-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-100 text-blue-800 border border-blue-200">16 Weeks</span>
+                <span id="gen-res-hours-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-purple-100 text-purple-800 border border-purple-200">3 Hrs/Week</span>
+                <span id="gen-res-total-hours-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">48 Total Hours</span>
+              </div>
+              <h3 id="gen-res-course-title" class="text-xl font-black text-slate-950"></h3>
+              <p id="gen-res-course-summary" class="text-sm text-slate-700 mt-1 max-w-2xl leading-relaxed font-normal"></p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button id="btn-transfer-to-evaluator" class="btn-interactive px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-orange-500 text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 transition-all flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                <span>Transfer to CLO Evaluator (Tab 2)</span>
+              </button>
+              
+              <button id="btn-export-syllabus-pdf" class="btn-interactive px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-slate-950 text-white hover:bg-slate-800 shadow-xs transition-all flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Export Syllabus PDF</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Course-to-PLO Alignment Confirmation Card -->
+          <div id="gen-plo-coverage-card" class="bg-gradient-to-r from-emerald-50/90 via-teal-50/90 to-blue-50/90 border border-emerald-200 rounded-3xl p-6 sm:p-7 shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-emerald-200 mb-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                <h5 class="text-xs font-black uppercase tracking-wider text-emerald-950">Course-to-PLO Accreditation Alignment Confirmation</h5>
+              </div>
+              <span id="gen-plo-coverage-badge" class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-200">
+                100% Course PLOs Addressed
+              </span>
+            </div>
+            <p class="text-xs text-slate-700 mb-3 font-medium">Verification that every Program Learning Outcome (PLO) with which this course is mapped is constructively instructed and evaluated by the formulated outcomes:</p>
+            <div id="gen-plo-coverage-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              <!-- Dynamically populated with each mapped PLO, its title, and which CLOs address it -->
+            </div>
+          </div>
+
+          <!-- Section 1: Generated Course Learning Outcomes -->
+          <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <h4 class="text-base font-black text-slate-900 flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <span id="gen-section-clos-title">Suggested Course Learning Outcomes (CLOs)</span>
+              </h4>
+              <span id="gen-res-clo-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800"></span>
+            </div>
+            
+            <div id="gen-clos-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+          </div>
+
+          <!-- Section 2: Modular Syllabus Topics / Lab Experiments -->
+          <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
+            <h4 class="text-base font-black text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+              <span id="gen-section-topics-title">Modular Curriculum Topics &amp; Contact Hours</span>
+            </h4>
+            
+            <div id="gen-topics-list" class="space-y-3"></div>
+          </div>
+
+          <!-- Section 3: Topic-to-CLO Mapping Matrix -->
+          <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
+            <h4 class="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+              <span id="gen-matrix-title">Topic-to-CLO Constructive Alignment Matrix</span>
+            </h4>
+            <p id="gen-matrix-desc" class="text-xs text-slate-600 mb-4 font-normal">Constructive alignment matrix mapping instructional modules to Course Learning Outcomes, delivery modes, and contact hour allocation.</p>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-left border-collapse border border-slate-200 rounded-2xl" id="gen-matrix-table">
+                <!-- Dynamically populated -->
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB: AI RESILIENCE ASSESSMENTS ==================== -->
+    <div id="tab-panel-ai-resilience" class="tab-panel space-y-8" style="display: none;">
+      
+      <!-- Studio Header & Sample Presets -->
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-900 text-xs font-black uppercase tracking-wider mb-2">
+              <span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
+              <span>AI-Resilient Learning Initiative (AI-RLI) • Spring 2026 Framework</span>
+            </div>
+            <h2 class="text-2xl font-black text-slate-950">AI-Resilient Assessment Studio</h2>
+            <p class="text-sm text-slate-700 font-normal mt-1 max-w-3xl leading-relaxed">
+              Architect assignments, quizzes, examination problems, and lab practicals that remain cognitively impervious to Generative AI fluency by enforcing Process &gt; Product, Hyper-Contextualization, and Conceptual Depth with mandatory AI Critique.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-slate-600">Framework Presets:</span>
+            <button id="btn-resilience-preset-i2c" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-purple-50 text-purple-950 border border-purple-200 hover:bg-purple-100 text-xs font-bold transition-all shadow-2xs">
+              EE-312 I2C Assignment
+            </button>
+            <button id="btn-resilience-preset-smps" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+              EE-415 Inverter Exam
+            </button>
+            <button id="btn-resilience-preset-dsp" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+              EE-314 DSP Lab
+            </button>
+            <button id="btn-resilience-preset-control" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+              EE-315 Control Quiz
+            </button>
+            <button id="btn-export-resilience-pdf-top" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all ml-1" title="Export Official AI-Resilient Assessment Dossier PDF">
+              <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export Resilience PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Pillars Framework Summary Strip -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-2xl bg-orange-50/80 border border-orange-200/90 flex items-start gap-3 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">P1</div>
+            <div>
+              <h4 class="text-xs font-black text-orange-950">Process &gt; Product</h4>
+              <p class="text-xs text-orange-950/80 leading-relaxed mt-1 font-medium">Mandates visible cognitive evidence: interim sketches, logic traces, debug/decision journals, and friction notes.</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/90 flex items-start gap-3 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">P2</div>
+            <div>
+              <h4 class="text-xs font-black text-emerald-950">Contextualization</h4>
+              <p class="text-xs text-emerald-950/80 leading-relaxed mt-1 font-medium">Anchors tasks in verifiable, hyper-local realities: lab bench hardware, component tolerances, noisy grounds, dated telemetry.</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-blue-50/80 border border-blue-200/90 flex items-start gap-3 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">P3</div>
+            <div>
+              <h4 class="text-xs font-black text-blue-950">Conceptual Depth &amp; AI Critique</h4>
+              <p class="text-xs text-blue-950/80 leading-relaxed mt-1 font-medium">Stress-tests core physical laws and directs students to query AI, detect hallucinations/oversimplifications, and critique outputs.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Two-Column Layout: Parameters on Left, Output on Right -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- ==================== LEFT COLUMN: ASSESSMENT ARCHITECT FORM ==================== -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
+            <div class="border-b border-slate-100 pb-4">
+              <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                <span>Assessment Configuration</span>
+              </h3>
+              <p class="text-xs text-slate-600 mt-0.5 font-medium">Provide the targeted CLO statement, mapped PLO, and taxonomy level to engineer a resilient prompt.</p>
+            </div>
+
+            <!-- Assessment Type Selector -->
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-2">
+                Target Assessment Instrument <span class="text-rose-500">*</span>
+              </label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-black">
+                <button type="button" id="btn-res-type-assignment" class="res-type-btn btn-interactive py-2.5 px-2.5 rounded-xl transition-all text-center bg-white text-purple-950 shadow-2xs border border-purple-200" data-type="assignment">
+                  Assignment
+                </button>
+                <button type="button" id="btn-res-type-quiz" class="res-type-btn btn-interactive py-2.5 px-2.5 rounded-xl transition-all text-center text-slate-700 hover:text-slate-950" data-type="quiz">
+                  Quiz
+                </button>
+                <button type="button" id="btn-res-type-exam" class="res-type-btn btn-interactive py-2.5 px-2.5 rounded-xl transition-all text-center text-slate-700 hover:text-slate-950" data-type="exam_question">
+                  Exam Q
+                </button>
+                <button type="button" id="btn-res-type-lab" class="res-type-btn btn-interactive py-2.5 px-2.5 rounded-xl transition-all text-center text-slate-700 hover:text-slate-950" data-type="lab_practical">
+                  Lab Pract
+                </button>
+              </div>
+              <input type="hidden" id="resilience-assessment-type" value="assignment" />
+            </div>
+
+            <!-- Course Title -->
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                Course Code &amp; Title <span class="text-rose-500">*</span>
+              </label>
+              <input 
+                type="text" 
+                id="resilience-course-name" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-950 focus:bg-white focus:border-purple-500 focus:outline-none transition-all placeholder:text-slate-400 shadow-2xs" 
+                placeholder="e.g. EE-312 Microcontroller &amp; Embedded Systems"
+                value="EE-312 Microcontroller &amp; Embedded Systems"
+              />
+            </div>
+
+            <!-- CLO Selector from Current Plan / Active CLOs -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                  Select CLO from Active Course Plan
+                </label>
+                <span class="text-xs text-purple-700 font-extrabold">Auto-syncs fields below</span>
+              </div>
+              <select 
+                id="resilience-clo-select" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-purple-500 focus:outline-none transition-all shadow-2xs"
+              >
+                <option value="custom">-- Custom CLO Statement --</option>
+                <!-- Populated dynamically with active course CLOs -->
+              </select>
+            </div>
+
+            <!-- Tested CLO Statement -->
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                CLO Statement to be Tested <span class="text-rose-500">*</span>
+              </label>
+              <textarea 
+                id="resilience-clo-statement" 
+                rows="3" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-950 focus:bg-white focus:border-purple-500 focus:outline-none transition-all placeholder:text-slate-400 leading-relaxed shadow-2xs"
+                placeholder="State the intended learning outcome, e.g. Analyze timing diagrams and register configurations for high-speed serial peripherals (SPI and I2C)..."
+              >Analyze timing diagrams and register configurations for high-speed serial peripherals (SPI and I2C) to diagnose data transmission bottlenecks.</textarea>
+            </div>
+
+            <!-- Mapping: Target PLO & Taxonomy Level -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                  Target Mapped PLO <span class="text-rose-500">*</span>
+                </label>
+                <select 
+                  id="resilience-plo-select" 
+                  class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-purple-500 focus:outline-none transition-all shadow-2xs"
+                >
+                  <option value="PLO-1">PLO-1: Engineering Knowledge</option>
+                  <option value="PLO-2" selected>PLO-2: Problem Analysis</option>
+                  <option value="PLO-3">PLO-3: Design / Development of Solutions</option>
+                  <option value="PLO-4">PLO-4: Investigation</option>
+                  <option value="PLO-5">PLO-5: Modern Tool Usage</option>
+                  <option value="PLO-6">PLO-6: The Engineer &amp; Society</option>
+                  <option value="PLO-7">PLO-7: Environment &amp; Sustainability</option>
+                  <option value="PLO-8">PLO-8: Ethics</option>
+                  <option value="PLO-9">PLO-9: Individual &amp; Teamwork</option>
+                  <option value="PLO-10">PLO-10: Communication</option>
+                  <option value="PLO-11">PLO-11: Project Management</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                  Taxonomy Level <span class="text-rose-500">*</span>
+                </label>
+                <select 
+                  id="resilience-taxonomy-select" 
+                  class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-purple-500 focus:outline-none transition-all shadow-2xs"
+                >
+                  <option value="C1">C1: Remember (Very High AI Vulnerability)</option>
+                  <option value="C2">C2: Understand (Very High AI Vulnerability)</option>
+                  <option value="C3">C3: Apply (High AI Vulnerability)</option>
+                  <option value="C4" selected>C4: Analyse (Critical AI-RLI Threshold)</option>
+                  <option value="C5">C5: Evaluate (Defended Judgment)</option>
+                  <option value="C6">C6: Create (Original Synthesized Artifacts)</option>
+                  <option value="P1">P1: Perception (Hands-on)</option>
+                  <option value="P2">P2: Set</option>
+                  <option value="P3">P3: Guided Response</option>
+                  <option value="P4">P4: Mechanism</option>
+                  <option value="P5">P5: Complex Overt Response</option>
+                  <option value="P6">P6: Adaptation</option>
+                  <option value="P7">P7: Origination</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Concept Focus / Failure Mode -->
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                Core Phenomenon / Concept / Failure Mode
+              </label>
+              <input 
+                type="text" 
+                id="resilience-concept-focus" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-950 focus:bg-white focus:border-purple-500 focus:outline-none transition-all placeholder:text-slate-400 shadow-2xs"
+                placeholder="e.g. I2C Clock Stretching &amp; Bus Arbitration Failure under Multi-Master Contention"
+                value="I2C Clock Stretching &amp; Bus Arbitration Failure under Multi-Master Contention"
+              />
+            </div>
+
+            <!-- Hyper-Local Context & Lab Constraints -->
+            <div>
+              <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                Local Hardware Bench / Environmental Realities
+              </label>
+              <textarea 
+                id="resilience-context-input" 
+                rows="2" 
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:border-purple-500 focus:outline-none transition-all placeholder:text-slate-400 leading-relaxed shadow-2xs"
+                placeholder="e.g. Department Hardware Laboratory Bench #3; STM32F401RE Nucleo board interfaced with DS3231 RTC; 2.2kΩ pull-up resistors on 3.3V rail with 180pF stray capacitance measured on Rigol DS1054Z."
+              >Department Hardware Laboratory Bench #3; STM32F401RE Nucleo board interfaced with DS3231 RTC and 24C32 EEPROM; 2.2kΩ pull-up resistors on 3.3V rail with 180pF stray bus capacitance measured on Rigol DS1054Z.</textarea>
+            </div>
+
+            <!-- Framework Pillars Enforcers -->
+            <div class="pt-2 border-t border-slate-100 space-y-2.5">
+              <span class="block text-xs font-black uppercase tracking-wider text-slate-800">Enforce AI-RLI Framework Pillars:</span>
+              
+              <label class="flex items-start gap-2.5 cursor-pointer text-xs">
+                <input type="checkbox" id="resilience-check-p1" checked class="mt-0.5 rounded text-purple-600 focus:ring-purple-500" />
+                <span class="text-slate-800 font-medium"><strong>P1: Process &gt; Product</strong> (Require chronological decision logs, timing sketches, and friction margin notes)</span>
+              </label>
+
+              <label class="flex items-start gap-2.5 cursor-pointer text-xs">
+                <input type="checkbox" id="resilience-check-p2" checked class="mt-0.5 rounded text-purple-600 focus:ring-purple-500" />
+                <span class="text-slate-800 font-medium"><strong>P2: Contextualization</strong> (Embed real laboratory bench, serial numbers, noise floors, and hardware tolerances)</span>
+              </label>
+
+              <label class="flex items-start gap-2.5 cursor-pointer text-xs">
+                <input type="checkbox" id="resilience-check-p3" checked class="mt-0.5 rounded text-purple-600 focus:ring-purple-500" />
+                <span class="text-slate-800 font-medium"><strong>P3: Conceptual Depth &amp; AI Critique</strong> (Structural analysis + mandatory student AI prompt &amp; flaw detection)</span>
+              </label>
+            </div>
+
+            <!-- Action Button -->
+            <button 
+              id="btn-generate-resilient-assessment" 
+              type="button" 
+              class="btn-interactive w-full py-4 rounded-2xl text-sm font-black uppercase tracking-wider bg-purple-700 text-white hover:bg-purple-800 shadow-lg shadow-purple-700/25 transition-all flex items-center justify-center gap-2"
+            >
+              <svg class="w-5 h-5 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              <span>Generate AI-Resilient Assessment</span>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- ==================== RIGHT COLUMN: RESULTS & DOSSIER ==================== -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <!-- Empty State -->
+          <div id="resilience-empty-state" class="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-xs text-center">
+            <div class="w-16 h-16 rounded-3xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">AI-RLI Assessment Architect Ready</h3>
+            <p class="text-sm text-slate-700 max-w-lg mx-auto leading-relaxed mb-6 font-normal">
+              Select a framework preset above or configure your course CLO, target PLO, and taxonomy level on the left. Click <strong>Generate AI-Resilient Assessment</strong> to formulate an authentic, AI-impervious assessment brief with fracture diagnosis, traceable deliverables, and scoring rubric.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-md mx-auto">
+              <div class="p-3.5 bg-purple-50 rounded-xl border border-purple-200/80 shadow-2xs">
+                <span class="text-xs font-black text-purple-950 block mb-1">Bloom's Critical Pivot (C4)</span>
+                <span class="text-xs text-purple-800 leading-relaxed font-medium">Where AI fluency most frequently mimics understanding without authentic reasoning.</span>
+              </div>
+              <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200/80 shadow-2xs">
+                <span class="text-xs font-black text-emerald-950 block mb-1">P3: Intentional AI Critique</span>
+                <span class="text-xs text-emerald-800 leading-relaxed font-medium">Turns AI into an object of student scrutiny rather than an automated surrogate.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Results Card (Hidden Initially) -->
+          <div id="resilience-results-card" class="hidden space-y-6">
+            
+            <!-- Result Meta Banner -->
+            <div class="bg-gradient-to-br from-purple-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 sm:p-7 shadow-md border border-purple-900/40">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                    <span id="resilience-res-type-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-purple-500/30 text-purple-200 border border-purple-400/40">
+                      Assignment
+                    </span>
+                    <span id="resilience-res-plo-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                      PLO-2 (C4)
+                    </span>
+                    <span id="resilience-res-vuln-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500/20 text-rose-200 border border-rose-400/30">
+                      C4: Critical Pivot Zone
+                    </span>
+                  </div>
+                  <h3 id="resilience-res-title" class="text-lg sm:text-xl font-black text-white">
+                    EE-312: High-Speed I2C Bus Arbitration &amp; Timing Diagnostic
+                  </h3>
+                  <p id="resilience-res-course" class="text-xs text-slate-300 mt-1 font-medium">
+                    Department of Electrical Engineering • AI-Resilient Learning Initiative (AI-RLI)
+                  </p>
+                </div>
+
+                <div class="shrink-0 flex items-center gap-2">
+                  <button id="btn-export-resilience-pdf" class="btn-interactive px-4 py-2.5 rounded-xl text-xs font-black bg-purple-500 hover:bg-purple-600 text-white shadow-md flex items-center gap-1.5 transition-all">
+                    <svg class="w-4 h-4 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>Export Official Dossier PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tested CLO Quote in Banner -->
+              <div class="mt-4 text-xs text-purple-100 italic leading-relaxed">
+                <span class="font-extrabold text-white not-italic mr-1.5">Target CLO:</span>
+                <span id="resilience-res-clo-statement"></span>
+              </div>
+            </div>
+
+            <!-- Assessment Fracture Diagnosis Card -->
+            <div class="bg-white border border-rose-200 rounded-3xl p-6 shadow-xs space-y-4">
+              <div class="flex items-center gap-2 pb-2 border-b border-rose-100">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                <h4 class="text-xs font-black uppercase tracking-wider text-rose-950">
+                  Assessment Fracture Diagnosis (Why Conventional Prompts Fail)
+                </h4>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div class="p-4 bg-rose-50/80 rounded-2xl border border-rose-200 shadow-2xs">
+                  <span class="text-xs font-black text-rose-950 uppercase tracking-wider block mb-1">Conventional Vulnerable Phrasing:</span>
+                  <p id="resilience-res-vuln-prompt" class="text-rose-950 font-mono text-xs leading-relaxed italic"></p>
+                </div>
+                <div class="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 shadow-2xs">
+                  <span class="text-xs font-black text-slate-950 uppercase tracking-wider block mb-1">GenAI Fracture Mechanism:</span>
+                  <p id="resilience-res-fracture-text" class="text-slate-800 leading-relaxed font-normal"></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- The 3 Pillars Blueprint Card -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+              <div class="pb-2 border-b border-slate-100 flex items-center justify-between">
+                <h4 class="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                  <span>The Three-Pillar AI-RLI Architecture</span>
+                </h4>
+                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200">Framework Blueprints</span>
+              </div>
+
+              <div class="space-y-3 text-xs">
+                <!-- P1 -->
+                <div class="p-4 bg-orange-50/80 rounded-2xl border border-orange-200 shadow-2xs">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2 py-0.5 rounded-md bg-orange-600 text-white font-black text-xs">Pillar 1</span>
+                    <strong class="text-orange-950 text-xs">Process &gt; Product (Cognitive Arc Artifacts)</strong>
+                  </div>
+                  <ul id="resilience-res-p1-evidence" class="list-disc pl-5 text-orange-950 text-xs space-y-1.5 leading-relaxed font-medium"></ul>
+                </div>
+
+                <!-- P2 -->
+                <div class="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 shadow-2xs">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-black text-xs">Pillar 2</span>
+                    <strong class="text-emerald-950 text-xs">Contextualization (Hyper-Localized Bench Reality)</strong>
+                  </div>
+                  <p id="resilience-res-p2-context" class="text-emerald-950 text-xs leading-relaxed font-medium"></p>
+                </div>
+
+                <!-- P3 -->
+                <div class="p-4 bg-blue-50/80 rounded-2xl border border-blue-200 shadow-2xs">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2 py-0.5 rounded-md bg-blue-600 text-white font-black text-xs">Pillar 3</span>
+                    <strong class="text-blue-950 text-xs">Conceptual Depth &amp; Loadbearing Structure</strong>
+                  </div>
+                  <p id="resilience-res-p3-structure" class="text-blue-950 text-xs leading-relaxed font-medium"></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resilient Student-Facing Assessment Brief -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h4 class="text-base font-black text-slate-900 flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                  <span>Student-Facing Assessment Instrument Brief</span>
+                </h4>
+                <button id="btn-copy-resilience-brief" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-800 hover:bg-slate-200 transition-colors flex items-center gap-1 shadow-2xs">
+                  <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  <span id="copy-brief-label">Copy Brief</span>
+                </button>
+              </div>
+
+              <!-- Brief Scenario -->
+              <div class="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 text-xs shadow-2xs">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-slate-800 block mb-1">Operational Engineering Scenario:</span>
+                <p id="resilience-res-scenario" class="text-slate-800 text-sm leading-relaxed font-normal"></p>
+              </div>
+
+              <!-- Assigned Tasks -->
+              <div class="space-y-2">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-900 block">Assigned Engineering Tasks:</span>
+                <ol id="resilience-res-tasks" class="list-decimal pl-5 text-sm text-slate-800 space-y-2 leading-relaxed font-normal"></ol>
+              </div>
+
+              <!-- Deliverables Checklist -->
+              <div class="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-2 shadow-2xs">
+                <span class="text-xs font-black uppercase tracking-wider text-purple-950 block">Traceable Deliverables &amp; Evidence Checklist:</span>
+                <ul id="resilience-res-deliverables" class="list-disc pl-5 text-xs text-purple-950 space-y-1.5 leading-relaxed font-medium"></ul>
+              </div>
+            </div>
+
+            <!-- Mandatory AI Critique Protocol Box -->
+            <div class="bg-white border border-purple-200 rounded-3xl p-6 shadow-xs space-y-4">
+              <div class="flex items-center gap-2 pb-2 border-b border-purple-100">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                <h4 class="text-xs font-black uppercase tracking-wider text-purple-950">
+                  P3 Strategy: Intentional AI Critique Protocol
+                </h4>
+              </div>
+              <p class="text-xs text-slate-700 leading-relaxed font-medium">Students are instructed to feed this exact prompt into GenAI (ChatGPT/Claude/Gemini) and document its hallucinations and non-ideal hardware omissions:</p>
+              
+              <div class="p-4 bg-slate-950 text-purple-200 rounded-2xl font-mono text-xs border border-slate-800 shadow-md">
+                <span class="text-[11px] uppercase font-bold text-slate-400 block mb-1.5">Mandatory Student AI Interrogation Prompt:</span>
+                <p id="resilience-res-ai-prompt" class="text-white italic leading-relaxed text-xs"></p>
+              </div>
+
+              <div class="p-4 bg-blue-50/80 rounded-2xl border border-blue-200 text-xs shadow-2xs">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-blue-950 block mb-1">Required Student Structural Critique:</span>
+                <p id="resilience-res-ai-critique" class="text-blue-950 leading-relaxed text-xs font-medium"></p>
+              </div>
+            </div>
+
+            <!-- Cognitive Scoring Rubric Table -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h4 class="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                  <span>AI-RLI Assessment &amp; Moderation Rubric (100 Marks Total)</span>
+                </h4>
+                <span class="text-xs font-black text-slate-700">OBE Attainment Weighted</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse border border-slate-200 rounded-2xl">
+                  <thead>
+                    <tr class="bg-slate-100/90 text-slate-900 border-b border-slate-200">
+                      <th class="p-3 border border-slate-200 font-black uppercase tracking-wider text-xs">Evaluation Dimension</th>
+                      <th class="p-3 border border-slate-200 font-black uppercase tracking-wider text-xs w-24 text-center">Marks</th>
+                      <th class="p-3 border border-slate-200 font-black uppercase tracking-wider text-xs">Performance Descriptor</th>
+                    </tr>
+                  </thead>
+                  <tbody id="resilience-res-rubric-tbody" class="divide-y divide-slate-100">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200 text-xs text-slate-700">
+                <strong class="text-slate-950">Accreditation QA Note:</strong>
+                <span id="resilience-res-moderation-notes" class="ml-1 font-medium"></span>
+              </div>
+
+              <div class="flex items-center justify-end pt-2">
+                <button id="btn-export-resilience-pdf-bottom" class="btn-interactive px-5 py-3 rounded-2xl text-xs font-extrabold text-white bg-slate-950 hover:bg-slate-800 shadow-md shadow-slate-950/20 transition-all flex items-center gap-2">
+                  <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>Export AI-Resilient Dossier PDF</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 6: PEC STANDARDS & BLOOM'S HUB ==================== -->
+    <div id="tab-panel-standards-hub" class="tab-panel space-y-8">
+      
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-black uppercase tracking-widest text-orange-600 mb-0.5 block">Accreditation Reference Center</span>
+            <h2 class="text-2xl font-black text-slate-950">Pakistan Engineering Council (PEC) Standards Hub</h2>
+            <p class="text-sm text-slate-700 font-normal mt-1 leading-relaxed">Official definitions for the 11 Program Learning Outcomes (PLOs), Bloom's Revised Taxonomy domains, and measurable action verbs.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-export-standards-pdf" class="btn-interactive px-4 py-2.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-2 transition-all" title="Export Complete Standards Handbook PDF">
+              <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export Standards Handbook PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 11 PEC PLOs Reference Grid -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <h3 class="text-base font-black text-slate-900 mb-4 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+          <span>The 11 Program Learning Outcomes (PLOs) — PEC Framework (IEA v4.0)</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs" id="pec-plos-full-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Bloom's Cognitive Levels & Action Verbs -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <h3 class="text-base font-black text-slate-900 mb-4 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+          <span>Bloom's Revised Taxonomy — Cognitive Domain (C1 to C6)</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs" id="blooms-cognitive-full-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Blacklisted Non-Measurable Verbs Card -->
+      <div class="bg-white border border-amber-200 rounded-3xl p-6 sm:p-8 shadow-xs bg-amber-50/30">
+        <h3 class="text-base font-black text-amber-950 mb-2 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+          <span>Non-Measurable Verbs Blacklist (Accreditation Red Flags)</span>
+        </h3>
+        <p class="text-xs text-amber-900 mb-4 leading-relaxed font-medium">
+          The following verbs represent internal, passive mental states that cannot be directly measured or evaluated in an engineering exam, laboratory rubric, or accreditation folder.
+        </p>
+        <div class="flex flex-wrap gap-2 text-xs">
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Understand</span>
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Know</span>
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Learn</span>
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Be familiar with</span>
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Appreciate</span>
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Comprehend</span>
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Study</span>
+          <span class="px-3 py-1.5 bg-amber-100/90 text-amber-950 rounded-xl font-bold border border-amber-300 line-through shadow-2xs">Grasp</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 7: ACCREDITATION CQI GUIDE ==================== -->
+    <div id="tab-panel-cqi-guide" class="tab-panel space-y-8">
+      
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-black uppercase tracking-widest text-emerald-600 mb-0.5 block">Departmental QA Best Practices</span>
+            <h2 class="text-2xl font-black text-slate-950">Accreditation &amp; Continuous Quality Improvement (CQI) Guide</h2>
+            <p class="text-sm text-slate-700 font-normal mt-1 leading-relaxed">Essential protocols for Course Review Folders (CRFs) and closing the loop under PEC &amp; Washington Accord standards.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-export-cqi-pdf" class="btn-interactive px-4 py-2.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-2 transition-all" title="Export Accreditation CQI Guide PDF">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export CQI Guide PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Checklist Card -->
+        <div class="p-6 sm:p-8 bg-white border border-slate-200 rounded-3xl shadow-xs">
+          <h3 class="text-base font-black text-slate-900 mb-3.5 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span>Course Review Folder (CRF) Mandatory Checklist</span>
+          </h3>
+          <ul class="space-y-3 text-sm text-slate-800 leading-relaxed font-normal">
+            <li class="flex items-start gap-2.5">
+              <span class="text-emerald-600 font-black">✓</span>
+              <span><strong>Approved Course Syllabus:</strong> Explicitly displaying CLO statements, mapped PEC PLOs, and Bloom's cognitive domain.</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-emerald-600 font-black">✓</span>
+              <span><strong>Assessment Alignment Matrices:</strong> Midterm and final exam papers with question-to-CLO mapping table and marks weighting.</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-emerald-600 font-black">✓</span>
+              <span><strong>Graded Student Samples:</strong> Best, average, and worst answer scripts demonstrating transparent rubric scoring.</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-emerald-600 font-black">✓</span>
+              <span><strong>CLO Attainment Calculation:</strong> Direct assessment calculation demonstrating student cohort percentage achieving benchmark (e.g. 50% threshold).</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span class="text-emerald-600 font-black">✓</span>
+              <span><strong>CQI Action Report:</strong> Documented instructor reflections addressing deficient outcomes with actionable interventions for the next offering.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- CQI Cycle Card -->
+        <div class="p-6 sm:p-8 bg-white border border-slate-200 rounded-3xl shadow-xs">
+          <h3 class="text-base font-black text-slate-900 mb-3.5 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+            <span>The OBE Continuous Quality Improvement Cycle</span>
+          </h3>
+          <div class="space-y-3 text-sm text-slate-800 leading-relaxed">
+            <div class="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 shadow-2xs">
+              <strong class="text-slate-950 font-bold block mb-1">1. Plan (Constructive Alignment)</strong>
+              Define measurable CLOs using active verbs. Align delivery methods with intended cognitive depths.
+            </div>
+            <div class="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 shadow-2xs">
+              <strong class="text-slate-950 font-bold block mb-1">2. Execute &amp; Audit (Assessment)</strong>
+              Verify that exam questions do not suffer from cognitive deflation (e.g., Q3 testing recall for a design CLO).
+            </div>
+            <div class="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 shadow-2xs">
+              <strong class="text-slate-950 font-bold block mb-1">3. Evaluate &amp; Close the Loop (CQI)</strong>
+              Calculate cohort attainment. If attainment is below 60%, formulate remedial lab sessions or revised assessment strategies.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="mt-auto bg-slate-950 text-slate-300 py-12 border-t border-slate-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-800 text-center md:text-left">
+        <div class="flex items-center gap-4">
+          <img src="./public/assets/FOE_Logo_WBG.png" alt="Faculty of Engineering Logo" class="h-12 w-auto object-contain brightness-0 invert opacity-90" />
+          <div>
+            <div class="flex items-center justify-center md:justify-start gap-3 mb-1">
+              <span class="font-black text-white text-base">OBE CLO Evaluator EED</span>
+              <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-orange-950 text-orange-400 border border-orange-800">Version 3.0</span>
+            </div>
+            <p class="text-xs text-slate-300 font-medium">Department of Electrical Engineering • Faculty of Engineering</p>
+            <p class="text-xs text-orange-400 font-bold mt-1">
+              System Conceptualization, Architecture &amp; Implementation: <span class="text-white font-extrabold tracking-wide">Engr. Dr. Nabeel Khalid</span>
+            </p>
+          </div>
+        </div>
+        <div class="text-center md:text-right">
+          <div class="text-xs text-slate-300 font-medium">
+            Compliant with Pakistan Engineering Council (PEC 11 PLO Framework) &amp; Washington Accord (IEA v4.0)
+          </div>
+          <div class="text-xs text-slate-400 font-medium mt-1">
+            Lead Developer &amp; System Architect: <strong class="text-white font-bold">Engr. Dr. Nabeel Khalid</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-medium">
+        <p>© 2026 OBE CLO Evaluator. Implemented by Engr. Dr. Nabeel Khalid. All rights reserved.</p>
+        <p>Engineered for Continuous Quality Improvement (CQI) in Higher Engineering Education.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== API KEY CONFIGURATION MODAL ==================== -->
+  <div id="api-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">AI</div>
+          <h4 class="font-extrabold text-slate-900 text-base">Gemini API Settings</h4>
+        </div>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-700 leading-relaxed mb-4 font-normal">
+        Enter your Google Gemini API Key from Google AI Studio. Stored securely in browser <code class="bg-slate-100 px-1.5 py-0.5 rounded text-orange-700 font-mono text-xs">localStorage</code>.
+      </p>
+
+      <div class="mb-4">
+        <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+          Google Gemini API Key
+        </label>
+        <input 
+          type="password" 
+          id="api-key-input" 
+          class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-orange-500 focus:outline-none font-mono text-slate-900 shadow-2xs" 
+          placeholder="AIzaSy..." 
+        />
+        <span class="block text-xs text-slate-500 mt-1 font-medium">Leave empty to use built-in accreditation simulation mode.</span>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button id="btn-save-api-key" class="btn-interactive px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-orange-500 text-white hover:bg-orange-600 shadow-md transition-all">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BLOOM'S VERBS MODAL ==================== -->
+  <div id="verbs-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+        <div>
+          <h4 class="font-extrabold text-slate-900 text-base">Bloom's Taxonomy Measurable Action Verbs</h4>
+          <p class="text-xs text-slate-600 font-medium">Click any action verb to insert it directly into your active CLO statement.</p>
+        </div>
+        <button id="btn-close-verbs-modal" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 pr-1" id="verbs-by-level-container"></div>
+    </div>
+  </div>
+
+  <!-- ==================== LOADING OVERLAY ==================== -->
+  <div id="evaluating-overlay" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-slate-200">
+      <div class="w-16 h-16 mx-auto mb-4 text-orange-500 animate-spin">
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+      </div>
+      <h4 class="text-base font-extrabold text-slate-900 mb-1">AI Evaluation Engine Active</h4>
+      <p id="evaluating-message" class="text-xs text-slate-600 font-medium">Applying PEC accreditation heuristics...</p>
+    </div>
+  </div>
+
+  <!-- ==================== DEMO VIDEO STUDIO MODAL ==================== -->
+  <div id="demo-video-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-5xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center font-black">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+              <span>OBE CLO Evaluator EED — System Walkthrough &amp; Demo</span>
+              <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">1080p HD</span>
+            </h3>
+            <p class="text-[11px] text-slate-400 font-medium">Conceptualized, Architected &amp; Implemented by Engr. Dr. Nabeel Khalid • EED FOE</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-record-demo-video" class="px-3.5 py-1.5 rounded-xl text-xs font-black text-white bg-red-600 hover:bg-red-700 shadow-xs flex items-center gap-1.5 transition-all" title="Record HD Demo Video &amp; Download WebM/MP4">
+            <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            <span>Record &amp; Download</span>
+          </button>
+          <button id="btn-video-fullscreen" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Toggle Fullscreen">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+          </button>
+          <button id="btn-close-demo-video" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Close Video Modal">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Video Player Screen (16:9 Aspect Ratio) -->
+      <div class="relative bg-black w-full flex items-center justify-center overflow-hidden aspect-video max-h-[62vh]">
+        <canvas id="demo-video-canvas" width="1920" height="1080" class="w-full h-full object-contain block bg-slate-950"></canvas>
+      </div>
+
+      <!-- Scene Navigation Rail (1 to 7) -->
+      <div class="px-4 py-2 bg-slate-950/60 border-t border-slate-800/80 overflow-x-auto scrollbar-none flex items-center gap-2" id="video-scene-pills-container">
+        <!-- Rendered by js/demo-video.js -->
+      </div>
+
+      <!-- Bottom Control Bar -->
+      <div class="px-5 py-3 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+        <!-- Play / Replay Controls -->
+        <div class="flex items-center gap-2">
+          <button id="btn-video-play-pause" class="p-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-xs transition-all" title="Play / Pause">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+          </button>
+          <button id="btn-video-replay" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all" title="Restart from Beginning">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </button>
+          <span id="video-time-display" class="text-xs font-mono font-black text-slate-300 min-w-[90px]">00:00 / 02:00</span>
+        </div>
+
+        <!-- Scrubber Slider -->
+        <div class="flex-1 w-full flex items-center">
+          <input id="video-timeline-scrubber" type="range" min="0" max="100" value="0" step="0.1" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/app.js?v=3.0"></script>
+  <script type="module" src="./js/demo-video.js?v=3.0"></script>
+</body>
+</html>

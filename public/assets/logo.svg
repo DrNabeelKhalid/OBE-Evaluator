@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" fill="none">
+  <!-- Gear and Circuit Icon -->
+  <g transform="translate(10, 10)">
+    <circle cx="40" cy="40" r="36" stroke="#F27D26" stroke-width="4" fill="#FFF7ED" stroke-dasharray="6 3" />
+    <circle cx="40" cy="40" r="24" fill="#F27D26" />
+    <path d="M40 24V16M40 56V64M24 40H16M56 40H64" stroke="#FFF7ED" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="40" cy="40" r="10" fill="#FFFFFF" />
+    <circle cx="40" cy="40" r="5" fill="#F27D26" />
+    <circle cx="40" cy="16" r="3" fill="#F27D26" />
+    <circle cx="64" cy="40" r="3" fill="#F27D26" />
+    <circle cx="40" cy="64" r="3" fill="#F27D26" />
+    <circle cx="16" cy="40" r="3" fill="#F27D26" />
+  </g>
+  <g transform="translate(105, 32)">
+    <text x="0" y="0" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="900" font-size="22" fill="#0F172A" letter-spacing="-0.03em">
+      FACULTY OF ENGINEERING
+    </text>
+    <text x="0" y="24" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" fill="#F27D26" letter-spacing="0.08em">
+      DEPARTMENT OF ELECTRICAL ENGINEERING
+    </text>
+    <text x="0" y="44" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="500" font-size="11" fill="#64748B" letter-spacing="0.04em">
+      OUTCOME-BASED EDUCATION (OBE) QUALITY ASSURANCE
+    </text>
+  </g>
+</svg>

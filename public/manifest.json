@@ -1,0 +1,25 @@
+{
+  "name": "OBE CLO Evaluator EED - Faculty of Engineering",
+  "short_name": "OBE Evaluator",
+  "description": "AI-Powered Course Learning Outcome (CLO) & Assessment Evaluator for Washington Accord / PEC Accreditation. Implemented by Engr. Dr. Nabeel Khalid.",
+  "author": "Engr. Dr. Nabeel Khalid",
+  "start_url": "../index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F172A",
+  "theme_color": "#F27D26",
+  "icons": [
+    {
+      "src": "./assets/FOE_Logo_WBG.png",
+      "sizes": "971x316",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
