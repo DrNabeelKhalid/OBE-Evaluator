@@ -1,5 +1,5 @@
 /**
- * OBE CLO Evaluator EED — Demo Video Engine & In-Browser Screen Recorder
+ * OBE-ICAS EED — Outcome Integrity & Cognitive Alignment Suite — Demo Video Studio
  * Conceptualized, Architected & Implemented by Engr. Dr. Nabeel Khalid
  * Department of Electrical Engineering • Faculty of Engineering
  */
@@ -33,7 +33,7 @@ export class DemoVideoStudio {
         title: 'Institutional Intro & Architecture',
         duration: 14,
         tabName: 'overview',
-        subtitle: 'Welcome to OBE CLO Evaluator EED. System Architecture & Implementation by Engr. Dr. Nabeel Khalid.',
+        subtitle: 'Welcome to OBE-ICAS EED (Outcome Integrity & Cognitive Alignment Suite). Architecture & Implementation by Engr. Dr. Nabeel Khalid.',
         tagline: 'Washington Accord & PEC Standards Compliance Platform',
         draw: (ctx, t, progress) => this.drawSceneIntro(ctx, t, progress)
       },
@@ -308,7 +308,7 @@ export class DemoVideoStudio {
     // Header Title & Version
     ctx.fillStyle = '#FFFFFF';
     ctx.font = '800 26px "Plus Jakarta Sans", sans-serif';
-    ctx.fillText('OBE CLO Evaluator EED — Version 3.0', 230, 54);
+    ctx.fillText('OBE-ICAS EED — Version 3.0', 230, 54);
 
     // System Credit Badge in Top Bar
     ctx.fillStyle = '#FFF7ED';
@@ -1064,7 +1064,7 @@ export class DemoVideoStudio {
     ctx.fillStyle = '#475569';
     ctx.font = '700 13px "Inter", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('OBE CLO Evaluator EED Platform • System Architecture & Implementation: Engr. Dr. Nabeel Khalid', docX + docW / 2, docY + docH - 45);
+    ctx.fillText('OBE-ICAS EED Platform • System Architecture & Implementation: Engr. Dr. Nabeel Khalid', docX + docW / 2, docY + docH - 45);
     ctx.fillStyle = '#94A3B8';
     ctx.font = '500 11px "Inter", sans-serif';
     ctx.fillText('Department of Electrical Engineering • Faculty of Engineering • © 2026 All Rights Reserved', docX + docW / 2, docY + docH - 25);
@@ -1125,22 +1125,26 @@ export class DemoVideoStudio {
     if (this.isRecording) return;
     if (!this.canvas.captureStream) {
       alert('Your browser does not support canvas video recording.');
+    if (this.isRecording) {
+      this.stopVideoRecording();
       return;
     }
 
     try {
-      const stream = this.canvas.captureStream(30);
-      
+      this.recordedChunks = [];
+      const stream = this.canvas.captureStream(30); // 30 FPS Stream
       let mimeType = 'video/webm;codecs=vp9';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'video/webm';
       }
 
-      this.mediaRecorder = new MediaRecorder(stream, { mimeType });
-      this.recordedChunks = [];
+      this.mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 6000000 // 6 Mbps for crisp 1080p
+      });
 
       this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           this.recordedChunks.push(event.data);
         }
       };
@@ -1151,7 +1155,7 @@ export class DemoVideoStudio {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = 'OBE_CLO_Evaluator_Demo_Dr_Nabeel_Khalid.webm';
+        a.download = 'OBE_ICAS_Demo_Walkthrough_Dr_Nabeel_Khalid.webm';
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -1160,7 +1164,7 @@ export class DemoVideoStudio {
         }, 100);
 
         this.setRecordingUI(false);
-        alert('Demo video recorded and downloaded successfully: OBE_CLO_Evaluator_Demo_Dr_Nabeel_Khalid.webm');
+        alert('Demo video recorded and downloaded successfully: OBE_ICAS_Demo_Walkthrough_Dr_Nabeel_Khalid.webm');
       };
 
       this.mediaRecorder.start();

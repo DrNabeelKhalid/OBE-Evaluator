@@ -1,4 +1,5 @@
-// OBE CLO Evaluator Application Controller - Multi-Tab System
+// OBE-ICAS Application Controller - Outcome Integrity & Cognitive Alignment Suite
+// System Architecture & Implementation: Engr. Dr. Nabeel Khalid
 // Faculty of Engineering - Department of Electrical Engineering
 
 import { PLO_LIST, TAXONOMY_LEVELS, UNMEASURABLE_VERBS_WARNING, SAMPLE_COURSES, SAMPLE_ASSESSMENT, SAMPLE_RESILIENCE_PRESETS } from './constants.js';

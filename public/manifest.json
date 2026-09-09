@@ -1,7 +1,7 @@
 {
-  "name": "OBE CLO Evaluator EED - Faculty of Engineering",
-  "short_name": "OBE Evaluator",
-  "description": "AI-Powered Course Learning Outcome (CLO) & Assessment Evaluator for Washington Accord / PEC Accreditation. Implemented by Engr. Dr. Nabeel Khalid.",
+  "name": "OBE-ICAS — Outcome Integrity & Cognitive Alignment Suite",
+  "short_name": "OBE-ICAS",
+  "description": "Outcome-Based Education Integrity & Cognitive Alignment Suite (OBE-ICAS) for Washington Accord / PEC Accreditation. Implemented by Engr. Dr. Nabeel Khalid.",
   "author": "Engr. Dr. Nabeel Khalid",
   "start_url": "../index.html",
   "display": "standalone",

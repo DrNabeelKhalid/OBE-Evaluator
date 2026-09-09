@@ -1,5 +1,5 @@
-// Service Worker for OBE CLO Evaluator EED PWA
-const CACHE_NAME = 'obe-clo-evaluator-v1';
+// Service Worker for OBE-ICAS EED PWA
+const CACHE_NAME = 'obe-icas-v3';
 const ASSETS = [
   '../index.html',
   '../css/custom.css',

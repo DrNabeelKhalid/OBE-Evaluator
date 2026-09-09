@@ -1,4 +1,5 @@
-// OBE CLO Evaluator Constants & Standards
+// OBE-ICAS Constants & Standards (Outcome Integrity & Cognitive Alignment Suite)
+// Conceptualized & Implemented by Engr. Dr. Nabeel Khalid
 // Compliant with Pakistan Engineering Council (PEC) 11 PLO Framework & Washington Accord
 
 export const PLO_LIST = [

@@ -1,6 +1,8 @@
-# OBE CLO Evaluator EED — Web Platform
+# OBE-ICAS: Outcome Integrity & Cognitive Alignment Suite
 ### Faculty of Engineering • Department of Electrical Engineering
-Outcome-Based Education (OBE) Quality Assurance & Assessment Alignment System compliant with the **Washington Accord**, **Pakistan Engineering Council (PEC)**, and **ABET** criteria.
+Outcome-Based Education (OBE) Outcome Integrity & Cognitive Alignment System compliant with the **Washington Accord (IEA v4.0)**, **Pakistan Engineering Council (PEC)**, and **ABET** criteria.
+
+**Live Deployment**: [https://drnabeelkhalid.github.io/OBE-Evaluator/](https://drnabeelkhalid.github.io/OBE-Evaluator/)
 
 ---
 
@@ -80,5 +82,5 @@ Key contributions include:
 ---
 
 ## 📑 License & Attribution
-© 2026 OBE CLO Evaluator. Implemented by **Engr. Dr. Nabeel Khalid**. All rights reserved.  
+© 2026 OBE-ICAS Platform. Implemented by **Engr. Dr. Nabeel Khalid**. All rights reserved.  
 Department of Electrical Engineering • Faculty of Engineering

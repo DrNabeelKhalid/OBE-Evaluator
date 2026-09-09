@@ -222,7 +222,7 @@ export class PDFReportGenerator {
         </div>
 
         <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
-          OBE CLO Evaluator EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          OBE-ICAS EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
           Department of Electrical Engineering • Faculty of Engineering • Compliant with Washington Accord Rubrics • © 2026
         </div>
       </div>
@@ -337,7 +337,7 @@ export class PDFReportGenerator {
         </div>
 
         <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
-          OBE CLO Evaluator EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          OBE-ICAS EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
           Department of Electrical Engineering • Faculty of Engineering • Compliant with PEC & Washington Accord Standards • © 2026
         </div>
       </div>
@@ -525,7 +525,7 @@ export class PDFReportGenerator {
         </div>
 
         <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
-          OBE CLO Evaluator EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          OBE-ICAS EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
           Department of Electrical Engineering • Faculty of Engineering • Compliant with Washington Accord & PEC Standards • © 2026
         </div>
       </div>
@@ -776,7 +776,7 @@ export class PDFReportGenerator {
         </div>
 
         <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
-          OBE CLO Evaluator EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          OBE-ICAS EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
           Department of Electrical Engineering • Faculty of Engineering • © 2026
         </div>
       </div>
@@ -978,7 +978,7 @@ export class PDFReportGenerator {
         </div>
 
         <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
-          OBE CLO Evaluator EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          OBE-ICAS EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
           Department of Electrical Engineering • Faculty of Engineering • © 2026
         </div>
       </div>
@@ -1172,7 +1172,7 @@ export class PDFReportGenerator {
         </div>
 
         <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
-          OBE CLO Evaluator EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          OBE-ICAS EED Platform • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
           Department of Electrical Engineering • Faculty of Engineering • © 2026
         </div>
       </div>
@@ -1384,7 +1384,7 @@ export class PDFReportGenerator {
         </div>
 
         <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
-          OBE CLO Evaluator EED Platform • AI-Resilient Learning Initiative (AI-RLI) • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          OBE-ICAS EED Platform • AI-Resilient Learning Initiative (AI-RLI) • System Architecture & Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
           Department of Electrical Engineering • Faculty of Engineering • © 2026
         </div>
       </div>
