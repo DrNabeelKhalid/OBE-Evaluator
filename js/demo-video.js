@@ -108,17 +108,30 @@ export class DemoVideoStudio {
   }
 
   bindEvents() {
-    // Open Video Modal triggers
-    document.querySelectorAll('.btn-open-demo-video').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // Document-level event delegation for opening video modal
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-open-demo-video');
+      if (btn) {
         e.preventDefault();
         this.openModal();
-      });
+      }
     });
 
-    // Close Modal
-    document.getElementById('btn-close-demo-video')?.addEventListener('click', () => {
-      this.closeModal();
+    // Close Modal button & Backdrop click
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-close-demo-video')) {
+        e.preventDefault();
+        this.closeModal();
+      } else if (e.target.id === 'demo-video-modal') {
+        this.closeModal();
+      }
+    });
+
+    // Escape key closes modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.modal && !this.modal.classList.contains('hidden')) {
+        this.closeModal();
+      }
     });
 
     // Play / Pause
@@ -157,7 +170,16 @@ export class DemoVideoStudio {
   }
 
   openModal() {
+    if (!this.modal) this.modal = document.getElementById('demo-video-modal');
+    if (!this.canvas) this.canvas = document.getElementById('demo-video-canvas');
+    if (this.canvas && !this.ctx) this.ctx = this.canvas.getContext('2d');
+    if (!this.modal || !this.canvas) {
+      console.error('Demo Video elements missing from DOM');
+      return;
+    }
+
     this.modal.classList.remove('hidden');
+    this.renderSceneControls();
     this.resetVideo();
     this.play();
   }
@@ -167,7 +189,9 @@ export class DemoVideoStudio {
     if (this.isRecording) {
       this.stopVideoRecording();
     }
-    this.modal.classList.add('hidden');
+    if (this.modal) {
+      this.modal.classList.add('hidden');
+    }
   }
 
   resetVideo() {
@@ -1122,11 +1146,12 @@ export class DemoVideoStudio {
 
   // ==================== IN-BROWSER VIDEO RECORDER ====================
   startVideoRecording() {
-    if (this.isRecording) return;
-    if (!this.canvas.captureStream) {
-      alert('Your browser does not support canvas video recording.');
     if (this.isRecording) {
       this.stopVideoRecording();
+      return;
+    }
+    if (!this.canvas.captureStream) {
+      alert('Your browser does not support canvas video recording.');
       return;
     }
 
