@@ -254,3 +254,295 @@ export const SAMPLE_RESILIENCE_PRESETS = [
   }
 ];
 
+// ============================================================================
+// LEARNING BEYOND AI (LBAI) FRAMEWORK CONSTANTS
+// Student Pedagogy Partnership (SPP) Program • Learning Innovation Center (LIC)
+// Authors: Zunaira Khalid & Rimsha Munir
+// ============================================================================
+
+export const LBAI_METADATA = {
+  title: 'Learning Beyond AI: A Framework for Strengthening Human Intelligence in the Age of AI',
+  authors: 'Zunaira Khalid & Rimsha Munir',
+  institution: 'University of Central Punjab (UCP)',
+  center: 'Learning Innovation Center (LIC)',
+  program: 'Student Pedagogy Partnership (SPP) Program',
+  corePremise: 'The long-term response to generative AI is not to restrict its use, but to establish classrooms and assessments that strengthen human intelligence.'
+};
+
+export const LBAI_PILLARS = [
+  {
+    id: 'P1',
+    code: 'Pillar 1',
+    name: 'Visible Thinking',
+    color: 'orange',
+    tagline: 'Externalize Reasoning & Build Mental Muscles',
+    whatItDoes: 'Makes learners\' thinking visible by equipping them with thinking practices to support them in exercising their mental muscles, helping them identify how they arrive at their ideas, decisions, or solutions. By making thinking visible, learners build real intelligence that prepares them to actively critique and engage with artificial intelligence thoughtfully.',
+    coreDesignMove: 'Cultivate a classroom culture that values inquiry, dialogue, and metacognition. Employ thinking routines (e.g., Harvard Project Zero) to build habits of regular purposeful mental work that externalizes student reasoning. Learning activities and assessments should embed thinking routines requiring students to recognize their cognitive processes.',
+    keyTheorist: 'Ritchhart, Church, & Morrison (2011) • Harvard Project Zero',
+    pedagogicalAction: 'Require interim sketches, thought maps, decision journals, and peer critique protocols before any final artifact is produced.'
+  },
+  {
+    id: 'P2',
+    code: 'Pillar 2',
+    name: 'Relational Application',
+    color: 'emerald',
+    tagline: 'Connect Theory to Authentic Real-World Realities',
+    whatItDoes: 'Encourages students to connect classroom learning with authentic situations by applying knowledge to meaningful contexts. Students learn to make connections between theory and practice, using their experiences, communities, and real-world challenges to develop informed judgement and decision-making.',
+    coreDesignMove: 'Create opportunities to apply content knowledge to the real world. Use authentic problems, case studies, community engagement, project-based learning, experiential activities, and collaborative inquiry. Encourage learners to draw on personal experiences, local issues, and disciplinary practices to make informed decisions.',
+    keyTheorist: 'L. Dee Fink (2003) • Taxonomy of Significant Learning (Application & Integration)',
+    pedagogicalAction: 'Anchor problems in verifiable local datasets, physical laboratory benches, component tolerances, or immediate community industry contexts.'
+  },
+  {
+    id: 'P3',
+    code: 'Pillar 3',
+    name: 'Conceptual Mastery',
+    color: 'blue',
+    tagline: 'Deep Principles, Transferability & AI Critique',
+    whatItDoes: 'Develops deep conceptual understanding by enabling students to explain, justify, critique, and synthesize ideas rather than simply recalling information. Students demonstrate mastery by recognizing relationships between concepts and transferring their understanding to new and unfamiliar situations.',
+    coreDesignMove: 'Cultivate classrooms, learning experiences, and assessments that prioritize conceptual understanding before procedural completion. Facilitate inquiry, discussion, and collaborative learning to examine underlying principles, justify reasoning, critique ideas, make conceptual connections, and transfer knowledge across contexts.',
+    keyTheorist: 'Brown, Roediger, & McDaniel (2014) / Fink (2003)',
+    pedagogicalAction: 'Ask "why does this fail?" rather than "compute x". Require students to generate AI outputs and critically evaluate them for errors, bias, and omissions.'
+  }
+];
+
+export const HARVARD_PZ_THINKING_ROUTINES = [
+  {
+    id: 'what-makes-you-say-that',
+    name: 'What Makes You Say That?',
+    category: 'Reasoning with Evidence',
+    purpose: 'Helps students describe what they see or know and offer interpretations backed by evidence, building habits of justification.',
+    promptStructure: '1. What do you notice / what is happening? → 2. What makes you say that? (Cite physical / theoretical evidence)',
+    classroomApplication: 'Analyzing an oscilloscope waveform, circuit fault, or thermal thermal camera image before touching the schematic.'
+  },
+  {
+    id: 'think-puzzle-explore',
+    name: 'Think - Puzzle - Explore',
+    category: 'Inquiry & Curiosity',
+    purpose: 'Fosters independent inquiry by clarifying prior knowledge, pinpointing perplexities, and directing authentic investigation.',
+    promptStructure: '1. What do you THINK you know? → 2. What PUZZLES you about this system? → 3. How can we EXPLORE it without AI taking over?',
+    classroomApplication: 'Introducing complex topics like semiconductor physics, non-linear distortion, or transmission line reflections.'
+  },
+  {
+    id: 'think-pair-share',
+    name: 'Think - Pair - Share',
+    category: 'Active Dialogue',
+    purpose: 'Encourages individual processing before peer argumentation and plenary synthesis, preventing passive deference to AI summaries.',
+    promptStructure: '1. Individual silent thinking & written trace (2 min) → 2. Pair debate & compare (3 min) → 3. Shared collective consensus.',
+    classroomApplication: 'Evaluating trade-offs between two control architectures, modulation schemes, or component selections.'
+  },
+  {
+    id: 'circle-of-viewpoints',
+    name: 'Circle of Viewpoints',
+    category: 'Multi-Perspective Analysis',
+    purpose: 'Helps students see topics from diverse stakeholder lenses, cultivating nuanced professional and ethical judgement.',
+    promptStructure: '1. Identify diverse viewpoints (Design Engineer, Field Technician, Safety Auditor, End User) → 2. Speak from that perspective → 3. Raise critical questions.',
+    classroomApplication: 'PEC PLO-6 / PLO-7 environmental and safety reviews for high-voltage installations or automated control systems.'
+  },
+  {
+    id: 'i-used-to-think',
+    name: 'I Used to Think... Now I Think...',
+    category: 'Metacognition & Conceptual Change',
+    purpose: 'Helps students reflect on how their thinking has developed over time, consolidating conceptual shifts and intellectual growth.',
+    promptStructure: '1. When we began this topic, I used to think [naive assumption]... → 2. Now, after analyzing the evidence, I think [refined mental model]...',
+    classroomApplication: 'Post-lab synthesis or end-of-module debrief on complex concepts (e.g., grounding, feedback stability, cache coherency).'
+  },
+  {
+    id: 'see-think-wonder',
+    name: 'See - Think - Wonder',
+    category: 'Visual & Physical Inquiry',
+    purpose: 'Structures observation and deep thinking about physical systems, artifacts, or anomalies before jumping to premature conclusions.',
+    promptStructure: '1. What do you SEE? (Raw observations only) → 2. What do you THINK is happening? → 3. What does it make you WONDER?',
+    classroomApplication: 'Diagnosing an incinerated MOSFET, an unexpected spectrum analyzer spike, or anomalous sensor telemetry.'
+  },
+  {
+    id: 'compass-points',
+    name: 'Compass Points (E - W - N - S)',
+    category: 'Decision-Making & Dilemmas',
+    purpose: 'Fleshes out ideas and evaluates proposals before committing to an engineering design or policy direction.',
+    promptStructure: 'E = Excited (What is promising?) | W = Worrisome (What are risks?) | N = Need to Know (What info is missing?) | S = Stance / Suggestions.',
+    classroomApplication: 'Evaluating whether to migrate legacy embedded firmware to a new real-time OS or adopt cloud-based IoT telemetry.'
+  },
+  {
+    id: 'connect-extend-challenge',
+    name: 'Connect - Extend - Challenge',
+    category: 'Knowledge Synthesis & Transfer',
+    purpose: 'Helps students integrate new knowledge into existing mental frameworks and identify remaining conceptual tensions.',
+    promptStructure: '1. How does this CONNECT to prior knowledge? → 2. How does it EXTEND your thinking? → 3. What CHALLENGES or puzzles your understanding?',
+    classroomApplication: 'Transitioning from ideal circuit theory to real-world parasitic effects, thermal derating, and EMI.'
+  },
+  {
+    id: 'claim-support-question',
+    name: 'Claim - Support - Question',
+    category: 'Critical AI Evaluation',
+    purpose: 'Trains students to formulate reasoned claims, substantiate them with rigorous evidence, and formulate probing counter-questions.',
+    promptStructure: '1. Make a CLAIM regarding the system / AI output → 2. SUPPORT it with derivations/experiments → 3. Formulate an unresolved QUESTION.',
+    classroomApplication: 'Auditing and critiquing a ChatGPT-generated circuit schematic or algorithm for hidden flaws or omitted safety margins.'
+  }
+];
+
+export const FINK_TAXONOMY_DIMENSIONS = [
+  { dimension: 'Foundational Knowledge', desc: 'Understanding and remembering information and ideas; essential conceptual vocabulary.' },
+  { dimension: 'Application Skills', desc: 'Engaging in critical, creative, or practical thinking; managing engineering projects and tools.' },
+  { dimension: 'Integration', desc: 'Connecting ideas, disciplines, perspectives, and linking theoretical principles to lived realities.' },
+  { dimension: 'Human Dimension', desc: 'Learning about oneself and others; understanding the social, ethical, and environmental impact of technology.' },
+  { dimension: 'Caring', desc: 'Developing new feelings, interests, and professional engineering values; pride in precision and safety.' },
+  { dimension: 'Learning How to Learn', desc: 'Becoming a self-directed, reflective learner capable of navigating evolving AI technologies.' }
+];
+
+export const SPP_PROCESS_PHASES = [
+  {
+    phaseNumber: 1,
+    name: 'Preparation',
+    timeline: 'Weeks 1–2 of Semester',
+    focus: 'Orientation, Training & 3-Pillar Alignment',
+    description: 'LIC conducts dedicated training for DPPs, Faculty Partners, and Student Partners. Partners align course outlines and core objectives against the three pillars within two weeks of orientation.'
+  },
+  {
+    phaseNumber: 2,
+    name: 'Design',
+    timeline: 'Ongoing Weekly Co-Development',
+    focus: 'AI in Design & Task Redesign',
+    description: 'Faculty and Student Partners co-develop learning experiences and assessments, using AI thoughtfully as a thought partner to sharpen reasoning rather than replace it.'
+  },
+  {
+    phaseNumber: 3,
+    name: 'Delivery',
+    timeline: 'Semester Implementation',
+    focus: 'Classroom Interventions & Peer Mentoring',
+    description: 'Classroom interventions are implemented and monitored. Student Partners take on visible peer-facing roles to guide fellow students on revised learning expectations.'
+  },
+  {
+    phaseNumber: 4,
+    name: 'Evaluation',
+    timeline: 'End of Semester Synthesis',
+    focus: 'SPP Rubric & Reflective Findings',
+    description: 'Partners conduct ongoing reflective evaluation against the SPP Evaluation Rubric, synthesizing observations from DPP, Faculty, and Student partners into an actionable report.'
+  }
+];
+
+export const SPP_ROLES = [
+  {
+    role: 'Departmental Pedagogical Partner (DPP)',
+    badge: 'Institutional Bridge',
+    color: 'orange',
+    responsibilities: [
+      'Acts as functional bridge between LIC and Faculty/Student partnerships.',
+      'Supports assigned partnerships in curriculum design, delivery, and assessment reframing.',
+      'Conducts biweekly check-ins with partners and coordinates monthly documentation for LIC.'
+    ]
+  },
+  {
+    role: 'Faculty Partner',
+    badge: 'Course Instructor',
+    color: 'blue',
+    responsibilities: [
+      'Collaborates closely with Student Partner to view course through the three pillars.',
+      'Reshapes teaching, syllabus, classroom routines, and two-lane assessments.',
+      'Employs AI mindfully as a thought partner while preserving cognitive struggle and human agency.'
+    ]
+  },
+  {
+    role: 'Student Partner',
+    badge: 'Learner Voice',
+    color: 'emerald',
+    responsibilities: [
+      'Brings authentic learner perspective to redesigned tasks, sharing critical feedback.',
+      'Tests new assessment tasks to identify cognitive load, clarity, and authentic engagement.',
+      'Serves as visible peer mentor to students navigating the new Learning Beyond AI expectations.'
+    ]
+  }
+];
+
+export const TWO_LANES_MODEL = {
+  secured: {
+    name: 'Secured Lane',
+    badge: 'Observed & Invigilated',
+    color: 'orange',
+    definition: 'Tasks that are observed, invigilated, or dialogic, where the institution can verify that the enrolled student produced the work independently.',
+    purpose: 'Establishes what the student can do independently. Confirms individual understanding, which is what makes AI use safe elsewhere in the course.',
+    examples: ['Invigilated examinations (Midterm / Final)', 'In-class concept mapping & tests', 'Interactive oral assessments (viva voce)', 'Observed laboratory practicals', 'Project oral defences']
+  },
+  open: {
+    name: 'Open Lane',
+    badge: 'AI as Thought Partner',
+    color: 'blue',
+    definition: 'Tasks completed without supervision, where completion cannot be verified. AI use is permitted at a declared level (AIAS Levels 1–4).',
+    purpose: 'Establishes how well the student works with AI: prompting, questioning, correcting, rejecting hallucinations, and documenting reasoning.',
+    examples: ['Short analysis with planning AI', 'Applied case responses', 'Critique of AI-generated output (the critique is the artifact)', 'Process & reflection portfolios', 'Comprehensive project artefacts']
+  }
+};
+
+export const AIAS_PERMITTED_USE_SCALE = [
+  {
+    level: 0,
+    title: 'Level 0: No AI',
+    permittedAction: 'No AI use at any stage. Applies to secured tasks only, since this is the only lane where the rule is enforceable.',
+    evidenceRequired: 'Direct physical observation, locked browser, or proctored invigilation.',
+    applicableLane: 'Secured Lane Only'
+  },
+  {
+    level: 1,
+    title: 'Level 1: AI for Planning',
+    permittedAction: 'AI may be used to brainstorm, structure, outline, and locate reference material. All drafting, calculations, and analytical conclusions must be the student\'s own.',
+    evidenceRequired: 'Mandatory Disclosure Statement explicitly naming tools, versions, and full prompt history.',
+    applicableLane: 'Open Lane'
+  },
+  {
+    level: 2,
+    title: 'Level 2: AI Collaboration',
+    permittedAction: 'AI may be used within the drafting and design process, provided the student substantially revises, corrects, optimizes, or extends its output.',
+    evidenceRequired: 'Disclosure statement plus annotated changelog highlighting what was modified, corrected, or verified.',
+    applicableLane: 'Open Lane'
+  },
+  {
+    level: 3,
+    title: 'Level 3: AI Evaluation',
+    permittedAction: 'The student is required to prompt AI to generate an output (code, design, derivation) and critique it against disciplinary standards, identifying error, bias, or omission.',
+    evidenceRequired: 'The critique itself is the primary assessed artefact (not the AI output).',
+    applicableLane: 'Open Lane'
+  },
+  {
+    level: 4,
+    title: 'Level 4: AI Exploration',
+    permittedAction: 'The student designs their own multi-stage workflow with AI and critically justifies methodological choices made across a body of prior work.',
+    evidenceRequired: 'Comprehensive reflective portfolio with detailed evidence trail and metacognitive defense.',
+    applicableLane: 'Open Lane'
+  }
+];
+
+export const LBAI_DEFAULT_WEIGHTING_MODEL = [
+  { id: 1, task: 'Assignment 1: Concept Map & Annotated Plan', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Completed in class', weight: 5, evidence: 'Completed in class under observation' },
+  { id: 2, task: 'Assignment 2: Short Analysis with Problem Formulation', lane: 'Open', aiLevel: 1, aiLabel: 'Level 1: AI for Planning', weight: 5, evidence: 'Disclosure statement naming tools and prompts' },
+  { id: 3, task: 'Assignment 3: Applied Case Response & Benchmarking', lane: 'Open', aiLevel: 2, aiLabel: 'Level 2: AI Collaboration', weight: 10, evidence: 'Disclosure + annotated record of what was changed and why' },
+  { id: 4, task: 'Assignment 4: Critique of AI-Generated Output', lane: 'Open', aiLevel: 3, aiLabel: 'Level 3: AI Evaluation', weight: 10, evidence: 'The critique itself is the assessed artefact' },
+  { id: 5, task: 'Assignment 5: Process & Metacognitive Portfolio', lane: 'Open', aiLevel: 4, aiLabel: 'Level 4: AI Exploration', weight: 10, evidence: 'Reflective portfolio with evidence trail' },
+  { id: 6, task: 'Midterm Examination', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Invigilated', weight: 20, evidence: 'Invigilated examination hall' },
+  { id: 7, task: 'Final Examination', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Invigilated', weight: 25, evidence: 'Comprehensive invigilated examination hall' },
+  { id: 8, task: 'Course Project Artefact', lane: 'Open', aiLevel: 2, aiLabel: 'Level 2: AI Collaboration', weight: 10, evidence: 'Annotated codebase / prototype with design log' },
+  { id: 9, task: 'Project Defence & Interactive Oral (Viva Voce)', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Observed', weight: 5, evidence: 'Observed individual interactive oral defence' }
+];
+
+export const LBAI_SAMPLE_COURSES = {
+  embedded: {
+    courseName: 'EE-312 Microcontroller & Embedded Systems',
+    courseDescription: 'Architecture, programming, and hardware interfacing of modern 32-bit microcontrollers. Covers GPIO, interrupt handling, timers, PWM, high-speed serial protocols (SPI, I2C), and RTOS.',
+    sampleTopic: 'I2C and SPI Serial Peripheral Communication under Bus Contention and Clock Jitter',
+    sampleCLO: 'Analyze timing diagrams and register configurations for high-speed serial peripherals (SPI and I2C) to diagnose data transmission bottlenecks.',
+    recommendedPillars: {
+      P1: { routine: 'Claim-Support-Question', action: 'Prompt students to diagnose why an I2C clock-stretching event locks up an interrupt handler, requiring annotated oscilloscope traces before inspecting code.' },
+      P2: { context: 'Bench Hardware Interface', action: 'Connect STM32 to real hardware sensor (DS3231 RTC) with intentional bus capacitance overload to observe physical signal degradation.' },
+      P3: { depthQuestion: 'AI Hallucination Audit', action: 'Direct students to ask AI how to optimize I2C bus pull-up resistors; evaluate AI output against RC time-constant calculations and identify overlooked bus capacitance limits.' }
+    }
+  },
+  power: {
+    courseName: 'EE-415 Power Electronics & Drives',
+    courseDescription: 'Analysis, design, and simulation of power electronic converters, inverters, and motor drive systems. Focuses on switching losses, harmonic distortion, thermal budgeting, and magnetics.',
+    sampleTopic: 'Multi-Level PWM Inverter Harmonic Spectrum and Heat Sink Thermal Budgeting',
+    sampleCLO: 'Evaluate the total harmonic distortion (THD) and thermal dissipation in multi-level PWM inverter topologies for grid-tied photovoltaic systems.',
+    recommendedPillars: {
+      P1: { routine: 'What Makes You Say That?', action: 'Present simulated thermal runaway in a SiC MOSFET half-bridge; students must justify the failure mechanism using junction-to-case thermal impedance curves.' },
+      P2: { context: 'Photovoltaic Grid Interconnection', action: 'Apply IEEE-519 harmonic standards to a localized 10kW rooftop solar installation in Lahore with 45°C ambient summer temperatures.' },
+      P3: { depthQuestion: 'Dead-Time Distortion Analysis', action: 'Prompt AI to write an SPWM code snippet. Students critique the generated code for missing dead-time shoot-through prevention routines.' }
+    }
+  }
+};

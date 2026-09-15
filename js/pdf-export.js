@@ -1394,6 +1394,248 @@ export class PDFReportGenerator {
   }
 
   /**
+   * Generates a formal, printable Learning Beyond AI (LBAI) Course Redesign & Two-Lane Assessment Dossier
+   * Compliant with Learning Innovation Center (LIC) - SPP Partnership Model
+   */
+  static generateLBAIReport({ lbaiData, courseName, assessmentTasks = [] }) {
+    const printContainer = document.createElement('div');
+    printContainer.id = 'print-lbai-dossier';
+    printContainer.className = 'print-dossier';
+
+    const timestamp = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const data = lbaiData || {};
+    const overview = data.courseOverview || {};
+    const p1 = data.pillar1VisibleThinking || {};
+    const p2 = data.pillar2RelationalApplication || {};
+    const p3 = data.pillar3ConceptualMastery || {};
+    const tasks = assessmentTasks.length ? assessmentTasks : (data.twoLaneAssessmentPlan || []);
+    const weighting = data.weightingSummary || {};
+    const fink = data.finkTaxonomyAlignment || [];
+
+    // Calculate subtotals
+    let securedSum = 0;
+    let openSum = 0;
+    tasks.forEach(t => {
+      const w = parseFloat(t.weight) || 0;
+      if (t.lane === 'Secured') securedSum += w;
+      else openSum += w;
+    });
+    const totalSum = securedSum + openSum;
+
+    printContainer.innerHTML = `
+      <div style="font-family: 'Inter', system-ui, sans-serif; color: #0f172a; max-width: 820px; margin: 0 auto; padding: 24px; font-size: 12px; line-height: 1.45;">
+        <!-- Official Institutional Header -->
+        <div style="border-bottom: 2px solid #f27d26; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="./public/assets/FOE_Logo_WBG.png" style="height: 44px; width: auto; object-fit: contain;" alt="Faculty of Engineering" />
+            <div style="border-left: 2px solid #f27d26; padding-left: 12px;">
+              <h1 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">FACULTY OF ENGINEERING</h1>
+              <h2 style="margin: 2px 0 0; font-size: 12px; font-weight: 700; color: #f27d26; text-transform: uppercase;">Department of Electrical Engineering</h2>
+              <p style="margin: 3px 0 0; font-size: 10px; color: #64748b;">Learning Beyond AI (LBAI) • Student Pedagogy Partnership (SPP) • Learning Innovation Center</p>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span style="display: inline-block; background: #fff7ed; border: 1px solid #fdba74; color: #c2410c; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; text-transform: uppercase;">
+              LBAI COURSE REDESIGN DOSSIER
+            </span>
+            <p style="margin: 4px 0 0; font-size: 10px; color: #94a3b8;">Ref: LBAI-SPP-${Date.now().toString().slice(-6)}</p>
+          </div>
+        </div>
+
+        <!-- Course Metadata Box -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569; width: 140px;">Course Title:</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #0f172a;">${courseName || overview.courseName || 'Engineering Course'}</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569; width: 120px;">Date of Audit:</td>
+              <td style="padding: 4px 8px; color: #334155;">${timestamp}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Target Topic / CLO:</td>
+              <td colspan="3" style="padding: 4px 8px; color: #334155; font-weight: 600;">${overview.topic || 'Engineering Subject Matter'} — <span style="font-size: 11px; color: #64748b;">${overview.targetCLO || 'CLO Alignment'}</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Pedagogical Verdict:</td>
+              <td colspan="3" style="padding: 4px 8px; color: #c2410c; font-weight: 600;">${overview.pedagogicalVerdict || 'Course redesigned to strengthen human intelligence and make thinking observable.'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Two-Lane Distribution:</td>
+              <td colspan="3" style="padding: 4px 8px;">
+                <span style="font-weight: 800; color: #ea580c; background: #fff7ed; padding: 2px 6px; border-radius: 4px; border: 1px solid #fed7aa;">Secured Lane: ${securedSum}%</span>
+                <span style="margin: 0 6px; color: #cbd5e1;">|</span>
+                <span style="font-weight: 800; color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #bfdbfe;">Open Lane: ${openSum}%</span>
+                <span style="margin: 0 6px; color: #cbd5e1;">|</span>
+                <span style="font-weight: 800; color: ${totalSum === 100 ? '#15803d' : '#b91c1c'}; background: ${totalSum === 100 ? '#f0fdf4' : '#fef2f2'}; padding: 2px 6px; border-radius: 4px; border: 1px solid ${totalSum === 100 ? '#bbf7d0' : '#fecaca'};">
+                  Total Weight: ${totalSum}% ${totalSum === 100 ? '✓ Balanced' : '⚠ Requires Adjusting'}
+                </span>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Section 1: The Three Pillars Implementation -->
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin: 0 0 12px 0;">
+            1. Three-Pillar Pedagogical Architecture
+          </h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+            <!-- Pillar 1: Visible Thinking -->
+            <div style="border: 1px solid #fed7aa; background: #fffaf5; border-radius: 6px; padding: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 800; color: #c2410c; font-size: 12px;">PILLAR 1: VISIBLE THINKING (Externalize Reasoning)</span>
+                <span style="background: #ea580c; color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                  ${p1.recommendedRoutine || 'Harvard Project Zero Routine'}
+                </span>
+              </div>
+              <p style="margin: 0 0 6px 0; color: #431407; font-size: 11px;"><strong>Classroom Instruction / Prompt:</strong> ${p1.classroomInstruction || 'Mandate step-by-step thinking routine to externalize cognitive process.'}</p>
+              <p style="margin: 0; color: #7c2d12; font-size: 10px; font-style: italic;"><strong>Rationale:</strong> ${p1.rationale || 'Prevents premature cognitive offloading to generative AI.'}</p>
+            </div>
+
+            <!-- Pillar 2: Relational Application -->
+            <div style="border: 1px solid #a7f3d0; background: #f6fdf9; border-radius: 6px; padding: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 800; color: #047857; font-size: 12px;">PILLAR 2: RELATIONAL APPLICATION (Theory to Authentic Reality)</span>
+                <span style="background: #059669; color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Fink: Integration &amp; Application</span>
+              </div>
+              <p style="margin: 0 0 6px 0; color: #064e3b; font-size: 11px;"><strong>Authentic Context:</strong> ${p2.authenticContext || 'Anchored in local industry, community, or verifiable hardware laboratory parameters.'}</p>
+              <p style="margin: 0; color: #065f46; font-size: 11px;"><strong>Task Design:</strong> ${p2.taskDesign || 'Hands-on challenge requiring students to apply principles to real-world non-ideal constraints.'}</p>
+            </div>
+
+            <!-- Pillar 3: Conceptual Mastery -->
+            <div style="border: 1px solid #bfdbfe; background: #f8faff; border-radius: 6px; padding: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 800; color: #1d4ed8; font-size: 12px;">PILLAR 3: CONCEPTUAL MASTERY (Deep Justification &amp; AI Critique)</span>
+                <span style="background: #2563eb; color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Transferable Principles</span>
+              </div>
+              <p style="margin: 0 0 6px 0; color: #1e3a8a; font-size: 11px;"><strong>Probing Depth Question:</strong> ${p3.depthQuestion || 'Why does this concept hold? Explain the failure mechanisms rather than procedural calculation.'}</p>
+              ${p3.aiCritiqueTask ? `
+                <div style="background: #ffffff; border: 1px dashed #93c5fd; border-radius: 4px; padding: 8px; margin-top: 6px;">
+                  <p style="margin: 0 0 4px 0; font-size: 10px; font-weight: 700; color: #1e40af;">Mandatory AI Interrogation &amp; Critique Task:</p>
+                  <p style="margin: 0 0 4px 0; font-size: 10px; color: #334155; font-family: monospace;">Prompt: "${p3.aiCritiqueTask.promptForAI}"</p>
+                  <p style="margin: 0; font-size: 10px; color: #1e3a8a;"><strong>Critique Criteria:</strong> ${p3.aiCritiqueTask.critiqueCriteria}</p>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Two-Lane Assessment Strategy Matrix -->
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin: 0 0 10px 0;">
+            2. Two-Lane Assessment Matrix (Bridgeman, Liu &amp; Weeks, 2024)
+          </h3>
+          <p style="margin: 0 0 10px 0; font-size: 10px; color: #64748b;">
+            Distributes course weighting between <strong>Secured Lane</strong> (observed/invigilated, verifying independent competence) and <strong>Open Lane</strong> (unsupervised, developing authentic AI judgment and reasoning on the AIAS scale).
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #cbd5e1;">
+            <thead>
+              <tr style="background: #0f172a; color: #ffffff; text-align: left;">
+                <th style="padding: 6px 8px; border: 1px solid #334155;">Assessment Task</th>
+                <th style="padding: 6px 8px; border: 1px solid #334155; width: 90px; text-align: center;">Lane</th>
+                <th style="padding: 6px 8px; border: 1px solid #334155; width: 130px;">Permitted AI Use</th>
+                <th style="padding: 6px 8px; border: 1px solid #334155; width: 60px; text-align: right;">Weight</th>
+                <th style="padding: 6px 8px; border: 1px solid #334155;">Evidence Required</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tasks.map((t, idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                  <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-weight: 600; color: #0f172a;">${t.task}</td>
+                  <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center;">
+                    <span style="font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; ${t.lane === 'Secured' ? 'background: #fff7ed; color: #c2410c; border: 1px solid #fdba74;' : 'background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;'}">
+                      ${t.lane}
+                    </span>
+                  </td>
+                  <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-size: 10px; color: #334155;">${t.aiLabel || `Level ${t.aiLevel}`}</td>
+                  <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: 800; color: #0f172a;">${t.weight}%</td>
+                  <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-size: 10px; color: #64748b;">${t.evidence || 'Documented record'}</td>
+                </tr>
+              `).join('')}
+              <tr style="background: #f1f5f9; font-weight: 800;">
+                <td colspan="3" style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">SECURED LANE SUBTOTAL:</td>
+                <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right; color: #ea580c;">${securedSum}%</td>
+                <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-size: 10px; color: #475569;">Verified individual achievement</td>
+              </tr>
+              <tr style="background: #f1f5f9; font-weight: 800;">
+                <td colspan="3" style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right;">OPEN LANE SUBTOTAL:</td>
+                <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right; color: #2563eb;">${openSum}%</td>
+                <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-size: 10px; color: #475569;">AI judgment &amp; reflection trail</td>
+              </tr>
+              <tr style="background: #0f172a; color: #ffffff; font-weight: 900;">
+                <td colspan="3" style="padding: 6px 8px; border: 1px solid #0f172a; text-align: right;">TOTAL COURSE WEIGHT:</td>
+                <td style="padding: 6px 8px; border: 1px solid #0f172a; text-align: right; color: #fdba74;">${totalSum}%</td>
+                <td style="padding: 6px 8px; border: 1px solid #0f172a; font-size: 10px; color: #cbd5e1;">Target: 100% Cumulative</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        ${fink.length ? `
+        <!-- Section 3: Fink's Taxonomy of Significant Learning Alignment -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin: 0 0 10px 0;">
+            3. Fink's Taxonomy Alignment (Holistic Learning Beyond AI)
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #e2e8f0;">
+            <tbody>
+              ${fink.map((dim, idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                  <td style="padding: 4px 8px; font-weight: 700; color: #0f172a; width: 170px; border: 1px solid #e2e8f0;">${dim.dimension}:</td>
+                  <td style="padding: 4px 8px; color: #334155; border: 1px solid #e2e8f0;">${dim.alignmentAction}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Official Sign-off and Quality Assurance Seals -->
+        <div style="margin-top: 36px; border-top: 2px solid #e2e8f0; padding-top: 16px; page-break-inside: avoid;">
+          <table style="width: 100%; text-align: center; font-size: 11px; border-collapse: collapse;">
+            <tr>
+              <td style="width: 25%; padding-bottom: 36px;">
+                <div style="width: 130px; border-bottom: 1px solid #64748b; margin: 0 auto 6px auto;"></div>
+                <strong style="color: #0f172a;">Course Instructor</strong><br />
+                <span style="font-size: 10px; color: #64748b;">Faculty Partner</span>
+              </td>
+              <td style="width: 25%; padding-bottom: 36px;">
+                <div style="width: 130px; border-bottom: 1px solid #64748b; margin: 0 auto 6px auto;"></div>
+                <strong style="color: #0f172a;">Student Partner</strong><br />
+                <span style="font-size: 10px; color: #64748b;">Learner Voice (SPP)</span>
+              </td>
+              <td style="width: 25%; padding-bottom: 36px;">
+                <div style="width: 130px; border-bottom: 1px solid #64748b; margin: 0 auto 6px auto;"></div>
+                <strong style="color: #0f172a;">Pedagogy Partner (DPP)</strong><br />
+                <span style="font-size: 10px; color: #64748b;">LIC Department Liaison</span>
+              </td>
+              <td style="width: 25%; padding-bottom: 36px;">
+                <div style="width: 130px; border-bottom: 1px solid #64748b; margin: 0 auto 6px auto;"></div>
+                <strong style="color: #0f172a;">Department Chair</strong><br />
+                <span style="font-size: 10px; color: #64748b;">Faculty of Engineering</span>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 12px 0 0 0; text-align: center; font-size: 9px; color: #94a3b8;">
+            Generated via OBE-ICAS Platform • Department of Electrical Engineering in partnership with Learning Innovation Center (LIC) • Washington Accord &amp; PEC Accreditation Compliant
+          </p>
+        </div>
+      </div>
+    `;
+
+    return printContainer;
+  }
+
+  /**
    * Triggers clean PDF download / print without any UI leakage
    */
   static triggerPrint(dossierElement) {

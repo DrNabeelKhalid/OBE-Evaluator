@@ -1215,7 +1215,223 @@ Active Pillars: Process>Product (${pillars.p1 ? 'YES' : 'NO'}), Contextualizatio
       simulationNotice: errorNote ? `Live API note: ${errorNote}` : 'Generated via Academic AI-RLI Assessment Architect (PEC Framework)'
     };
   }
+
+  /**
+   * Evaluates & Redesigns Course Syllabus and Assessment under the Learning Beyond AI (LBAI) Framework
+   * Learning Innovation Center (LIC) - Student Pedagogy Partnership (SPP) Model
+   */
+  async evaluateLBAI({ courseName, courseDescription, targetCLO, topic, assessmentTasks = [] }) {
+    if (!this.hasApiKey()) {
+      return this.simulateLBAI({ courseName, courseDescription, targetCLO, topic });
+    }
+
+    const systemPrompt = `You are a Senior Academic Pedagogy Specialist and Curriculum Architect specializing in the "Learning Beyond AI (LBAI)" framework from the Learning Innovation Center (LIC).
+The core philosophy is: "The long-term response to generative AI is not to restrict its use, but to establish classrooms and assessments that strengthen human intelligence."
+
+Framework Architecture:
+1. Three Pillars:
+   - Pillar 1: Visible Thinking (Harvard Project Zero 9 Core Routines, Ritchhart et al., 2011; makes reasoning observable, builds mental muscles).
+   - Pillar 2: Relational Application (Fink's Integration & Application; connects theory to authentic, lived, local, or community challenges).
+   - Pillar 3: Conceptual Mastery (Fink's Foundational Knowledge & Integration; requires students to explain, justify, critique, synthesize, transfer, and critique AI outputs).
+2. The Two-Lane Assessment Model (Bridgeman, Liu & Weeks, 2024):
+   - Secured Lane: Observed, invigilated, or dialogic (examinations, in-class concept mapping, interactive oral viva voce, observed practicals).
+   - Open Lane: Unsupervised tasks with declared AI use on the AI Assessment Scale (AIAS Levels 1 to 4).
+3. Permitted Use Scale (AIAS):
+   - Level 0: No AI (Secured lane only)
+   - Level 1: AI for Planning (Brainstorming/structure; disclosure of tools/prompts)
+   - Level 2: AI Collaboration (Drafting with substantial student revision; disclosure + annotated log)
+   - Level 3: AI Evaluation (Student generates AI output & critiques it against standards; the critique is the assessed artifact)
+   - Level 4: AI Exploration (Student designs AI workflow; reflective portfolio)
+
+Evaluate the given course, target CLO, and technical topic, and generate an actionable LBAI Redesign Dossier.
+
+Respond strictly with valid JSON:
+{
+  "courseOverview": {
+    "courseName": "string",
+    "topic": "string",
+    "targetCLO": "string",
+    "pedagogicalVerdict": "string (1-2 sentences summarizing transformation)"
+  },
+  "pillar1VisibleThinking": {
+    "recommendedRoutine": "Name of Harvard PZ Routine (e.g., Claim-Support-Question / See-Think-Wonder)",
+    "routineCategory": "string",
+    "classroomInstruction": "Specific, step-by-step prompt for students to externalize their cognitive reasoning",
+    "rationale": "Why this routine prevents passive cognitive offloading to AI in this topic"
+  },
+  "pillar2RelationalApplication": {
+    "authenticContext": "Real-world engineering, industrial, or local community scenario",
+    "taskDesign": "Hands-on or project-based challenge requiring students to apply theory to messy, non-ideal conditions",
+    "finkDimension": "Application / Integration"
+  },
+  "pillar3ConceptualMastery": {
+    "depthQuestion": "Probing conceptual question testing fundamental physical principles vs procedural steps",
+    "aiCritiqueTask": {
+      "promptForAI": "Exact prompt student instructs AI to generate",
+      "critiqueCriteria": "Specific technical flaws, omissions, or unrealistic assumptions students must identify"
+    }
+  },
+  "twoLaneAssessmentPlan": [
+    {
+      "task": "string",
+      "lane": "Secured or Open",
+      "aiLevel": 0,
+      "aiLabel": "Level 0: No AI / Level 1..4",
+      "weight": 10,
+      "evidence": "string"
+    }
+  ],
+  "weightingSummary": {
+    "securedSubtotal": 55,
+    "openSubtotal": 45,
+    "total": 100,
+    "pedagogicalBalanceComment": "string"
+  },
+  "finkTaxonomyAlignment": [
+    { "dimension": "Foundational Knowledge", "alignmentAction": "string" },
+    { "dimension": "Application Skills", "alignmentAction": "string" },
+    { "dimension": "Integration", "alignmentAction": "string" },
+    { "dimension": "Human Dimension", "alignmentAction": "string" },
+    { "dimension": "Caring", "alignmentAction": "string" },
+    { "dimension": "Learning How to Learn", "alignmentAction": "string" }
+  ]
+}`;
+
+    const userContent = `Course Title: ${courseName}
+Course Description: ${courseDescription}
+Target CLO: ${targetCLO}
+Technical Topic: ${topic}`;
+
+    try {
+      const response = await this.callGeminiAPI(systemPrompt, userContent);
+      const parsed = this.parseJSONResponse(response);
+      parsed.isSimulated = false;
+      return parsed;
+    } catch (err) {
+      console.warn('Live LBAI evaluation failed, using simulation engine:', err);
+      return this.simulateLBAI({ courseName, courseDescription, targetCLO, topic, errorNote: err.message });
+    }
+  }
+
+  /**
+   * Offline / Simulation Generator for Learning Beyond AI Framework
+   */
+  simulateLBAI({ courseName = 'EE-312 Microcontroller & Embedded Systems', courseDescription = '', targetCLO = '', topic = '', errorNote = null }) {
+    const isPower = courseName.toLowerCase().includes('power') || courseName.toLowerCase().includes('415');
+    
+    if (isPower) {
+      return {
+        courseOverview: {
+          courseName: courseName || 'EE-415 Power Electronics & Drives',
+          topic: topic || 'Multi-Level PWM Inverter Harmonics & Heat Sink Thermal Budgeting',
+          targetCLO: targetCLO || 'Evaluate the total harmonic distortion (THD) and thermal dissipation in multi-level PWM inverter topologies for grid-tied photovoltaic systems.',
+          pedagogicalVerdict: 'Transforms a traditional theoretical circuit calculation into a multi-layered investigation of physical thermal limits, IEEE-519 grid standards, and critical AI code audits.'
+        },
+        pillar1VisibleThinking: {
+          recommendedRoutine: 'What Makes You Say That? (Interpretation with Justification)',
+          routineCategory: 'Reasoning with Evidence',
+          classroomInstruction: 'Present thermal camera captures of an IGBT bridge under unexpected thermal runaway. Before consulting formulas, students must write 3 observable cues and defend why they indicate junction overheating vs gate-drive ringing.',
+          rationale: 'Forces students to ground assertions in physical evidence before querying AI, establishing independent cognitive observation.'
+        },
+        pillar2RelationalApplication: {
+          authenticContext: 'Rooftop 10kW commercial grid-tied PV inverter operating in high ambient temperature (Lahore 45°C ambient summer environment) with dusty heatsink fins.',
+          taskDesign: 'Calculate actual heat sink thermal resistance R_th required when ambient derating factors and switching frequency losses (50 kHz SiC MOSFETs) are factored into IEEE-519 harmonic standards.',
+          finkDimension: 'Application & Integration'
+        },
+        pillar3ConceptualMastery: {
+          depthQuestion: 'Why does increasing switching frequency reduce filter inductor size while simultaneously precipitating thermal destruction in semiconductor junctions?',
+          aiCritiqueTask: {
+            promptForAI: 'Write an optimized SPWM modulation algorithm in C for an H-bridge inverter switching at 50kHz.',
+            critiqueCriteria: 'Students must audit the AI code for missing dead-time shoot-through prevention delays, omitted gate-charge current limitations, and unrealistic switching rise times.'
+          }
+        },
+        twoLaneAssessmentPlan: [
+          { id: 1, task: 'Assignment 1: Inverter Topology Concept Map', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: In-Class Hand Draft', weight: 5, evidence: 'In-class sketch with handwritten justification' },
+          { id: 2, task: 'Assignment 2: Harmonic Standard Comparative Analysis', lane: 'Open', aiLevel: 1, aiLabel: 'Level 1: AI for Planning', weight: 5, evidence: 'Disclosure statement of prompt prompts and literature search' },
+          { id: 3, task: 'Assignment 3: Thermal Budgeting Case Study', lane: 'Open', aiLevel: 2, aiLabel: 'Level 2: AI Collaboration', weight: 10, evidence: 'Annotated simulation model with changelog' },
+          { id: 4, task: 'Assignment 4: AI Modulation Code Security Audit', lane: 'Open', aiLevel: 3, aiLabel: 'Level 3: AI Evaluation', weight: 10, evidence: 'The code flaw critique report is the assessed artifact' },
+          { id: 5, task: 'Assignment 5: Reflection Portfolio on Non-Idealities', lane: 'Open', aiLevel: 4, aiLabel: 'Level 4: AI Exploration', weight: 10, evidence: 'Engineering log detailing iterative decisions' },
+          { id: 6, task: 'Midterm Examination (In-depth derivations)', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Invigilated', weight: 20, evidence: 'Closed-book invigilated exam hall' },
+          { id: 7, task: 'Comprehensive Final Examination', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Invigilated', weight: 25, evidence: 'Comprehensive invigilated exam hall' },
+          { id: 8, task: 'Hardware Inverter Prototype / Simulation Artefact', lane: 'Open', aiLevel: 2, aiLabel: 'Level 2: AI Collaboration', weight: 10, evidence: 'Working model with hardware measurement logs' },
+          { id: 9, task: 'Interactive Oral Defence (Viva Voce)', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Observed', weight: 5, evidence: 'Individual questioning on design trade-offs' }
+        ],
+        weightingSummary: {
+          securedSubtotal: 55,
+          openSubtotal: 45,
+          total: 100,
+          pedagogicalBalanceComment: 'Optimal 55/45 distribution: Secured Lane verifies core electromagnetic & semiconductor physics mastery; Open Lane develops rigorous AI critique and real-world synthesis.'
+        },
+        finkTaxonomyAlignment: [
+          { dimension: 'Foundational Knowledge', alignmentAction: 'Mastery of semiconductor switching characteristics, Fourier harmonic analysis, and thermal impedance laws.' },
+          { dimension: 'Application Skills', alignmentAction: 'Designing heat sinks, sizing LC filters, and configuring microcontroller PWM registers.' },
+          { dimension: 'Integration', alignmentAction: 'Connecting power conversion with solar PV intermittency, grid code compliance, and climate impacts.' },
+          { dimension: 'Human Dimension', alignmentAction: 'Recognizing the engineer responsibility for public electrical safety and grid stability.' },
+          { dimension: 'Caring', alignmentAction: 'Valuing energy efficiency, equipment longevity, and renewable energy adoption.' },
+          { dimension: 'Learning How to Learn', alignmentAction: 'Developing habits of validating AI circuit suggestions against fundamental semiconductor datasheets.' }
+        ],
+        isSimulated: true,
+        simulationNotice: errorNote ? `Live API note: ${errorNote}` : 'Generated via Learning Beyond AI (LBAI) Pedagogical Engine (LIC Framework)'
+      };
+    }
+
+    // Default: Embedded Systems
+    return {
+      courseOverview: {
+        courseName: courseName || 'EE-312 Microcontroller & Embedded Systems',
+        topic: topic || 'I2C Bus Contention, Clock Stretching & Interrupt Prioritization',
+        targetCLO: targetCLO || 'Analyze timing diagrams and register configurations for high-speed serial peripherals (SPI and I2C) to diagnose data transmission bottlenecks.',
+        pedagogicalVerdict: 'Transforms low-level peripheral programming from rote syntax memorization into deep diagnostic inquiry, physical hardware grounding, and critical verification of AI-generated firmware.'
+      },
+      pillar1VisibleThinking: {
+        recommendedRoutine: 'Claim - Support - Question (Harvard Project Zero)',
+        routineCategory: 'Critical AI Evaluation & Evidence',
+        classroomInstruction: 'Display an I2C logic analyzer waveform showing an unexpected 400µs low pulse on SCL. 1. Students formulate a CLAIM on why the bus froze. 2. SUPPORT it with timing calculations. 3. Formulate a QUESTION regarding register interrupt priorities.',
+        rationale: 'Forces students to make reasoning visible on paper and debate with peers before looking for automated AI diagnostic answers.'
+      },
+      pillar2RelationalApplication: {
+        authenticContext: 'Department Embedded IoT Testbench: Multi-sensor health telemetry node where a high-bandwidth IMU and slow EEPROM share the same physical I2C bus under battery power.',
+        taskDesign: 'Connect STM32 Nucleo hardware to physical sensors on the lab bench. Intentionally introduce bus capacitance and measure clock-stretching latency on an oscilloscope, resolving bus lockups without AI shortcuts.',
+        finkDimension: 'Application & Integration'
+      },
+      pillar3ConceptualMastery: {
+        depthQuestion: 'Explain why software polling of an I2C status flag inside a high-priority Timer ISR causes complete system deadlock, even if the bus speed is set to 400 kHz.',
+        aiCritiqueTask: {
+          promptForAI: 'Write an interrupt-driven I2C master transmit function for STM32 using HAL libraries.',
+          critiqueCriteria: 'Students critique the AI code for blocking while loops inside callbacks, lack of bus timeout recovery, and unhandled arbitration loss flags.'
+        }
+      },
+      twoLaneAssessmentPlan: [
+        { id: 1, task: 'Assignment 1: Peripheral Architecture Concept Map', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: In-Class Hand Draft', weight: 5, evidence: 'Completed in class under observation' },
+        { id: 2, task: 'Assignment 2: Sensor Protocol Comparative Review', lane: 'Open', aiLevel: 1, aiLabel: 'Level 1: AI for Planning', weight: 5, evidence: 'Disclosure statement naming AI brainstorming prompts' },
+        { id: 3, task: 'Assignment 3: Telemetry Device Case Study', lane: 'Open', aiLevel: 2, aiLabel: 'Level 2: AI Collaboration', weight: 10, evidence: 'Annotated firmware with change tracking and explanation' },
+        { id: 4, task: 'Assignment 4: AI Firmware Flaw Audit & Critique', lane: 'Open', aiLevel: 3, aiLabel: 'Level 3: AI Evaluation', weight: 10, evidence: 'The critique document itself is the graded artifact' },
+        { id: 5, task: 'Assignment 5: Embedded Engineering Decision Journal', lane: 'Open', aiLevel: 4, aiLabel: 'Level 4: AI Exploration', weight: 10, evidence: 'Reflective portfolio with complete workflow trail' },
+        { id: 6, task: 'Midterm Examination (Timing & Register Analysis)', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Invigilated', weight: 20, evidence: 'Invigilated exam hall' },
+        { id: 7, task: 'Comprehensive Final Examination', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Invigilated', weight: 25, evidence: 'Comprehensive invigilated exam hall' },
+        { id: 8, task: 'Hardware Telemetry Prototype Project', lane: 'Open', aiLevel: 2, aiLabel: 'Level 2: AI Collaboration', weight: 10, evidence: 'Working embedded prototype with oscilloscope logs' },
+        { id: 9, task: 'Interactive Oral Defence (Viva Voce on Bench)', lane: 'Secured', aiLevel: 0, aiLabel: 'Level 0: Observed', weight: 5, evidence: 'Live bench questioning on hardware faults' }
+      ],
+      weightingSummary: {
+        securedSubtotal: 55,
+        openSubtotal: 45,
+        total: 100,
+        pedagogicalBalanceComment: 'Balanced 55% Secured (independent competence) / 45% Open (authentic AI partnership), meeting both PEC accreditation rigor and modern AI literacy.'
+      },
+      finkTaxonomyAlignment: [
+        { dimension: 'Foundational Knowledge', alignmentAction: 'Understanding register-level bitfields, bus protocols (SPI/I2C/UART), and interrupt vectors.' },
+        { dimension: 'Application Skills', alignmentAction: 'Configuring peripherals, writing non-blocking drivers, and operating digital logic analyzers.' },
+        { dimension: 'Integration', alignmentAction: 'Connecting microcontroller timing constraints to real-world sensor specifications and physical bus parasitics.' },
+        { dimension: 'Human Dimension', alignmentAction: 'Collaborating in firmware review teams and understanding safety-critical implications in medical/automotive devices.' },
+        { dimension: 'Caring', alignmentAction: 'Developing pride in robust, fail-safe code architecture and battery conservation.' },
+        { dimension: 'Learning How to Learn', alignmentAction: 'Developing the capability to consult microchip reference manuals to rigorously critique AI code suggestions.' }
+      ],
+      isSimulated: true,
+      simulationNotice: errorNote ? `Live API note: ${errorNote}` : 'Generated via Learning Beyond AI (LBAI) Pedagogical Engine (LIC Framework)'
+    };
+  }
 }
+
 
 export const geminiEngine = new GeminiOBEEvaluator();
 

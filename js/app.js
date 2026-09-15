@@ -2,7 +2,11 @@
 // System Architecture & Implementation: Engr. Dr. Nabeel Khalid
 // Faculty of Engineering - Department of Electrical Engineering
 
-import { PLO_LIST, TAXONOMY_LEVELS, UNMEASURABLE_VERBS_WARNING, SAMPLE_COURSES, SAMPLE_ASSESSMENT, SAMPLE_RESILIENCE_PRESETS } from './constants.js';
+import { 
+  PLO_LIST, TAXONOMY_LEVELS, UNMEASURABLE_VERBS_WARNING, SAMPLE_COURSES, SAMPLE_ASSESSMENT, SAMPLE_RESILIENCE_PRESETS,
+  LBAI_METADATA, LBAI_PILLARS, HARVARD_PZ_THINKING_ROUTINES, FINK_TAXONOMY_DIMENSIONS, SPP_PROCESS_PHASES, SPP_ROLES,
+  TWO_LANES_MODEL, AIAS_PERMITTED_USE_SCALE, LBAI_DEFAULT_WEIGHTING_MODEL, LBAI_SAMPLE_COURSES
+} from './constants.js';
 import { geminiEngine } from './gemini.js';
 import { PDFReportGenerator } from './pdf-export.js';
 
@@ -36,6 +40,12 @@ class OBEApp {
     // AI Resilience State
     this.resilienceAssessmentData = null;
 
+    // Learning Beyond AI (LBAI) State
+    this.lbaiTasks = JSON.parse(JSON.stringify(LBAI_DEFAULT_WEIGHTING_MODEL));
+    this.lbaiCurrentCourse = 'embedded';
+    this.lbaiEvaluationResult = null;
+    this.selectedRoutineCategory = 'all';
+
     this.init();
   }
 
@@ -44,11 +54,15 @@ class OBEApp {
     this.bindDOM();
     this.bindGeneratorControls();
     this.bindResilienceControls();
+    this.bindLBAIControls();
     this.renderGenPLOCheckboxes();
     this.renderCLOInputs();
     this.populateResilienceCLODropdown();
     this.renderAssessmentQuestions();
     this.renderStandardsHub();
+    this.renderLBAIRoutines();
+    this.renderLBAITasksTable();
+    this.updateLBAIWeightingMetrics();
     this.updateApiKeyStatusBadge();
     this.registerPWA();
     this.checkStoredSample();
@@ -2258,6 +2272,510 @@ ${p3.expectedStudentCritique || ''}
 
     PDFReportGenerator.triggerPrint(reportElement);
   }
+
+  // ==========================================================================
+  // LEARNING BEYOND AI (LBAI) FRAMEWORK CONTROLLER METHODS
+  // Learning Innovation Center (LIC) - Student Pedagogy Partnership Model
+  // ==========================================================================
+
+  bindLBAIControls() {
+    // 1. Course Presets
+    const btnEmbedded = document.getElementById('btn-lbai-preset-embedded');
+    const btnPower = document.getElementById('btn-lbai-preset-power');
+
+    if (btnEmbedded) {
+      btnEmbedded.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.loadLBAIPreset('embedded');
+      });
+    }
+
+    if (btnPower) {
+      btnPower.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.loadLBAIPreset('power');
+      });
+    }
+
+    // 2. Routine Filter Buttons
+    document.querySelectorAll('.routine-filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const cat = btn.getAttribute('data-cat');
+        this.selectedRoutineCategory = cat;
+
+        document.querySelectorAll('.routine-filter-btn').forEach(b => {
+          b.classList.remove('bg-slate-900', 'text-white');
+          b.classList.add('bg-slate-100', 'text-slate-700');
+        });
+        btn.classList.add('bg-slate-900', 'text-white');
+        btn.classList.remove('bg-slate-100', 'text-slate-700');
+
+        this.renderLBAIRoutines();
+      });
+    });
+
+    // 3. Weighting Table Action Buttons
+    const btnAddTask = document.getElementById('btn-add-assessment-task');
+    if (btnAddTask) {
+      btnAddTask.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.addLBAITask();
+      });
+    }
+
+    const btnResetModel = document.getElementById('btn-reset-weighting-model');
+    if (btnResetModel) {
+      btnResetModel.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.lbaiTasks = JSON.parse(JSON.stringify(LBAI_DEFAULT_WEIGHTING_MODEL));
+        this.renderLBAITasksTable();
+        this.updateLBAIWeightingMetrics();
+      });
+    }
+
+    // 4. Run AI Evaluation
+    const btnRunEval = document.getElementById('btn-run-lbai-eval');
+    if (btnRunEval) {
+      btnRunEval.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.runLBAIEvaluation();
+      });
+    }
+
+    // 5. PDF Export
+    const btnExportPDF = document.getElementById('btn-export-lbai-pdf');
+    if (btnExportPDF) {
+      btnExportPDF.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.exportLBAIPDF();
+      });
+    }
+  }
+
+  loadLBAIPreset(presetKey) {
+    const course = LBAI_SAMPLE_COURSES[presetKey];
+    if (!course) return;
+
+    this.lbaiCurrentCourse = presetKey;
+
+    const inputName = document.getElementById('lbai-input-course-name');
+    const inputTopic = document.getElementById('lbai-input-topic');
+    const inputCLO = document.getElementById('lbai-input-clo');
+
+    if (inputName) inputName.value = course.courseName;
+    if (inputTopic) inputTopic.value = course.sampleTopic;
+    if (inputCLO) inputCLO.value = course.sampleCLO;
+
+    // Highlight active preset button
+    const btnEmbedded = document.getElementById('btn-lbai-preset-embedded');
+    const btnPower = document.getElementById('btn-lbai-preset-power');
+
+    if (presetKey === 'embedded') {
+      if (btnEmbedded) {
+        btnEmbedded.className = 'btn-interactive px-3.5 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold transition-all shadow-xs';
+      }
+      if (btnPower) {
+        btnPower.className = 'btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs';
+      }
+    } else {
+      if (btnPower) {
+        btnPower.className = 'btn-interactive px-3.5 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold transition-all shadow-xs';
+      }
+      if (btnEmbedded) {
+        btnEmbedded.className = 'btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs';
+      }
+    }
+  }
+
+  renderLBAIRoutines() {
+    const container = document.getElementById('lbai-routines-grid');
+    if (!container) return;
+
+    const routines = HARVARD_PZ_THINKING_ROUTINES.filter(r => {
+      if (this.selectedRoutineCategory === 'all') return true;
+      return r.category.toLowerCase().includes(this.selectedRoutineCategory.toLowerCase());
+    });
+
+    container.innerHTML = routines.map(r => `
+      <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200/90 hover:border-amber-300 hover:shadow-xs transition-all flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">
+              ${r.category}
+            </span>
+          </div>
+          <h4 class="text-sm font-black text-slate-950">${r.name}</h4>
+          <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">${r.purpose}</p>
+        </div>
+
+        <div class="mt-3 pt-3 border-t border-slate-200/70 space-y-2">
+          <div class="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px]">
+            <span class="font-bold text-amber-900 block text-[10px] uppercase">Thinking Prompt:</span>
+            <p class="text-slate-800 font-medium mt-0.5">${r.promptStructure}</p>
+          </div>
+          <div class="text-[10px] text-slate-500">
+            <strong class="text-slate-700">Classroom Example:</strong> ${r.classroomApplication}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderLBAITasksTable() {
+    const tbody = document.getElementById('lbai-tasks-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = this.lbaiTasks.map((t, idx) => `
+      <tr class="hover:bg-slate-50/80 transition-colors" data-task-id="${t.id}">
+        <!-- Task Name -->
+        <td class="py-2.5 px-3">
+          <input type="text" value="${t.task}" data-id="${t.id}" data-field="task" class="lbai-task-input w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500" />
+        </td>
+
+        <!-- Lane -->
+        <td class="py-2.5 px-3">
+          <select data-id="${t.id}" data-field="lane" class="lbai-task-select w-full px-2.5 py-1.5 rounded-lg border text-xs font-bold ${t.lane === 'Secured' ? 'bg-orange-50 text-orange-900 border-orange-300' : 'bg-blue-50 text-blue-900 border-blue-300'} focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <option value="Secured" ${t.lane === 'Secured' ? 'selected' : ''}>Secured (Observed)</option>
+            <option value="Open" ${t.lane === 'Open' ? 'selected' : ''}>Open (Unsupervised)</option>
+          </select>
+        </td>
+
+        <!-- Permitted AI Use -->
+        <td class="py-2.5 px-3">
+          <select data-id="${t.id}" data-field="aiLevel" class="lbai-task-select w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <option value="0" ${t.aiLevel == 0 ? 'selected' : ''}>Level 0: No AI (Invigilated)</option>
+            <option value="1" ${t.aiLevel == 1 ? 'selected' : ''}>Level 1: AI for Planning</option>
+            <option value="2" ${t.aiLevel == 2 ? 'selected' : ''}>Level 2: AI Collaboration</option>
+            <option value="3" ${t.aiLevel == 3 ? 'selected' : ''}>Level 3: AI Evaluation</option>
+            <option value="4" ${t.aiLevel == 4 ? 'selected' : ''}>Level 4: AI Exploration</option>
+          </select>
+        </td>
+
+        <!-- Weight % -->
+        <td class="py-2.5 px-3 text-right">
+          <div class="flex items-center justify-end gap-1">
+            <input type="number" min="0" max="100" value="${t.weight}" data-id="${t.id}" data-field="weight" class="lbai-task-input w-16 px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-right text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500" />
+            <span class="text-xs font-bold text-slate-500">%</span>
+          </div>
+        </td>
+
+        <!-- Evidence Required -->
+        <td class="py-2.5 px-3">
+          <input type="text" value="${t.evidence || ''}" data-id="${t.id}" data-field="evidence" class="lbai-task-input w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-normal text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500" placeholder="e.g. Disclosure log / Invigilation" />
+        </td>
+
+        <!-- Delete Action -->
+        <td class="py-2.5 px-3 text-center">
+          <button type="button" data-id="${t.id}" class="btn-delete-lbai-task p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors" title="Delete Task">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+
+    // Bind input and select changes
+    tbody.querySelectorAll('.lbai-task-input, .lbai-task-select').forEach(elem => {
+      elem.addEventListener('change', (e) => {
+        const id = parseInt(e.target.getAttribute('data-id'), 10);
+        const field = e.target.getAttribute('data-field');
+        const task = this.lbaiTasks.find(t => t.id === id);
+        if (task) {
+          if (field === 'weight') {
+            task.weight = parseFloat(e.target.value) || 0;
+          } else if (field === 'aiLevel') {
+            task.aiLevel = parseInt(e.target.value, 10);
+            task.aiLabel = `Level ${task.aiLevel}`;
+          } else {
+            task[field] = e.target.value;
+          }
+          this.updateLBAIWeightingMetrics();
+        }
+      });
+    });
+
+    // Bind delete buttons
+    tbody.querySelectorAll('.btn-delete-lbai-task').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = parseInt(btn.getAttribute('data-id'), 10);
+        this.deleteLBAITask(id);
+      });
+    });
+  }
+
+  updateLBAIWeightingMetrics() {
+    let secured = 0;
+    let open = 0;
+
+    this.lbaiTasks.forEach(t => {
+      const w = parseFloat(t.weight) || 0;
+      if (t.lane === 'Secured') secured += w;
+      else open += w;
+    });
+
+    const total = secured + open;
+
+    const elSecured = document.getElementById('lbai-secured-subtotal');
+    const elOpen = document.getElementById('lbai-open-subtotal');
+    const elTotal = document.getElementById('lbai-total-weight');
+    const barSecured = document.getElementById('lbai-progress-secured');
+    const barOpen = document.getElementById('lbai-progress-open');
+    const badge = document.getElementById('lbai-balance-status-badge');
+
+    if (elSecured) elSecured.textContent = `${secured}%`;
+    if (elOpen) elOpen.textContent = `${open}%`;
+    if (elTotal) elTotal.textContent = `${total}%`;
+
+    if (barSecured) barSecured.style.width = `${Math.min(secured, 100)}%`;
+    if (barOpen) barOpen.style.width = `${Math.min(open, 100)}%`;
+
+    if (badge) {
+      if (total === 100) {
+        badge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200';
+        badge.textContent = '✓ Perfectly Balanced';
+      } else {
+        badge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-red-100 text-red-900 border border-red-200';
+        badge.textContent = `⚠ Total is ${total}% (Must equal 100%)`;
+      }
+    }
+  }
+
+  addLBAITask() {
+    const newTask = {
+      id: Date.now(),
+      task: 'New Learning Beyond AI Task',
+      lane: 'Open',
+      aiLevel: 2,
+      aiLabel: 'Level 2: AI Collaboration',
+      weight: 5,
+      evidence: 'Annotated log with explanation of AI critique'
+    };
+    this.lbaiTasks.push(newTask);
+    this.renderLBAITasksTable();
+    this.updateLBAIWeightingMetrics();
+  }
+
+  deleteLBAITask(id) {
+    if (this.lbaiTasks.length <= 1) {
+      alert('Course must have at least one assessment task.');
+      return;
+    }
+    this.lbaiTasks = this.lbaiTasks.filter(t => t.id !== id);
+    this.renderLBAITasksTable();
+    this.updateLBAIWeightingMetrics();
+  }
+
+  async runLBAIEvaluation() {
+    const courseName = document.getElementById('lbai-input-course-name')?.value || 'Engineering Course';
+    const topic = document.getElementById('lbai-input-topic')?.value || 'Technical Problem';
+    const targetCLO = document.getElementById('lbai-input-clo')?.value || 'Course Learning Outcome';
+
+    const btn = document.getElementById('btn-run-lbai-eval');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span>Auditing with LBAI Engine...</span>
+      `;
+    }
+
+    try {
+      const result = await geminiEngine.evaluateLBAI({
+        courseName,
+        courseDescription: 'Undergraduate engineering course compliant with Washington Accord and PEC criteria.',
+        targetCLO,
+        topic,
+        assessmentTasks: this.lbaiTasks
+      });
+
+      this.lbaiEvaluationResult = result;
+      this.renderLBAIResults(result);
+
+      // Scroll smoothly to results
+      const wrapper = document.getElementById('lbai-results-wrapper');
+      if (wrapper) {
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (err) {
+      console.error('LBAI evaluation failed:', err);
+      alert('Failed to evaluate course: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+  }
+
+  renderLBAIResults(data) {
+    const wrapper = document.getElementById('lbai-results-wrapper');
+    if (!wrapper) return;
+
+    const p1 = data.pillar1VisibleThinking || {};
+    const p2 = data.pillar2RelationalApplication || {};
+    const p3 = data.pillar3ConceptualMastery || {};
+    const fink = data.finkTaxonomyAlignment || [];
+    const overview = data.courseOverview || {};
+
+    wrapper.style.display = 'block';
+    wrapper.innerHTML = `
+      <div class="space-y-6">
+        <!-- Verdict Banner -->
+        <div class="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-xs font-black uppercase tracking-wider text-amber-900">LBAI Pedagogical Verdict</span>
+            </div>
+            <p class="text-sm font-bold text-slate-900 mt-1">${overview.pedagogicalVerdict || 'Course successfully restructured across the three pillars to strengthen human intelligence.'}</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button id="btn-apply-lbai-plan" type="button" class="btn-interactive px-4 py-2 rounded-xl text-xs font-black text-white bg-slate-950 hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all">
+              <span>Apply Plan to Workbench</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Three Pillars Generated Blueprint -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- P1 -->
+          <div class="p-5 rounded-2xl bg-orange-50/80 border border-orange-200 flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-orange-200 text-orange-950 block w-fit mb-2">
+                Pillar 1: Visible Thinking
+              </span>
+              <h4 class="text-sm font-black text-orange-950">${p1.recommendedRoutine || 'Harvard Project Zero Routine'}</h4>
+              <p class="text-[11px] font-semibold text-orange-900 mt-0.5">${p1.routineCategory || 'Cognitive Practice'}</p>
+              
+              <div class="mt-3 p-3 rounded-xl bg-white border border-orange-200/80 text-xs">
+                <strong class="text-orange-950 block text-[10px] uppercase">Classroom Prompt:</strong>
+                <p class="text-slate-800 mt-1 leading-relaxed">${p1.classroomInstruction || 'Mandate step-by-step thinking routine.'}</p>
+              </div>
+            </div>
+            <p class="text-[11px] text-orange-950/80 italic mt-3"><strong>Why:</strong> ${p1.rationale || 'Externalizes human reasoning before AI intervention.'}</p>
+          </div>
+
+          <!-- P2 -->
+          <div class="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-200 text-emerald-950 block w-fit mb-2">
+                Pillar 2: Relational Application
+              </span>
+              <h4 class="text-sm font-black text-emerald-950">Authentic Situated Challenge</h4>
+              <p class="text-[11px] font-semibold text-emerald-900 mt-0.5">Theory Connected to Practice</p>
+              
+              <div class="mt-3 p-3 rounded-xl bg-white border border-emerald-200/80 text-xs">
+                <strong class="text-emerald-950 block text-[10px] uppercase">Context &amp; Constraints:</strong>
+                <p class="text-slate-800 mt-1 leading-relaxed">${p2.authenticContext || 'Anchored in local equipment and physical realities.'}</p>
+              </div>
+            </div>
+            <p class="text-[11px] text-emerald-950/80 mt-3 font-medium"><strong>Task:</strong> ${p2.taskDesign || 'Practical application under non-ideal real-world parameters.'}</p>
+          </div>
+
+          <!-- P3 -->
+          <div class="p-5 rounded-2xl bg-blue-50/80 border border-blue-200 flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-200 text-blue-950 block w-fit mb-2">
+                Pillar 3: Conceptual Mastery
+              </span>
+              <h4 class="text-sm font-black text-blue-950">Deep Principles &amp; AI Critique</h4>
+              <p class="text-[11px] font-semibold text-blue-900 mt-0.5">Transferability Over Polished Answers</p>
+              
+              <div class="mt-3 p-3 rounded-xl bg-white border border-blue-200/80 text-xs">
+                <strong class="text-blue-950 block text-[10px] uppercase">Probing Conceptual Question:</strong>
+                <p class="text-slate-800 mt-1 leading-relaxed">${p3.depthQuestion || 'Why does this concept hold true under stress?'}</p>
+              </div>
+            </div>
+            ${p3.aiCritiqueTask ? `
+              <div class="mt-3 p-2.5 rounded-xl bg-white/90 border border-dashed border-blue-300 text-[10px] text-blue-950">
+                <strong class="block text-blue-800 uppercase font-black">Mandatory AI Interrogation Task:</strong>
+                <p class="font-mono text-slate-700 mt-0.5">"${p3.aiCritiqueTask.promptForAI}"</p>
+                <p class="mt-1 text-blue-900 font-medium"><strong>Critique Target:</strong> ${p3.aiCritiqueTask.critiqueCriteria}</p>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        ${fink.length ? `
+        <!-- Fink's Taxonomy Integration -->
+        <div class="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <h4 class="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">Fink's Taxonomy of Significant Learning: Course Dimension Alignment</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            ${fink.map(f => `
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                <span class="font-black text-slate-900 block text-[11px]">${f.dimension}</span>
+                <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">${f.alignmentAction}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+      </div>
+    `;
+
+    // Bind Apply Plan button
+    const btnApply = document.getElementById('btn-apply-lbai-plan');
+    if (btnApply) {
+      btnApply.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.applyLBAISuggestedPlan();
+      });
+    }
+  }
+
+  applyLBAISuggestedPlan() {
+    if (!this.lbaiEvaluationResult || !this.lbaiEvaluationResult.twoLaneAssessmentPlan) {
+      alert('No assessment plan available in evaluation results.');
+      return;
+    }
+
+    this.lbaiTasks = this.lbaiEvaluationResult.twoLaneAssessmentPlan.map((t, idx) => ({
+      id: t.id || Date.now() + idx,
+      task: t.task,
+      lane: t.lane,
+      aiLevel: t.aiLevel,
+      aiLabel: t.aiLabel || `Level ${t.aiLevel}`,
+      weight: t.weight,
+      evidence: t.evidence
+    }));
+
+    this.renderLBAITasksTable();
+    this.updateLBAIWeightingMetrics();
+
+    // Scroll back to workbench table
+    const table = document.getElementById('lbai-assessment-table');
+    if (table) {
+      table.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  exportLBAIPDF() {
+    const courseName = document.getElementById('lbai-input-course-name')?.value || 'Engineering Course';
+    const topic = document.getElementById('lbai-input-topic')?.value || 'Technical Problem';
+    const targetCLO = document.getElementById('lbai-input-clo')?.value || 'Course Learning Outcome';
+
+    // If evaluation not run yet, generate default simulation data for export
+    const lbaiData = this.lbaiEvaluationResult || geminiEngine.simulateLBAI({
+      courseName,
+      courseDescription: 'Undergraduate engineering course compliant with Washington Accord and PEC criteria.',
+      targetCLO,
+      topic
+    });
+
+    const reportElement = PDFReportGenerator.generateLBAIReport({
+      lbaiData,
+      courseName,
+      assessmentTasks: this.lbaiTasks
+    });
+
+    PDFReportGenerator.triggerPrint(reportElement);
+  }
+
 
   registerPWA() {
     if ('serviceWorker' in navigator) {

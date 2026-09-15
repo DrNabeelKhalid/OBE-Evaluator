@@ -138,6 +138,13 @@
             <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-900 font-black">AI-RLI</span>
           </button>
 
+          <!-- Tab: Learning Beyond AI (LBAI) Framework -->
+          <button class="nav-tab-btn" data-tab="learning-beyond-ai">
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            <span>Learning Beyond AI</span>
+            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 font-black">LBAI</span>
+          </button>
+
           <!-- Tab 5: PEC Standards & Bloom's Hub -->
           <button class="nav-tab-btn" data-tab="standards-hub">
             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -206,6 +213,11 @@
           <button class="btn-jump-tab btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-purple-900 bg-purple-100 hover:bg-purple-200 border border-purple-300 shadow-xs transition-all flex items-center gap-2" data-target="ai-resilience">
             <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             <span>AI Resilience</span>
+          </button>
+
+          <button class="btn-jump-tab btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 shadow-xs transition-all flex items-center gap-2" data-target="learning-beyond-ai">
+            <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            <span>Learning Beyond AI</span>
           </button>
 
           <button class="btn-jump-tab btn-interactive px-5 py-3 rounded-2xl text-xs sm:text-sm font-extrabold text-slate-900 bg-white border border-slate-300 hover:bg-slate-50 shadow-xs transition-all flex items-center gap-2" data-target="assessment-audit">
@@ -1457,8 +1469,405 @@
 
     </div>
 
+    <!-- ==================== TAB: LEARNING BEYOND AI (LBAI) FRAMEWORK ==================== -->
+    <div id="tab-panel-learning-beyond-ai" class="tab-panel space-y-8" style="display: none;">
+      
+      <!-- Studio Header & Sample Presets -->
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-black uppercase tracking-wider">
+                <span class="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
+                <span>Learning Beyond AI (LBAI) Framework</span>
+              </span>
+              <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                Student Pedagogy Partnership (SPP) • Learning Innovation Center (LIC)
+              </span>
+            </div>
+            <h2 class="text-2xl font-black text-slate-950">Learning Beyond AI: Strengthening Human Intelligence in the Age of AI</h2>
+            <p class="text-sm text-slate-700 font-normal mt-1 max-w-4xl leading-relaxed">
+              Based on the pedagogical model by <strong>Zunaira Khalid &amp; Rimsha Munir</strong> (Learning Innovation Center - UCP). The long-term response to generative AI is not to restrict its use, but to establish classrooms and assessments that strengthen human intelligence, restrain extensive cognitive offloading, and retain learner agency.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <span class="text-xs font-bold text-slate-600">Sample Courses:</span>
+            <button id="btn-lbai-preset-embedded" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-amber-50 text-amber-950 border border-amber-200 hover:bg-amber-100 text-xs font-bold transition-all shadow-2xs">
+              EE-312 Microcontrollers
+            </button>
+            <button id="btn-lbai-preset-power" type="button" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-900 hover:bg-slate-200 text-xs font-bold transition-all shadow-2xs">
+              EE-415 Power Electronics
+            </button>
+            <button id="btn-export-lbai-pdf" class="btn-interactive px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-slate-950 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all ml-1" title="Export Official LBAI Course Redesign & Two-Lane Assessment Dossier PDF">
+              <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Export LBAI Dossier PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- The Three Pillars Cards -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Pillar 1 -->
+          <div class="p-5 rounded-2xl bg-orange-50/90 border border-orange-200 flex flex-col justify-between shadow-2xs">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center font-black text-xs shadow-2xs">P1</span>
+                <span class="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-md bg-orange-200/80 text-orange-900">Harvard Project Zero</span>
+              </div>
+              <h3 class="text-base font-black text-orange-950">Visible Thinking</h3>
+              <p class="text-xs text-orange-900/80 font-semibold mt-0.5">Externalize reasoning &amp; build mental muscles</p>
+              <p class="text-xs text-slate-700 leading-relaxed mt-3">
+                Equips learners with thinking practices to identify how they arrive at ideas, decisions, or solutions. By making thinking visible, students learn to build real intelligence that prepares them to actively critique and engage with AI thoughtfully rather than reflexively outsourcing cognitive effort.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-orange-200/80">
+              <span class="text-[11px] font-bold text-orange-950 block">Core Design Move:</span>
+              <p class="text-[11px] text-orange-900/90 font-medium mt-0.5">Cultivate inquiry, dialogue, and metacognition using Harvard Project Zero 9 Core Thinking Routines as daily classroom norms.</p>
+            </div>
+          </div>
+
+          <!-- Pillar 2 -->
+          <div class="p-5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex flex-col justify-between shadow-2xs">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xs shadow-2xs">P2</span>
+                <span class="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-900">Fink's Taxonomy</span>
+              </div>
+              <h3 class="text-base font-black text-emerald-950">Relational Application</h3>
+              <p class="text-xs text-emerald-900/80 font-semibold mt-0.5">Connect theory to authentic, lived realities</p>
+              <p class="text-xs text-slate-700 leading-relaxed mt-3">
+                Connects classroom learning with authentic situations by applying knowledge to meaningful contexts. Students make connections between theory and practice, using lived experiences, local industries, and real-world challenges to develop informed engineering judgement and decision-making.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-emerald-200/80">
+              <span class="text-[11px] font-bold text-emerald-950 block">Core Design Move:</span>
+              <p class="text-[11px] text-emerald-900/90 font-medium mt-0.5">Use authentic case studies, local problem-based learning, physical lab benches, and community challenges that remote LLMs cannot fabricate.</p>
+            </div>
+          </div>
+
+          <!-- Pillar 3 -->
+          <div class="p-5 rounded-2xl bg-blue-50/90 border border-blue-200 flex flex-col justify-between shadow-2xs">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-2xs">P3</span>
+                <span class="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-md bg-blue-200/80 text-blue-900">Cognitive Pedagogy</span>
+              </div>
+              <h3 class="text-base font-black text-blue-950">Conceptual Mastery</h3>
+              <p class="text-xs text-blue-900/80 font-semibold mt-0.5">Deep understanding &amp; critical AI evaluation</p>
+              <p class="text-xs text-slate-700 leading-relaxed mt-3">
+                Develops deep conceptual understanding by enabling students to explain, justify, critique, and synthesize ideas rather than simply recalling information. Students transfer principles to unfamiliar problems and critically audit AI-generated outputs for subtle errors, bias, and omissions.
+              </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-blue-200/80">
+              <span class="text-[11px] font-bold text-blue-950 block">Core Design Move:</span>
+              <p class="text-[11px] text-blue-900/90 font-medium mt-0.5">Design tasks asking "why does this fail?" and mandate AI critique assignments where the critique itself is the primary assessed artifact.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== HARVARD PZ 9 CORE ROUTINES EXPLORER ==================== -->
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-900 text-xs font-black uppercase tracking-wider mb-1">
+              <span>Pillar 1 Toolkit • Ritchhart et al. (2011)</span>
+            </div>
+            <h3 class="text-xl font-black text-slate-950">Harvard Project Zero: 9 Core Thinking Routines</h3>
+            <p class="text-xs text-slate-600 mt-0.5">Deployable pedagogical routines that elicit and externalize human cognitive work in the engineering classroom.</p>
+          </div>
+          
+          <!-- Category Filter Pills -->
+          <div class="flex flex-wrap items-center gap-1.5" id="routines-filter-container">
+            <button class="routine-filter-btn px-3 py-1 rounded-xl text-xs font-extrabold bg-slate-900 text-white transition-all" data-cat="all">All (9)</button>
+            <button class="routine-filter-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-cat="Reasoning with Evidence">Evidence</button>
+            <button class="routine-filter-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-cat="Critical AI Evaluation">AI Evaluation</button>
+            <button class="routine-filter-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-cat="Inquiry &amp; Curiosity">Inquiry</button>
+            <button class="routine-filter-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-cat="Metacognition &amp; Conceptual Change">Metacognition</button>
+          </div>
+        </div>
+
+        <!-- Routines Grid Container (Populated dynamically) -->
+        <div id="lbai-routines-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Rendered by js/app.js -->
+        </div>
+      </div>
+
+      <!-- ==================== BLOOM × FINK TAXONOMY SYNERGY & SPP PARTNERSHIP ==================== -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Bloom × Fink Synergy Card -->
+        <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-black uppercase tracking-wider mb-1">
+              <span>Pedagogical Lens • Figure 2 Integration</span>
+            </div>
+            <h3 class="text-xl font-black text-slate-950">Bloom's × Fink's Taxonomy Synergy</h3>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              While <strong>Bloom's Taxonomy</strong> guides cognitive complexity (C1 Remembering to C6 Creating), <strong>Fink's Taxonomy of Significant Learning</strong> encompasses Bloom's cognitive domain within a broader holistic model fostering personal growth, authentic application, and lifelong learning.
+            </p>
+
+            <div class="mt-5 space-y-2.5">
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                <span class="w-6 h-6 rounded-lg bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0">1</span>
+                <div>
+                  <h4 class="text-xs font-extrabold text-slate-900">Foundational Knowledge &amp; Application</h4>
+                  <p class="text-[11px] text-slate-600">Encompasses Bloom's cognitive domain (C1–C6) ensuring students command technical formulas, schematics, and analytical tools.</p>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white text-xs font-black flex items-center justify-center shrink-0">2</span>
+                <div>
+                  <h4 class="text-xs font-extrabold text-slate-900">Integration &amp; Human Dimension</h4>
+                  <p class="text-[11px] text-slate-600">Connects theoretical concepts with lived realities, ethical accountability (PEC PLO-7), and societal safety.</p>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                <span class="w-6 h-6 rounded-lg bg-purple-600 text-white text-xs font-black flex items-center justify-center shrink-0">3</span>
+                <div>
+                  <h4 class="text-xs font-extrabold text-slate-900">Caring &amp; Learning How to Learn</h4>
+                  <p class="text-[11px] text-slate-600">Cultivates intellectual pride in precision, independent problem formulation, and resilience to deceptive AI fluency.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-[11px] font-medium flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+            <span>Brown et al. (2014): <em>"It is the struggle that individuals incur when acquiring knowledge that makes it last."</em></span>
+          </div>
+        </div>
+
+        <!-- SPP 4-Phase Partnership Roadmap -->
+        <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-900 text-xs font-black uppercase tracking-wider mb-1">
+              <span>Collaborative Execution Model</span>
+            </div>
+            <h3 class="text-xl font-black text-slate-950">SPP Partnership Cycle &amp; Roles</h3>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+              Executed by three connected roles: <strong>Departmental Pedagogy Partner (DPP)</strong>, <strong>Faculty Partner</strong>, and <strong>Student Partner</strong> across 4 progressive phases.
+            </p>
+
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] uppercase font-black text-orange-600">Phase 1 (W1–2)</span>
+                <h5 class="text-xs font-black text-slate-900 mt-0.5">Preparation</h5>
+                <p class="text-[10px] text-slate-600 mt-1">LIC training &amp; 3-pillar course alignment within 2 weeks of orientation.</p>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] uppercase font-black text-blue-600">Phase 2 (Weekly)</span>
+                <h5 class="text-xs font-black text-slate-900 mt-0.5">Design</h5>
+                <p class="text-[10px] text-slate-600 mt-1">Co-development of tasks using AI as a thought partner to sharpen reasoning.</p>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] uppercase font-black text-emerald-600">Phase 3 (Active)</span>
+                <h5 class="text-xs font-black text-slate-900 mt-0.5">Delivery</h5>
+                <p class="text-[10px] text-slate-600 mt-1">Classroom interventions implemented; student partner acts as visible peer guide.</p>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-[10px] uppercase font-black text-purple-600">Phase 4 (Final)</span>
+                <h5 class="text-xs font-black text-slate-900 mt-0.5">Evaluation</h5>
+                <p class="text-[10px] text-slate-600 mt-1">Reflective synthesis against SPP Rubric to document emerging best practices.</p>
+              </div>
+            </div>
+
+            <!-- Roles Strip -->
+            <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+              <span class="text-xs font-bold text-slate-700">Key Roles:</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-950 border border-orange-200">DPP (LIC Bridge)</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-950 border border-blue-200">Faculty Partner (Instructor)</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-950 border border-emerald-200">Student Partner (Learner Voice)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== THE TWO-LANE ASSESSMENT WORKBENCH ==================== -->
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-black uppercase tracking-wider mb-1">
+              <span>Assessment Architecture • Bridgeman, Liu &amp; Weeks (2024)</span>
+            </div>
+            <h3 class="text-2xl font-black text-slate-950">Two-Lane Assessment Weighting Workbench</h3>
+            <p class="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed">
+              Distribute course weightings across <strong>Secured Lane</strong> (observed/invigilated, verifying independent competence) and <strong>Open Lane</strong> (unsupervised, developing authentic AI judgment on the AIAS Permitted Use Scale).
+            </p>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="flex items-center gap-2">
+            <button id="btn-add-assessment-task" type="button" class="btn-interactive px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-900 text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Add Task</span>
+            </button>
+            <button id="btn-reset-weighting-model" type="button" class="btn-interactive px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 shadow-2xs transition-all">
+              Reset to 55/45 Model
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Subtotal Dashboard & Visual Meter -->
+        <div class="mt-6 p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-center sm:text-left">
+            <!-- Secured Lane Metric -->
+            <div class="p-4 rounded-xl bg-white border border-orange-200 shadow-2xs">
+              <span class="text-[10px] font-black uppercase tracking-wider text-orange-600 block">Secured Lane Subtotal</span>
+              <div class="flex items-baseline gap-2 mt-1">
+                <span id="lbai-secured-subtotal" class="text-2xl sm:text-3xl font-black text-orange-950">55%</span>
+                <span class="text-[10px] font-bold text-slate-500">(Target: 50%–60%)</span>
+              </div>
+              <p class="text-[11px] text-slate-600 mt-1">Verified independent student understanding.</p>
+            </div>
+
+            <!-- Open Lane Metric -->
+            <div class="p-4 rounded-xl bg-white border border-blue-200 shadow-2xs">
+              <span class="text-[10px] font-black uppercase tracking-wider text-blue-600 block">Open Lane Subtotal</span>
+              <div class="flex items-baseline gap-2 mt-1">
+                <span id="lbai-open-subtotal" class="text-2xl sm:text-3xl font-black text-blue-950">45%</span>
+                <span class="text-[10px] font-bold text-slate-500">(Target: 40%–50%)</span>
+              </div>
+              <p class="text-[11px] text-slate-600 mt-1">Structured AI partnership &amp; critique trail.</p>
+            </div>
+
+            <!-- Cumulative Weight Metric -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs" id="lbai-total-weight-box">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-600 block">Cumulative Course Weight</span>
+              <div class="flex items-baseline gap-2 mt-1">
+                <span id="lbai-total-weight" class="text-2xl sm:text-3xl font-black text-slate-950">100%</span>
+                <span id="lbai-balance-status-badge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                  ✓ Perfectly Balanced
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-600 mt-1">Sum of all assessment tasks.</p>
+            </div>
+          </div>
+
+          <!-- Segmented Visual Bar -->
+          <div class="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
+            <div id="lbai-progress-secured" class="bg-gradient-to-r from-orange-500 to-amber-500 h-full transition-all duration-300" style="width: 55%;" title="Secured Lane"></div>
+            <div id="lbai-progress-open" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300" style="width: 45%;" title="Open Lane"></div>
+          </div>
+          <div class="flex justify-between items-center text-[10px] font-black text-slate-600 mt-1.5 px-1">
+            <span class="text-orange-600 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span> Secured: Level 0 Observed Tasks</span>
+            <span class="text-blue-600 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Open: AIAS Levels 1–4 Guided Tasks</span>
+          </div>
+        </div>
+
+        <!-- Editable Assessment Table -->
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-left border-collapse" id="lbai-assessment-table">
+            <thead>
+              <tr class="border-b-2 border-slate-200 text-[11px] font-black uppercase text-slate-600 bg-slate-50/70">
+                <th class="py-3 px-3">Assessment Task</th>
+                <th class="py-3 px-3 w-32">Lane</th>
+                <th class="py-3 px-3 w-48">Permitted AI Use (AIAS)</th>
+                <th class="py-3 px-3 w-24 text-right">Weight %</th>
+                <th class="py-3 px-3">Evidence Required</th>
+                <th class="py-3 px-3 w-16 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="lbai-tasks-tbody" class="divide-y divide-slate-100 text-xs font-medium text-slate-800">
+              <!-- Rendered dynamically by js/app.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Permitted Use Scale (AIAS) Accordion Reference -->
+        <div class="mt-6 pt-5 border-t border-slate-100">
+          <details class="group bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 cursor-pointer">
+            <summary class="flex items-center justify-between font-extrabold text-xs text-slate-900 select-none">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Permitted Use Scale Guide (Adapted from AI Assessment Scale - AIAS)</span>
+              </span>
+              <span class="text-[10px] text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-5 gap-3 text-[11px] pt-3 border-t border-slate-200/70">
+              <div class="p-3 bg-white rounded-xl border border-slate-200">
+                <span class="font-black text-slate-900 block">Level 0: No AI</span>
+                <p class="text-slate-600 mt-1">No AI use at any stage. Strictly in secured lane under direct observation.</p>
+                <span class="text-[10px] text-orange-700 font-bold mt-2 block">Evidence: Invigilation</span>
+              </div>
+              <div class="p-3 bg-white rounded-xl border border-slate-200">
+                <span class="font-black text-slate-900 block">Level 1: Planning</span>
+                <p class="text-slate-600 mt-1">AI used to brainstorm, structure, locate sources. All drafting is student's own.</p>
+                <span class="text-[10px] text-blue-700 font-bold mt-2 block">Evidence: Disclosure Statement</span>
+              </div>
+              <div class="p-3 bg-white rounded-xl border border-slate-200">
+                <span class="font-black text-slate-900 block">Level 2: Collaboration</span>
+                <p class="text-slate-600 mt-1">AI used in drafting; student substantially revises, corrects, and extends output.</p>
+                <span class="text-[10px] text-blue-700 font-bold mt-2 block">Evidence: Annotated Changelog</span>
+              </div>
+              <div class="p-3 bg-white rounded-xl border border-slate-200">
+                <span class="font-black text-slate-900 block">Level 3: AI Evaluation</span>
+                <p class="text-slate-600 mt-1">Student generates AI output &amp; critiques it for error, bias, omission.</p>
+                <span class="text-[10px] text-purple-700 font-bold mt-2 block">Evidence: The Critique Itself</span>
+              </div>
+              <div class="p-3 bg-white rounded-xl border border-slate-200">
+                <span class="font-black text-slate-900 block">Level 4: Exploration</span>
+                <p class="text-slate-600 mt-1">Student designs multi-stage AI workflow &amp; justifies choices across body of work.</p>
+                <span class="text-[10px] text-purple-700 font-bold mt-2 block">Evidence: Reflective Portfolio</span>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- ==================== AI LBAI COURSE REDESIGN ASSISTANT ==================== -->
+      <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-black uppercase tracking-wider mb-1">
+              <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span>AI Pedagogical Assistant</span>
+            </div>
+            <h3 class="text-xl font-black text-slate-950">LBAI Course Redesign &amp; Heuristic Auditor</h3>
+            <p class="text-xs text-slate-600 mt-0.5">Input your course topic to generate tailored Visible Thinking routines, authentic relational challenges, and AI critique questions.</p>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">Course Title</label>
+            <input type="text" id="lbai-input-course-name" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" value="EE-312 Microcontroller &amp; Embedded Systems" placeholder="e.g. EE-312 Microcontroller Systems" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">Technical Topic / Problem Area</label>
+            <input type="text" id="lbai-input-topic" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" value="I2C Bus Contention, Clock Stretching &amp; Interrupt Deadlock" placeholder="e.g. I2C Bus Arbitration Failure" />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">Mapped Course Learning Outcome (CLO)</label>
+            <input type="text" id="lbai-input-clo" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" value="Analyze timing diagrams and register configurations for high-speed serial peripherals (SPI and I2C) to diagnose data transmission bottlenecks." placeholder="Target CLO statement" />
+          </div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-end">
+          <button id="btn-run-lbai-eval" type="button" class="btn-interactive px-6 py-3 rounded-2xl text-xs sm:text-sm font-black text-white bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 shadow-md shadow-amber-600/25 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Audit &amp; Redesign with LBAI Engine</span>
+          </button>
+        </div>
+
+        <!-- Rendered AI Audit Results Container -->
+        <div id="lbai-results-wrapper" class="mt-8 pt-6 border-t border-slate-200/80" style="display: none;">
+          <!-- Dynamically populated by js/app.js -->
+        </div>
+      </div>
+
+    </div>
+
     <!-- ==================== TAB 6: PEC STANDARDS & BLOOM'S HUB ==================== -->
     <div id="tab-panel-standards-hub" class="tab-panel space-y-8">
+
       
       <div class="bg-white/95 border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
