@@ -21,13 +21,8 @@
   <meta name="twitter:description" content="Engineering accreditation compliance, SMART CLO auditing, and AI-Resilient Learning Framework by Engr. Dr. Nabeel Khalid." />
   <meta name="twitter:image" content="https://drnabeelkhalid.github.io/OBE-Evaluator/public/assets/FOE_Logo_WBG.png" />
 
-  <!-- PDF.js CDN for client-side PDF document parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    if (typeof window !== 'undefined' && window.pdfjsLib) {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-  </script>
+  <!-- PDF.js CDN for client-side PDF document parsing (deferred) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -2313,7 +2308,7 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=3.0"></script>
-  <script type="module" src="./js/demo-video.js?v=3.2"></script>
+  <script type="module" src="./js/app.js?v=3.5"></script>
+  <script type="module" src="./js/demo-video.js?v=3.5"></script>
 </body>
 </html>

@@ -992,6 +992,8 @@ class OBEApp {
         </div>
       `).join('');
     }
+  }
+
   // --- Course PLO Mapping & Automated CLO Suggestion Controls ---
   bindCLOSuggestionControls() {
     // Open Suggestion Card button in CLO header

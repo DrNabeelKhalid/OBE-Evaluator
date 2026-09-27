@@ -1,11 +1,12 @@
 // Service Worker for OBE-ICAS EED PWA
-const CACHE_NAME = 'obe-icas-v3';
+const CACHE_NAME = 'obe-icas-v4';
 const ASSETS = [
   '../index.html',
   '../css/custom.css',
   '../js/constants.js',
   '../js/gemini.js',
   '../js/pdf-export.js',
+  '../js/document-extractor.js',
   '../js/app.js',
   './manifest.json',
   './assets/FOE_Logo_WBG.png',

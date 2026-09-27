@@ -152,6 +152,9 @@ function parseDocxXmlText(xmlString) {
  * Extracts text from PDF using PDF.js when loaded
  */
 async function extractTextFromPdfJs(arrayBuffer) {
+  if (window.pdfjsLib && !window.pdfjsLib.GlobalWorkerOptions?.workerSrc) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
   const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
   const pdf = await loadingTask.promise;
   const pageTexts = [];
@@ -166,7 +169,6 @@ async function extractTextFromPdfJs(arrayBuffer) {
   return pageTexts.join('\n\n');
 }
 
-/**
 /**
  * Fallback stream text extractor for PDF files with in-browser stream decompression
  */
