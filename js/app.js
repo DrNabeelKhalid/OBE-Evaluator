@@ -9,7 +9,7 @@ import {
 } from './constants.js';
 import { geminiEngine } from './gemini.js';
 import { PDFReportGenerator } from './pdf-export.js';
-import { extractTextFromFile, parseSyllabusText } from './document-extractor.js';
+import { extractTextFromFile, parseSyllabusText, synthesizeDefaultOutlineForCourse } from './document-extractor.js';
 
 class OBEApp {
   constructor() {
@@ -1204,10 +1204,9 @@ class OBEApp {
   }
 
   async handleGenerateSuggestedCLOs() {
-    const courseName = document.getElementById('input-course-name')?.value.trim() || 'Course';
+    const courseName = document.getElementById('input-course-name')?.value.trim() || 'Engineering Course';
     const courseDescription = document.getElementById('input-course-desc')?.value.trim() || '';
-    const coursePlan = document.getElementById('input-course-plan')?.value.trim() || this.coursePlanText || '';
-    this.coursePlanText = coursePlan;
+    let coursePlan = document.getElementById('input-course-plan')?.value.trim() || this.coursePlanText || '';
     const isLab = /lab|practical|experiment/i.test(courseName);
 
     if (this.cloTargetPLOs.length === 0) {
@@ -1215,10 +1214,15 @@ class OBEApp {
       return;
     }
 
-    if (!coursePlan) {
-      alert('Please enter or paste your Course Plan in the box above so CLOs can be tailored to your course topics.');
-      document.getElementById('input-course-plan')?.focus();
-      return;
+    // Cross-course topic check: If course is not embedded but plan contains stale embedded ARM Cortex-M text, refresh it
+    const isEmbeddedCourse = /embed|microcontroller|cortex|avr|stm32|arm\b/i.test(courseName);
+    const planHasEmbeddedOnly = /arm cortex|nvic|systick|free_?rtos|gpio subsystems/i.test(coursePlan);
+
+    if (!coursePlan || coursePlan.length < 10 || (!isEmbeddedCourse && planHasEmbeddedOnly)) {
+      coursePlan = synthesizeDefaultOutlineForCourse(courseName, courseDescription);
+      const planInput = document.getElementById('input-course-plan');
+      if (planInput) planInput.value = coursePlan;
+      this.coursePlanText = coursePlan;
     }
 
     const btn = document.getElementById('btn-generate-suggested-clos');
@@ -1647,12 +1651,24 @@ class OBEApp {
     const bannerDesc = document.getElementById('syllabus-banner-desc');
     const bannerIcon = document.getElementById('syllabus-banner-icon');
 
+    // 1. Immediately reset prior course state so no old course data leaks into the new course
+    const courseNameInput = document.getElementById('input-course-name');
+    const courseDescInput = document.getElementById('input-course-desc');
+    const planInput = document.getElementById('input-course-plan');
+    if (courseNameInput) courseNameInput.value = '';
+    if (courseDescInput) courseDescInput.value = '';
+    if (planInput) planInput.value = '';
+    this.coursePlanText = '';
+    this.courseTopics = [];
+    this.clos = [{ id: 1, statement: '', plo: 'PLO-1', taxonomy: 'C2' }];
+    this.renderCLOInputs();
+
     if (statusMsg) {
       statusMsg.innerHTML = `<span class="inline-flex items-center gap-2 text-orange-600 font-bold"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Scanning document: "${file.name}"...</span>`;
     }
 
     try {
-      // 1. Zero-dependency client-side extraction for Word (.docx), PDF (.pdf), and text (.txt, .md, .csv)
+      // 2. Client-side extraction for Word (.docx), PDF (.pdf), and text (.txt, .md, .csv)
       let rawText = '';
       try {
         rawText = await extractTextFromFile(file);
@@ -1660,7 +1676,7 @@ class OBEApp {
         console.warn('extractTextFromFile warning:', extractErr);
       }
 
-      // 2. Read base64 data for fallback / Gemini API
+      // 3. Read base64 data for fallback / Gemini API
       let base64Data = '';
       const mimeType = file.type || 'application/pdf';
       if (!rawText || file.type.startsWith('image/') || file.type === 'application/pdf') {
@@ -1679,18 +1695,19 @@ class OBEApp {
       const extracted = await geminiEngine.extractSyllabus(base64Data, mimeType, file.name, rawText);
 
       if (extracted) {
-        if (extracted.courseName) {
-          document.getElementById('input-course-name').value = extracted.courseName;
-        }
-        if (extracted.courseDescription) {
-          document.getElementById('input-course-desc').value = extracted.courseDescription;
+        const cName = extracted.courseName || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ');
+        const cDesc = extracted.courseDescription || '';
+        let cPlan = extracted.coursePlan || '';
+
+        // If no course plan in document, synthesize outline tailored to this exact course
+        if (!cPlan || cPlan.trim().length < 10) {
+          cPlan = synthesizeDefaultOutlineForCourse(cName, cDesc);
         }
 
-        if (extracted.coursePlan) {
-          const planInput = document.getElementById('input-course-plan');
-          if (planInput) planInput.value = extracted.coursePlan;
-          this.coursePlanText = extracted.coursePlan;
-        }
+        if (courseNameInput) courseNameInput.value = cName;
+        if (courseDescInput) courseDescInput.value = cDesc;
+        if (planInput) planInput.value = cPlan;
+        this.coursePlanText = cPlan;
 
         if (extracted.clos && extracted.clos.length > 0) {
           this.clos = extracted.clos.map((c, i) => ({
@@ -1703,7 +1720,7 @@ class OBEApp {
           document.getElementById('clo-suggestion-card')?.classList.add('hidden');
         } else {
           // No CLOs found in document -> Prompt user to select mapped PLOs and auto-suggest
-          const isLab = /lab|practical|experiment/i.test(extracted.courseName || file.name);
+          const isLab = /lab|practical|experiment/i.test(cName || file.name);
           this.cloTargetPLOs = isLab ? ['PLO-4', 'PLO-5', 'PLO-9'] : ['PLO-1', 'PLO-2', 'PLO-3'];
           this.renderCLOSuggestPLOCheckboxes();
           const suggestCard = document.getElementById('clo-suggestion-card');
@@ -1714,23 +1731,23 @@ class OBEApp {
         }
 
         const cloCount = extracted.clos?.length || 0;
-        const hasPlan = Boolean(extracted.coursePlan && extracted.coursePlan.length > 10);
+        const hasPlan = Boolean(cPlan && cPlan.length > 10);
 
         if (statusMsg) {
           if (cloCount > 0) {
-            statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${extracted.courseName || file.name} (${cloCount} CLOs detected)</span>`;
+            statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${cName} (${cloCount} CLOs detected)</span>`;
           } else {
-            statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${extracted.courseName || file.name} (Course info & plan found — select mapped PLOs below to generate CLOs)</span>`;
+            statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${cName} (Course outline populated — customize mapped PLOs & taxonomy levels below)</span>`;
           }
         }
 
         if (bannerTitle && bannerDesc) {
-          bannerTitle.textContent = `Extracted from "${file.name}":`;
+          bannerTitle.textContent = `Extracted: ${cName}`;
           if (cloCount > 0) {
-            bannerDesc.textContent = `Course Name & Code: "${extracted.courseName || 'Extracted'}" | ${hasPlan ? 'Weekly Course Plan Extracted' : 'Course Plan Empty'} | ${cloCount} CLOs Detected. You can review, edit, or add further information below before evaluating.`;
+            bannerDesc.textContent = `Course Code & Title: "${cName}" | ${hasPlan ? 'Course Plan Ready' : 'Plan Empty'} | ${cloCount} CLOs Detected. Review or edit below before running evaluation.`;
             if (bannerIcon) bannerIcon.innerHTML = '✅';
           } else {
-            bannerDesc.textContent = `Course Name & Code: "${extracted.courseName || 'Extracted'}" | ${hasPlan ? 'Weekly Course Plan Extracted' : 'Course Plan Empty'} | No CLOs detected in document. Please select the course's mapped PLOs below to automatically synthesize CLOs.`;
+            bannerDesc.textContent = `Course Code & Title: "${cName}" | ${hasPlan ? 'Course Plan Ready' : 'Plan Empty'} | Select mapped PLOs and taxonomy levels below to synthesize aligned CLOs.`;
             if (bannerIcon) bannerIcon.innerHTML = '💡';
           }
           document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
@@ -1774,17 +1791,23 @@ class OBEApp {
     try {
       const parsed = parseSyllabusText(rawText, 'Pasted Syllabus');
       if (parsed) {
-        if (parsed.courseName) {
-          document.getElementById('input-course-name').value = parsed.courseName;
+        const cName = parsed.courseName || 'Engineering Course';
+        const cDesc = parsed.courseDescription || '';
+        let cPlan = parsed.coursePlan || '';
+
+        if (!cPlan || cPlan.trim().length < 10) {
+          cPlan = synthesizeDefaultOutlineForCourse(cName, cDesc);
         }
-        if (parsed.courseDescription) {
-          document.getElementById('input-course-desc').value = parsed.courseDescription;
-        }
-        if (parsed.coursePlan) {
-          const planInput = document.getElementById('input-course-plan');
-          if (planInput) planInput.value = parsed.coursePlan;
-          this.coursePlanText = parsed.coursePlan;
-        }
+
+        const courseNameInput = document.getElementById('input-course-name');
+        const courseDescInput = document.getElementById('input-course-desc');
+        const planInput = document.getElementById('input-course-plan');
+
+        if (courseNameInput) courseNameInput.value = cName;
+        if (courseDescInput) courseDescInput.value = cDesc;
+        if (planInput) planInput.value = cPlan;
+        this.coursePlanText = cPlan;
+
         if (parsed.clos && parsed.clos.length > 0) {
           this.clos = parsed.clos.map((c, i) => ({
             id: i + 1,
@@ -1796,7 +1819,7 @@ class OBEApp {
           document.getElementById('clo-suggestion-card')?.classList.add('hidden');
         } else {
           // No CLOs in pasted text -> Prompt user for mapped PLOs
-          const isLab = /lab|practical|experiment/i.test(parsed.courseName || '');
+          const isLab = /lab|practical|experiment/i.test(cName);
           this.cloTargetPLOs = isLab ? ['PLO-4', 'PLO-5', 'PLO-9'] : ['PLO-1', 'PLO-2', 'PLO-3'];
           this.renderCLOSuggestPLOCheckboxes();
           const suggestCard = document.getElementById('clo-suggestion-card');
@@ -1811,12 +1834,12 @@ class OBEApp {
         const bannerDesc = document.getElementById('syllabus-banner-desc');
         const bannerIcon = document.getElementById('syllabus-banner-icon');
         if (bannerTitle && bannerDesc) {
-          bannerTitle.textContent = 'Detected from Pasted Syllabus:';
+          bannerTitle.textContent = `Pasted Syllabus: ${cName}`;
           if (cloCount > 0) {
-            bannerDesc.textContent = `Course Name & Code: "${parsed.courseName || 'Detected'}" | ${parsed.coursePlan ? 'Course Plan Populated' : 'Add Course Plan'} | ${cloCount} CLOs Detected. Review or edit before running evaluation.`;
+            bannerDesc.textContent = `Course Code & Title: "${cName}" | Course Plan Ready | ${cloCount} CLOs Detected. Review or edit before running evaluation.`;
             if (bannerIcon) bannerIcon.innerHTML = '✅';
           } else {
-            bannerDesc.textContent = `Course Name & Code: "${parsed.courseName || 'Detected'}" | ${parsed.coursePlan ? 'Course Plan Populated' : 'Add Course Plan'} | No CLOs detected. Select mapped PLOs below to automatically generate CLOs.`;
+            bannerDesc.textContent = `Course Code & Title: "${cName}" | Course Plan Ready | Select mapped PLOs and taxonomy levels below to automatically generate CLOs.`;
             if (bannerIcon) bannerIcon.innerHTML = '💡';
           }
           document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');

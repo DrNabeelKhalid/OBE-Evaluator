@@ -693,17 +693,256 @@ Respond strictly with valid JSON matching this schema:
   }
 
   /**
+   * Domain-aware engineering topic extractor to ensure synthesized CLOs are 100% relevant to the specific course
+   */
+  getDomainTopicsForCourse(courseName = '', courseDescription = '') {
+    const text = `${(courseName || '').toLowerCase()} ${(courseDescription || '').toLowerCase()}`;
+    const cleanCourse = (courseName || 'Course').replace(/^[A-Z]{2,5}[ -]?\d{3,4}[:\-–\s]*/i, '').trim() || courseName;
+
+    // 1. Civil / Structural / Environmental
+    if (text.includes('fluid') || text.includes('hydraul') || text.includes('hydro')) {
+      return [
+        'fluid properties, manometry, and hydrostatic pressure forces on submerged bodies',
+        'fluid kinematics, continuity, and Bernoulli energy conservation equations',
+        'Navier-Stokes differential formulations and viscous boundary layer flows',
+        'dimensional analysis, similitude, and closed-conduit pipe flow head losses',
+        'open-channel hydraulics, hydraulic jumps, and turbomachinery pumps and turbines'
+      ];
+    }
+    if (text.includes('concrete') || text.includes('reinforced concrete')) {
+      return [
+        'mechanical properties of concrete, reinforcing steel, and limit state design criteria',
+        'flexural behavior and ultimate moment capacity of singly and doubly reinforced beams',
+        'shear stresses, diagonal tension, and bar development and anchorage requirements',
+        'structural behavior and deflection control of one-way and two-way reinforced slabs',
+        'axial and eccentric load capacity of reinforced concrete short and slender columns'
+      ];
+    }
+    if (text.includes('structural analysis') || text.includes('mechanics of structure')) {
+      return [
+        'determinacy, stability, and influence lines for statically determinate trusses and beams',
+        'deflection calculations using virtual work, energy methods, and moment-area theorems',
+        'analysis of indeterminate structures using the force method of consistent deformations',
+        'slope deflection and moment distribution displacement methods for frame systems',
+        'direct stiffness matrix formulation and computer-aided skeletal structural modeling'
+      ];
+    }
+    if (text.includes('soil') || text.includes('geotech') || text.includes('foundation')) {
+      return [
+        'soil index properties, phase relationships, and geotechnical soil classification systems',
+        'permeability, Darcy law, and two-dimensional seepage flow net analysis',
+        'effective stress principles and one-dimensional consolidation settlement kinetics',
+        'shear strength characteristics and Mohr-Coulomb failure criteria in soils',
+        'lateral earth pressure distributions and shallow foundation bearing capacity'
+      ];
+    }
+    if (text.includes('survey') || text.includes('geomatics')) {
+      return [
+        'linear distance measurement, systematic error theory, and traverse computations',
+        'differential and profile leveling, benchmark adjustments, and contour mapping',
+        'theodolite and total station angular observations and coordinate geometry',
+        'horizontal circular curves and transition vertical alignment geometry',
+        'GNSS satellite positioning, remote sensing, and GIS geospatial mapping'
+      ];
+    }
+
+    // 2. Mechanical / Mechatronics / Materials
+    if (text.includes('thermodynamic') || text.includes('thermal')) {
+      return [
+        'pure substance phase equilibria, state equations, and thermodynamic property charts',
+        'first law energy balances for closed systems and open steady-flow control volumes',
+        'second law of thermodynamics, Carnot efficiency limits, and entropy generation analysis',
+        'gas power cycles including air-standard Otto, Diesel, and Brayton cycle evaluations',
+        'steam Rankine power cycles, vapor-compression refrigeration, and psychrometric processes'
+      ];
+    }
+    if (text.includes('heat transfer')) {
+      return [
+        'steady-state one-dimensional conduction and thermal resistance network modeling',
+        'transient conduction formulations and lumped thermal capacitance dynamics',
+        'forced and natural convection boundary layers and empirical Nusselt correlations',
+        'thermal radiation physics, blackbody emissive laws, and surface view factor geometry',
+        'heat exchanger thermal rating and sizing using LMTD and NTU-effectiveness methods'
+      ];
+    }
+    if (text.includes('mechanics of materials') || text.includes('strength of materials')) {
+      return [
+        'axial stress-strain relationships, Hooke law, and indeterminate thermal deformations',
+        'torsional shear stress, angle of twist, and power transmission in circular shafts',
+        'transverse shear flow and flexural bending stress distributions in beams',
+        'plane stress transformation, principal stress axes, and Mohr circle representations',
+        'elastic beam deflections and Euler buckling instability in slender columns'
+      ];
+    }
+    if (text.includes('dynamics') || text.includes('kinematics') || text.includes('machine design')) {
+      return [
+        'kinematics of planar particles and rigid bodies under relative motion constraints',
+        'kinetics of rigid bodies using Newton-Euler, work-energy, and impulse-momentum principles',
+        'mechanism synthesis, mobility degrees of freedom, and linkage velocity polygons',
+        'power transmission drive elements including spur gearing, shafting, and belts',
+        'fatigue failure criteria under fluctuating cyclic stresses using Goodman diagrams'
+      ];
+    }
+
+    // 3. Computing / Software Engineering / IT
+    if (text.includes('data structure') || text.includes('algorithm')) {
+      return [
+        'asymptotic Big-O time and space complexity, dynamic arrays, and linked lists',
+        'stacks, queues, recursive data manipulation, and binary search tree topologies',
+        'priority queues, binary min/max heaps, and hash table collision resolution schemes',
+        'graph representations, breadth-first and depth-first searches, and shortest path algorithms',
+        'divide-and-conquer, greedy optimization, and dynamic programming paradigms'
+      ];
+    }
+    if (text.includes('database') || text.includes('sql')) {
+      return [
+        'relational data modeling, entity-relationship schemas, and relational algebra',
+        'complex SQL query formulations, table joins, aggregations, and correlated subqueries',
+        'relational functional dependencies and schema normalization from 1NF through BCNF',
+        'transaction processing, ACID compliance, and concurrency locking mechanisms',
+        'B+ tree indexing topologies, query execution plans, and document data stores'
+      ];
+    }
+    if (text.includes('operating system')) {
+      return [
+        'operating system kernel architecture, dual-mode protection, and interrupt handlers',
+        'process scheduling algorithms, thread synchronization, and CPU dispatching policies',
+        'mutual exclusion primitives, semaphores, mutexes, and deadlock avoidance models',
+        'virtual memory architectures, paging translation, and page replacement policies',
+        'hierarchical file system management, disk block allocation, and I/O scheduling'
+      ];
+    }
+    if (text.includes('network') || text.includes('communication network')) {
+      return [
+        'layered network communication architectures and OSI/TCP-IP reference models',
+        'application layer protocols, socket programming, and transport layer UDP/TCP dynamics',
+        'TCP flow control, window management, and network congestion collapse avoidance',
+        'IP packet routing, subnet addressing, and interior/exterior gateway protocols',
+        'data link framing, medium access control, Ethernet switching, and wireless security'
+      ];
+    }
+    if (text.includes('artificial intelligence') || text.includes('machine learning') || text.includes(' ai ') || text.endsWith(' ai')) {
+      return [
+        'intelligent agent frameworks, state-space representations, and heuristic search algorithms',
+        'supervised machine learning classification and regression model formulations',
+        'unsupervised clustering algorithms, feature reduction, and principal component analysis',
+        'neural network forward propagation, backpropagation gradient descent, and activation functions',
+        'machine learning performance validation, bias-variance trade-offs, and ethical governance'
+      ];
+    }
+    if (text.includes('programming') || text.includes('object-oriented') || text.includes('oop')) {
+      return [
+        'structured program execution, control structures, and procedural decomposition',
+        'object-oriented encapsulation, class architectures, and resource constructors',
+        'inheritance hierarchies, polymorphism, and dynamic interface dispatching',
+        'exception handling, template abstractions, and container library algorithms',
+        'dynamic memory pointers, file streams, and modular software packaging'
+      ];
+    }
+
+    // 4. Electrical / Power / Electronics
+    if (text.includes('circuit') || text.includes('network analysis')) {
+      return [
+        'Kirchhoff voltage and current laws, node-voltage, and mesh-current circuit analysis',
+        'Thevenin, Norton, superposition, and maximum power transfer network theorems',
+        'transient step and natural responses in dynamic first and second-order RLC circuits',
+        'sinusoidal AC steady-state phasors, impedance, and complex real/reactive power',
+        'three-phase balanced power networks, mutual inductance, and resonant frequency response'
+      ];
+    }
+    if (text.includes('power system') || text.includes('high voltage')) {
+      return [
+        'power system network representations, single-line diagrams, and per-unit normalization',
+        'transmission line distributed parameters, surge impedance loading, and ABCD matrices',
+        'numerical power flow formulations and iterative Gauss-Seidel and Newton-Raphson solvers',
+        'symmetrical and unsymmetrical fault analysis using symmetrical component sequence networks',
+        'rotor angle power system transient stability, swing dynamics, and protective relaying'
+      ];
+    }
+    if (text.includes('power electronic') || text.includes('drives')) {
+      return [
+        'power semiconductor switching characteristics and thermal safe operating area criteria',
+        'non-isolated DC-DC converter topologies in continuous and discontinuous conduction',
+        'isolated switch-mode power supplies, high-frequency magnetics, and snubber circuits',
+        'DC-AC inverter circuits and sinusoidal and space-vector pulse-width modulation',
+        'harmonic filtering standards, total harmonic distortion, and closed-loop motor drive control'
+      ];
+    }
+    if (text.includes('control system') || text.includes('automation') || text.includes('feedback')) {
+      return [
+        'dynamic physical system differential equations and Laplace transfer function models',
+        'transient response specifications, steady-state error coefficients, and damping behavior',
+        'closed-loop stability evaluation via Routh-Hurwitz criteria and root locus construction',
+        'frequency response Bode plots, Nyquist stability margins, and resonance peaks',
+        'feedback controller synthesis including lead-lag compensators and tuned PID controllers'
+      ];
+    }
+    if (text.includes('signal') || text.includes('dsp') || text.includes('digital signal')) {
+      return [
+        'continuous and discrete-time signals, LTI systems, and discrete convolution operations',
+        'z-transform representations, pole-zero stability mapping, and system transfer functions',
+        'discrete Fourier transform, FFT computation algorithms, and spectral leakage analysis',
+        'finite impulse response (FIR) filter design using optimal windowing formulations',
+        'infinite impulse response (IIR) filter synthesis via bilinear transformation and quantization'
+      ];
+    }
+    if (text.includes('electromagnet') || text.includes('antenna') || text.includes('microwave')) {
+      return [
+        'static electric and magnetic fields, Gauss and Ampere laws, and boundary conditions',
+        'time-varying electromagnetic fields, displacement current, and complete Maxwell equations',
+        'uniform plane wave propagation in dielectric and lossy media, attenuation, and skin depth',
+        'transmission line wave equations, voltage reflection coefficients, and Smith chart matching',
+        'waveguide modal propagation and fundamental radiation parameters of antenna systems'
+      ];
+    }
+    if (text.includes('embed') || text.includes('microcontroller') || text.includes('microprocessor') || text.includes('arm')) {
+      return [
+        'microcontroller architecture, register organization, and memory-mapped address spaces',
+        'low-level hardware interfacing, GPIO configuration, and interrupt service routines',
+        'timer subsystems, precision pulse-width modulation (PWM), and analog-to-digital sampling',
+        'serial communication protocols including UART, SPI, and I2C peripheral arbitration',
+        'real-time operating system concepts, preemptive task scheduling, and embedded power modes'
+      ];
+    }
+
+    // 5. Default General Engineering Topics
+    return [
+      `fundamental theoretical principles, physical laws, and governing equations of ${cleanCourse}`,
+      `analytical modeling, mathematical formulations, and diagnostic evaluations in ${cleanCourse}`,
+      `computational simulation, experimental methodologies, and empirical validation in ${cleanCourse}`,
+      `technical performance optimization, trade-off analysis, and regulatory standards for ${cleanCourse}`,
+      `comprehensive engineering design synthesis, prototype formulation, and constraint management in ${cleanCourse}`
+    ];
+  }
+
+  /**
    * Simulated dynamic CLO synthesis from course outline, target PLOs and user-selected taxonomy levels
    */
   simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], ploTaxonomyMap = {}, isLab = false }) {
     const rawLines = (coursePlan || '').split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 5);
-    const cleanTopicRegex = /^(?:weeks?\s*\d+(?:\s*[-–]\s*\d+)?|modules?\s*\d+|lectures?\s*\d+|sessions?\s*\d+|ch(?:apter)?\s*\d+)[:\-–\s]*/i;
-    const topics = rawLines.map(l => l.replace(cleanTopicRegex, '').replace(/\([^)]*\)/g, '').trim()).filter(t => t.length > 4);
+    const cleanTopicRegex = /^(?:weeks?\s*\d+(?:\s*[-–]\s*\d+)?|wk\s*\d+|modules?\s*\d+|units?\s*\d+|lectures?\s*\d+|sessions?\s*\d+|ch(?:apter)?\s*\d+|exp(?:eriment)?\s*\d+|labs?\s*\d+|\d+[.)\-]|•|\*|-|–)[:\-–\s]*/i;
+    let topics = rawLines
+      .map(l => l.replace(cleanTopicRegex, '').replace(/\([^)]*(?:hours?|hrs?|marks?|weeks?|weight)[^)]*\)/gi, '').replace(/\([^)]*\)/g, '').trim())
+      .filter(t => t.length > 4 && !/^(?:course\s*code|instructor|credit|prerequisite|textbook|reference|grading)/i.test(t));
+
+    const nameLower = (courseName || '').toLowerCase();
+    const isEmbeddedCourse = /embed|microcontroller|cortex|avr|stm32|arm\b/i.test(nameLower);
+    const hasStaleEmbeddedTopics = rawLines.some(l => /arm cortex|nvic|systick|free_?rtos|gpio subsystems/i.test(l));
+
+    // Stale topic check: If the course is NOT embedded but topics still contain ARM Cortex-M, discard stale topics!
+    if (!isEmbeddedCourse && hasStaleEmbeddedTopics) {
+      topics = [];
+    }
+
+    // If topics is empty or too short, synthesize authentic domain topics for this exact course
+    if (topics.length === 0) {
+      topics = this.getDomainTopicsForCourse(courseName, courseDescription);
+    }
 
     const cleanCourse = (courseName || 'Course').replace(/^[A-Z]{2,5}[ -]?\d{3,4}[:\-–\s]*/i, '').trim() || courseName;
 
     return targetPLOs.map((plo, idx) => {
-      const topic = topics[idx % (topics.length || 1)] || (topics.length > 0 ? topics[0] : (courseDescription ? courseDescription.slice(0, 55) : `${cleanCourse} technical modules`));
+      const topic = topics[idx % topics.length] || `technical modules in ${cleanCourse}`;
       const defaultTax = isLab ? (['PLO-4', 'PLO-5', 'PLO-9'].includes(plo) ? 'P4' : 'C3') : (plo === 'PLO-1' ? 'C2' : plo === 'PLO-2' ? 'C4' : plo === 'PLO-3' ? 'C6' : plo === 'PLO-7' ? 'A3' : 'C4');
       const tax = (ploTaxonomyMap && ploTaxonomyMap[plo]) ? ploTaxonomyMap[plo] : defaultTax;
 
@@ -714,41 +953,41 @@ Respond strictly with valid JSON matching this schema:
           statement = `Define, recall, and identify the fundamental engineering principles, terminology, and standard configurations of ${topic}.`;
           break;
         case 'C2':
-          statement = `Explain, describe, and interpret the operational theory, governing equations, and architectural principles of ${topic}.`;
+          statement = `Explain, describe, and interpret operational mechanisms, physical principles, and governing equations of ${topic}.`;
           break;
         case 'C3':
-          statement = `Apply governing mathematical models, algorithmic procedures, and engineering calculations to solve practical problems in ${topic}.`;
+          statement = `Apply governing mathematical models, engineering formulations, and calculation procedures to solve practical problems in ${topic}.`;
           break;
         case 'C4':
-          statement = `Analyze and diagnose complex technical challenges, functional parameters, and operational bottlenecks in ${topic} using systematic analytical criteria.`;
+          statement = `Analyze and diagnose complex technical challenges, functional characteristics, and operational parameters of ${topic} using systematic engineering models.`;
           break;
         case 'C5':
           statement = `Evaluate, critique, and validate engineering performance metrics, design trade-offs, and compliance specifications for ${topic}.`;
           break;
         case 'C6':
-          statement = `Design, formulate, and synthesize comprehensive prototype implementations and system architectures for ${topic} meeting operational constraints.`;
+          statement = `Design, formulate, and synthesize comprehensive engineering components, systems, or prototype implementations for ${topic} meeting operational and safety constraints.`;
           break;
         case 'P1':
         case 'P2':
         case 'P3':
-          statement = `Assemble, calibrate, and position experimental apparatus and test instrumentation to prepare laboratory setups for ${topic}.`;
+          statement = `Assemble, calibrate, and set up experimental test apparatus and measurement instruments to investigate ${topic}.`;
           break;
         case 'P4':
-          statement = `Conduct, calibrate, and experimentally measure physical parameters and system responses of ${topic} through systematic empirical testing.`;
+          statement = `Conduct systematic laboratory experiments and measure physical parameters, signal responses, and empirical behaviors of ${topic}.`;
           break;
         case 'P5':
         case 'P6':
         case 'P7':
-          statement = `Construct, troubleshoot, and execute integrated testbenches and real-time hardware/software setups to verify behavior of ${topic}.`;
+          statement = `Construct, troubleshoot, and execute integrated hardware, software, or experimental testbenches to verify the performance of ${topic}.`;
           break;
         case 'A1':
         case 'A2':
-          statement = `Collaborate effectively as a contributing team member in multidisciplinary tasks to present technical documentation and reports for ${topic}.`;
+          statement = `Collaborate effectively as a contributing team member in multidisciplinary tasks and communicate technical evaluations of ${topic} through formal engineering documentation.`;
           break;
         case 'A3':
         case 'A4':
         case 'A5':
-          statement = `Apply professional engineering ethics, regulatory safety standards, and sustainable environmental practices during design and execution of ${topic}.`;
+          statement = `Apply professional engineering ethics, regulatory safety standards, and sustainable environmental practices during the analysis and design of ${topic}.`;
           break;
         default:
           statement = `Apply specialized engineering methodologies to investigate and evaluate technical performance in ${topic}.`;
