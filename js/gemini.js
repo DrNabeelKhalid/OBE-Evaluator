@@ -1,6 +1,8 @@
 // Gemini AI Engine & Multimodal Document Evaluator
 // Integrates with Google Gemini API (gemini-2.5-flash / gemini-1.5-flash)
 
+import { parseSyllabusText } from './document-extractor.js';
+
 export class GeminiOBEEvaluator {
   constructor() {
     this.apiKey = localStorage.getItem('gemini_api_key') || '';
@@ -183,28 +185,44 @@ Target Taxonomy: ${q.targetTaxonomy}`).join('\n\n')}`;
   }
 
   /**
-   * Extracts Course Information and CLOs from uploaded syllabus file
+   * Extracts Course Information and CLOs from uploaded syllabus file or raw extracted text
    */
-  async extractSyllabus(fileData, mimeType, fileName) {
-    if (!this.hasApiKey()) {
-      // Return realistic extraction for demo
-      return {
-        courseName: 'EE-312 Microcontroller & Embedded Systems',
-        courseDescription: 'Comprehensive study of microcontroller architectures, real-time interrupts, embedded C firmware, peripheral bus interfaces (SPI, I2C, UART), and mixed-signal acquisition for industrial control.',
-        coursePlan: `Week 1-3: ARM Cortex-M Architecture & Memory Organization (Internal registers, memory mapping, bus matrix, startup sequence)
-Week 4-6: Embedded C, GPIO Subsystems & Interrupt Handling (NVIC, priorities, hardware debouncing)
-Week 7-9: Timer Subsystems, PWM Generation & Analog Interfacing (Input capture, output compare, ADC, DMA)
-Week 10-12: High-Speed Serial Communication Protocols (UART, SPI, I2C arbitration)
-Week 13-16: Real-Time Operating Systems (RTOS), Power Management & IoT Telemetry`,
-        clos: [
-          { statement: 'Understand the internal architecture of 32-bit ARM microcontrollers including memory mapping and interrupt priority structures.', plo: 'PLO-1', taxonomy: 'C2' },
-          { statement: 'Analyze timing diagrams and register configurations for high-speed serial peripherals (SPI and I2C) to diagnose data transmission bottlenecks.', plo: 'PLO-2', taxonomy: 'C4' },
-          { statement: 'Design an interrupt-driven embedded data acquisition system that interfaces multi-sensor inputs and transmits real-time telemetry within strict power constraints.', plo: 'PLO-3', taxonomy: 'C6' }
-        ]
-      };
+  async extractSyllabus(fileData, mimeType, fileName, rawText = '') {
+    // 1. If API key is present and raw text is available, send directly to Gemini
+    if (this.hasApiKey() && rawText && rawText.trim().length > 20) {
+      const systemPrompt = `You are an automated curriculum extraction engine for Washington Accord / ABET / PEC accredited engineering programs.
+Extract the Course Name, Course Description, Course Plan / Weekly Topical Outline, and all Course Learning Outcomes (CLOs) from the provided syllabus document text.
+For each CLO, identify or infer the most suitable Mapped PLO (from PLO-1 to PLO-12) and Bloom's Taxonomy level (e.g., C1, C2, C3, C4, C5, C6, P1-P7, A1-A5).
+
+Respond strictly with valid JSON:
+{
+  "courseName": "Extracted Course Title",
+  "courseDescription": "Extracted or summarized course description",
+  "coursePlan": "Extracted weekly lecture plan or topical modules list with contact hours",
+  "clos": [
+    {
+      "statement": "Complete CLO statement text",
+      "plo": "PLO-1",
+      "taxonomy": "C3"
+    }
+  ]
+}`;
+
+      try {
+        const userPrompt = `Document: ${fileName}\n\nSyllabus Content:\n${rawText.slice(0, 18000)}`;
+        const response = await this.callGeminiAPI(systemPrompt, userPrompt);
+        const parsed = this.parseJSONResponse(response);
+        if (parsed && (parsed.courseName || (parsed.clos && parsed.clos.length > 0) || parsed.coursePlan)) {
+          return parsed;
+        }
+      } catch (err) {
+        console.warn('Gemini text extraction failed, falling back to client-side extraction:', err);
+      }
     }
 
-    const systemPrompt = `You are an automated curriculum extraction engine. 
+    // 2. If API key is present and file is binary image or PDF (and no rawText)
+    if (this.hasApiKey() && fileData && (mimeType.startsWith('image/') || mimeType === 'application/pdf')) {
+      const systemPrompt = `You are an automated curriculum extraction engine. 
 Extract the Course Name, Course Description, Course Plan / Weekly Topical Outline, and all Course Learning Outcomes (CLOs) from the provided syllabus document.
 For each CLO, identify or infer the most suitable Mapped PLO (from PLO-1 to PLO-11 as defined by PEC) and Bloom's Taxonomy level (e.g., C1, C2, C3, C4, C5, C6, P1-P7, A1-A5).
 
@@ -222,13 +240,31 @@ Respond strictly with valid JSON:
   ]
 }`;
 
-    try {
-      const response = await this.callGeminiAPIWithFile(systemPrompt, 'Extract course syllabus data from this document.', fileData, mimeType);
-      return this.parseJSONResponse(response);
-    } catch (err) {
-      console.error('Extraction error:', err);
-      throw err;
+      try {
+        const response = await this.callGeminiAPIWithFile(systemPrompt, 'Extract course syllabus data from this document.', fileData, mimeType);
+        const parsed = this.parseJSONResponse(response);
+        if (parsed) return parsed;
+      } catch (err) {
+        console.warn('Gemini file extraction error, falling back to local extractor:', err);
+      }
     }
+
+    // 3. Client-side extraction via parseSyllabusText (works offline & without API key)
+    if (rawText && rawText.trim().length > 10) {
+      const localExtracted = parseSyllabusText(rawText, fileName);
+      if (localExtracted && (localExtracted.courseName || localExtracted.coursePlan || (localExtracted.clos && localExtracted.clos.length > 0))) {
+        return localExtracted;
+      }
+    }
+
+    // 4. Fallback if file was empty or unparseable
+    const defaultName = (fileName || 'Course Syllabus').replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ');
+    return {
+      courseName: defaultName,
+      courseDescription: `Syllabus document for ${defaultName}. Please review and enter course details.`,
+      coursePlan: '',
+      clos: []
+    };
   }
 
   /**
@@ -317,67 +353,107 @@ Respond strictly with valid JSON:
   }
 
   /**
-   * Robust Simulated Evaluator for testing without API Key
+   * Robust Simulated Evaluator for testing without API Key (Dynamic & Domain-Aware)
    */
   simulateCLOEvaluation({ courseName, courseDescription, clos, coursePlan = '', topics = [], errorNote }) {
-    const unmeasurable = ['understand', 'know', 'learn', 'study', 'appreciate', 'comprehend', 'be familiar'];
+    const unmeasurable = ['understand', 'know', 'learn', 'study', 'appreciate', 'comprehend', 'be familiar', 'gain knowledge', 'be aware'];
     
+    // Stopwords for keyword extraction
+    const stopWords = new Set(['the', 'and', 'for', 'with', 'from', 'into', 'under', 'over', 'between', 'using', 'through', 'about', 'across', 'after', 'before', 'course', 'system', 'systems', 'basic', 'basics', 'introduction', 'intro', 'week', 'module', 'lecture', 'chapter', 'outline']);
+
     const results = clos.map((clo, idx) => {
-      const textLower = clo.statement.toLowerCase().trim();
+      const text = (clo.statement || '').trim();
+      const textLower = text.toLowerCase();
       const startsWithUnmeasurable = unmeasurable.some(verb => textLower.startsWith(verb) || textLower.includes(` ${verb} `));
+      const firstWord = textLower.split(/\s+/)[0] || '';
       
       if (startsWithUnmeasurable) {
+        let rewritten = text;
+        if (/^understand\s+(?:the\s+)?/i.test(rewritten)) {
+          rewritten = rewritten.replace(/^understand\s+(?:the\s+)?/i, 'Explain and analyze the ');
+        } else if (/^know\s+(?:the\s+)?/i.test(rewritten)) {
+          rewritten = rewritten.replace(/^know\s+(?:the\s+)?/i, 'Describe and evaluate the ');
+        } else if (/^learn\s+(?:the\s+)?/i.test(rewritten)) {
+          rewritten = rewritten.replace(/^learn\s+(?:the\s+)?/i, 'Apply and implement the ');
+        } else if (/^study\s+(?:the\s+)?/i.test(rewritten)) {
+          rewritten = rewritten.replace(/^study\s+(?:the\s+)?/i, 'Investigate and analyze the ');
+        } else if (/^appreciate\s+(?:the\s+)?/i.test(rewritten)) {
+          rewritten = rewritten.replace(/^appreciate\s+(?:the\s+)?/i, 'Assess and appraise the ');
+        } else if (/^be\s+familiar\s+(?:with\s+)?/i.test(rewritten)) {
+          rewritten = rewritten.replace(/^be\s+familiar\s+(?:with\s+)?/i, 'Classify and apply ');
+        } else {
+          rewritten = `Analyze and evaluate ${text}`;
+        }
+
         return {
           cloId: clo.id || idx + 1,
-          qualityScore: 5.2,
+          qualityScore: 5.4,
           verdict: 'REVISE',
-          measurableVerb: textLower.split(' ')[0] || 'Understand',
+          measurableVerb: firstWord || 'Understand',
           strengths: [
-            'Direct relevance to course technical scope',
-            `Aligned with general competency requirements of ${clo.plo}`
+            `Direct topical alignment with course scope and competencies of ${clo.plo || 'mapped PLO'}`
           ],
           weaknesses: [
-            'Contains non-measurable verb violating Bloom’s Taxonomy and Washington Accord standards',
-            'Cannot be objectively quantified in summative exam assessments or rubrics',
-            'Deficient in specifying measurable conditions or operational performance criteria'
+            `Contains passive, non-measurable cognitive verb ("${firstWord}") violating Bloom's Taxonomy and Washington Accord standards`,
+            'Cannot be objectively quantified in summative exam assessments or grading rubrics',
+            'Lacks observable operational performance criteria and measurable student actions'
           ],
-          suggestedRevision: clo.statement
-            .replace(/^understand\s+/i, 'Explain the architecture and operation of ')
-            .replace(/^know\s+/i, 'Analyze the fundamental principles of ')
-            .replace(/^learn\s+/i, 'Evaluate and implement '),
-          explanation: 'Replaced vague passive cognition with an active, measurable cognitive verb verifiable through standard engineering rubrics.'
+          suggestedRevision: rewritten,
+          explanation: 'Replaced passive cognitive phrasing with active, observable Bloom\'s action verbs verifiable through rubrics and summative assessments.'
         };
-      } else if (clo.taxonomy === 'C6' || clo.taxonomy === 'C5' || textLower.startsWith('design') || textLower.startsWith('develop')) {
+      }
+
+      // Check for Cognitive Deflation: e.g. target is C5/C6 (Evaluate/Design), but statement begins with 'list', 'define', 'state', 'name'
+      const lowVerbs = ['list', 'define', 'state', 'recall', 'name', 'identify', 'label'];
+      if ((clo.taxonomy === 'C6' || clo.taxonomy === 'C5') && lowVerbs.includes(firstWord)) {
         return {
           cloId: clo.id || idx + 1,
-          qualityScore: 9.4,
-          verdict: 'RETAIN',
-          measurableVerb: textLower.split(' ')[0] || 'Design',
+          qualityScore: 5.8,
+          verdict: 'REVISE',
+          measurableVerb: firstWord,
           strengths: [
-            'Exemplary high-order cognitive action verb (C6 Synthesis/Creation)',
-            'Strict adherence to SMART criteria with unambiguous operational deliverables',
-            `Strong constructive alignment with ${clo.plo} and engineering capstone competencies`,
-            'Includes realistic engineering constraints (power/timing/interfaces)'
+            'Prompt is clearly written and grammatically sound'
           ],
           weaknesses: [
-            'Minor: Ensure lab rubric provides explicit scoring metrics for the stated constraints'
+            `Severe Cognitive Deflation: Target taxonomy is set to ${clo.taxonomy} (High-order synthesis/evaluation), but statement begins with "${firstWord}" (C1/C2 low-order recall)`,
+            'Fails Washington Accord requirements for complex engineering problem solving (WP1-WP7)'
+          ],
+          suggestedRevision: text.replace(new RegExp(`^${firstWord}\\s+`, 'i'), clo.taxonomy === 'C6' ? 'Design and formulate ' : 'Evaluate and critique '),
+          explanation: `Elevated cognitive demand to authentic ${clo.taxonomy} level matching accredited engineering outcomes.`
+        };
+      }
+
+      if (clo.taxonomy === 'C6' || clo.taxonomy === 'C5' || ['design', 'develop', 'formulate', 'synthesize', 'construct', 'optimize', 'evaluate'].includes(firstWord)) {
+        return {
+          cloId: clo.id || idx + 1,
+          qualityScore: 9.3,
+          verdict: 'RETAIN',
+          measurableVerb: firstWord || 'Design',
+          strengths: [
+            `Exemplary high-order cognitive action verb (${clo.taxonomy || 'C6'} Synthesis/Evaluation)`,
+            'Strict adherence to SMART criteria with unambiguous operational deliverables',
+            `Strong constructive alignment with ${clo.plo || 'PLO'} and engineering capstone competencies`,
+            'Directly supports Washington Accord complex engineering problem criteria'
+          ],
+          weaknesses: [
+            'Minor: Ensure assessment rubric provides explicit scoring dimensions for operational constraints'
           ],
           suggestedRevision: clo.statement,
-          explanation: 'Outcome exhibits high rigor, student-centric phrasing, and direct measurability. Suitable for retention in official Board of Studies syllabus.'
+          explanation: 'Outcome exhibits high academic rigor, student-centric phrasing, and direct measurability. Retain in official Board of Studies syllabus.'
         };
       } else {
         return {
           cloId: clo.id || idx + 1,
-          qualityScore: 8.6,
+          qualityScore: 8.7,
           verdict: 'RETAIN',
-          measurableVerb: textLower.split(' ')[0] || 'Analyze',
+          measurableVerb: firstWord || 'Analyze',
           strengths: [
-            `Solid alignment with ${clo.taxonomy} cognitive domain`,
+            `Solid alignment with ${clo.taxonomy || 'C3/C4'} cognitive domain`,
             'Employs active, observable diagnostic criteria',
-            `Appropriately mapped to ${clo.plo}`
+            `Appropriately mapped to ${clo.plo || 'target PLO'}`
           ],
           weaknesses: [
-            'Could benefit from specifying targeted validation benchmarks'
+            'Minor: Consider specifying target performance thresholds or tolerance bounds in the assessment guide'
           ],
           suggestedRevision: clo.statement,
           explanation: 'Well-structured outcome meeting PEC and Washington Accord accreditation quality benchmarks.'
@@ -386,12 +462,106 @@ Respond strictly with valid JSON:
     });
 
     const hasRevise = results.some(r => r.verdict === 'REVISE');
-    const cloScore = hasRevise ? 7.6 : 8.9;
+    const avgCLOQuality = results.length > 0
+      ? (results.reduce((acc, r) => acc + r.qualityScore, 0) / results.length).toFixed(1)
+      : 8.0;
+    const cloScore = parseFloat(avgCLOQuality);
 
-    // Evaluate Course Plan / Outline
-    const planText = (coursePlan || '').toLowerCase();
-    const hasPlan = planText.length > 30 || (topics && topics.length > 0);
-    const outlineScore = hasPlan ? 8.4 : 5.8;
+    // Dynamic Course Plan & Topical Syllabus Analysis
+    const planText = (coursePlan || '').trim();
+    const planLines = planText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 6);
+    const hasPlan = planLines.length >= 2 || (topics && topics.length > 0);
+    const weekCount = (planText.match(/\bweek\s*\d+/gi) || []).length || planLines.length;
+
+    // Detect Discipline/Domain from Course Name & Description
+    const combinedCourseText = `${courseName} ${courseDescription} ${planText}`.toLowerCase();
+    
+    let domainLabel = 'Engineering';
+    let domainModernTools = [
+      'Computer-aided design & simulation platforms',
+      'Automated bench instrumentation and digital data acquisition testbenches'
+    ];
+    let domainStandards = [
+      'ISO 9001/14001 Quality & Environmental Management Benchmarks',
+      'Washington Accord WP1-WP7 Complex Engineering Problem Attributes'
+    ];
+
+    if (/software|programm|python|java|algorithm|data struct|web|cloud|cyber|network|database|ai|machine learn|operating system/i.test(combinedCourseText)) {
+      domainLabel = 'Computing & Software Engineering';
+      domainModernTools = [
+        'Automated CI/CD testing pipelines (Git Actions, pytest/JUnit)',
+        'Containerized deployment and microservice testbenches (Docker, Kubernetes)'
+      ];
+      domainStandards = [
+        'IEEE/ISO/IEC 12207 Software Life Cycle Processes',
+        'OWASP Secure Coding and Software Vulnerability Standards'
+      ];
+    } else if (/civil|structur|concrete|steel|geotech|soil|hydraul|survey|transport|water|environ/i.test(combinedCourseText)) {
+      domainLabel = 'Civil & Structural Engineering';
+      domainModernTools = [
+        'Finite Element Analysis & structural modeling software (ETABS, SAP2000, ANSYS)',
+        'Building Information Modeling (BIM) and GIS spatial mapping platforms'
+      ];
+      domainStandards = [
+        'ACI 318 Building Code Requirements for Structural Concrete',
+        'AISC 360 Specification for Structural Steel Buildings & ASTM Standards'
+      ];
+    } else if (/mechanic|thermo|fluid|heat|cad|cam|robot|mechatron|solidwork|manufactur|vibrat/i.test(combinedCourseText)) {
+      domainLabel = 'Mechanical & Mechatronics Engineering';
+      domainModernTools = [
+        'Parametric 3D CAD/CAM modeling (SolidWorks, PTC Creo, Autodesk Inventor)',
+        'Computational Fluid Dynamics (CFD) and FEA testbenches (ANSYS Fluent, Abaqus)'
+      ];
+      domainStandards = [
+        'ASME Boiler and Pressure Vessel Code (BPVC)',
+        'ISO 12100 Machinery Safety & OSHA Industrial Standards'
+      ];
+    } else if (/electric|electron|power|circuit|signal|control|telecom|antenna|rf|microcontrol|embedded|fpga|vls/i.test(combinedCourseText)) {
+      domainLabel = 'Electrical & Electronic Engineering';
+      domainModernTools = [
+        'Simulation testbenches (MATLAB/Simulink, LTSpice, Cadence Virtuoso)',
+        'Automated digital storage oscilloscope and logic analyzer data acquisition'
+      ];
+      domainStandards = [
+        'IEEE Standards (e.g., IEEE 1547 Grid Interconnection, IEEE 80 Grounding)',
+        'IEC 61508 Functional Safety & Electromagnetic Compatibility (EMC/EMI) Standards'
+      ];
+    }
+
+    // Constructive Alignment Analysis: Map CLO keywords to Course Plan
+    const unaddressedCLOs = [];
+    const orphanTopics = [];
+
+    if (hasPlan && planLines.length >= 3 && clos.length > 0) {
+      clos.forEach(c => {
+        const cloWords = (c.statement || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 4 && !stopWords.has(w));
+        const matchedLine = planLines.find(line => {
+          const lLower = line.toLowerCase();
+          return cloWords.some(w => lLower.includes(w));
+        });
+        if (!matchedLine && cloWords.length > 0) {
+          unaddressedCLOs.push(`CLO-${c.id}: "${c.statement.slice(0, 48)}..." (Lacks explicit corresponding module in course plan)`);
+        }
+      });
+    }
+
+    if (unaddressedCLOs.length === 0) {
+      unaddressedCLOs.push(`All ${clos.length} defined CLOs have dedicated instructional coverage across the syllabus modules.`);
+    }
+
+    orphanTopics.push('None detected; all instructional modules align with departmental program outcomes.');
+
+    // Calculate dynamic outline score
+    let outlineScore = 8.5;
+    if (!hasPlan) {
+      outlineScore = 5.2;
+    } else if (planLines.length >= 10 || weekCount >= 12) {
+      outlineScore = unaddressedCLOs.length > 1 ? 8.2 : 9.0;
+    } else if (planLines.length >= 4) {
+      outlineScore = unaddressedCLOs.length > 1 ? 7.4 : 8.1;
+    } else {
+      outlineScore = 6.4;
+    }
 
     let readinessStatus = 'ACCREDITED';
     let readinessBadge = 'Accreditation Ready';
@@ -407,28 +577,32 @@ Respond strictly with valid JSON:
 
     const outlineAnalysis = {
       outlineScore: outlineScore,
-      summary: hasPlan 
-        ? `The topical syllabus outline for "${courseName}" demonstrates comprehensive modular structuring. The pacing spans fundamental device physics/architecture into applied system synthesis and real-time operational constraints.`
-        : `The topical syllabus outline is sparse or underspecified. A detailed weekly breakdown with explicit contact hours is required for accreditation approval.`,
+      summary: hasPlan
+        ? `The topical syllabus outline for "${courseName}" demonstrates structured modular progression in ${domainLabel}. The curriculum progresses logically through fundamental principles, analytical methods, and practical application.`
+        : `The topical syllabus outline for "${courseName}" is missing or underspecified. A detailed weekly breakdown with contact hours is essential for accreditation approval.`,
       topicalBreadth: hasPlan
-        ? `Strong coverage of Washington Accord WP1-WP7 complex engineering attributes. Modules progress logically from theory to laboratory integration.`
-        : `Deficient in advanced engineering depth. Recommend introducing complex modeling and design synthesis modules.`,
+        ? `Coverage spans core ${domainLabel} principles to advanced engineering application. Includes ${weekCount} distinct instructional segments satisfying Washington Accord complex engineering benchmarks.`
+        : `Deficient in topical breakdown. Recommend supplying weekly modules with contact hour allocations.`,
       pacingAssessment: hasPlan
-        ? `Well-balanced 16-week pacing with approximately 3-4 contact hours per module, leaving adequate revision and midterm exam buffers.`
-        : `Pacing cannot be fully validated due to missing weekly milestones.`,
+        ? (weekCount >= 12
+          ? `Well-balanced ${weekCount}-week pacing across the semester with adequate contact hours per module, allowing buffer for midterms and open-ended projects.`
+          : `Compact ${weekCount}-module pacing. Verify that total semester contact hours meet the institutional accreditation threshold (typically 45-48 hours for 3 credit hours).`)
+        : `Pacing cannot be validated due to missing weekly schedule and contact hours.`,
       alignmentSummary: hasPlan
-        ? `Strong constructive alignment: lecture modules directly support the competencies articulated across CLO-1 through CLO-${clos.length}.`
-        : `Partial constructive alignment: unable to confirm full coverage of higher-order design outcomes.`,
-      alignmentStatus: hasPlan ? 'STRONG_ALIGNMENT' : 'NEEDS_REFINEMENT',
-      unaddressedCLOs: hasPlan ? ['All defined CLOs have dedicated instructional coverage'] : ['High-order design outcomes lack explicit lecture/lab hours'],
-      orphanTopics: ['None detected; all instructional modules align with departmental outcomes'],
-      missingModernTopics: [
-        'Hardware-in-the-Loop (HIL) or automated testbench validation benchmarks',
-        'Contemporary international safety standards and electromagnetic compatibility (EMC/EMI)'
-      ],
+        ? (unaddressedCLOs.length === 1 && !unaddressedCLOs[0].includes('Lacks explicit')
+          ? `Strong constructive alignment: instructional modules directly support all defined CLOs (CLO-1 through CLO-${clos.length}).`
+          : `Partial constructive alignment: some high-order outcomes lack explicitly designated weekly lecture/lab modules.`)
+        : `Constructive alignment check pending provision of complete weekly topic schedule.`,
+      alignmentStatus: hasPlan && (unaddressedCLOs.length === 1 && !unaddressedCLOs[0].includes('Lacks explicit'))
+        ? 'STRONG_ALIGNMENT'
+        : (hasPlan ? 'MODERATE_ALIGNMENT' : 'NEEDS_REFINEMENT'),
+      unaddressedCLOs: unaddressedCLOs,
+      orphanTopics: orphanTopics,
+      missingModernTopics: domainModernTools,
       outlineRecommendations: [
-        'Ensure laboratory modules feature explicit rubric criteria mapped to C5/C6 outcomes.',
-        'Incorporate an open-ended mini-design problem in the final four weeks to satisfy Washington Accord complex engineering benchmarks.'
+        `Incorporate explicit coverage of ${domainStandards[0]} in the final modules to reinforce industrial compliance.`,
+        'Ensure open-ended design problems or simulation benchmarks are integrated to satisfy Washington Accord complex engineering problem (WP1-WP7) criteria.',
+        'Allocate dedicated contact hours for formative assessment feedback prior to major examinations.'
       ]
     };
 
@@ -436,17 +610,17 @@ Respond strictly with valid JSON:
       readinessStatus: readinessStatus,
       readinessBadge: readinessBadge,
       overallSetAnalysis: {
-        summary: `The evaluated course outcome set for "${courseName}" demonstrates a robust cognitive progression, bridging foundational principles with analytical diagnosis and system synthesis.`,
+        summary: `The evaluated course outcome set for "${courseName}" reflects active engineering competencies, laddering from analytical diagnosis to higher-order design and validation.`,
         coverageScore: cloScore,
-        progressionCheck: 'Solid cognitive laddering: spans foundational levels up to creative system design.',
-        redundancyAssessment: 'No direct competency overlap detected across outcomes. Each outcome addresses a discrete engineering domain.',
+        progressionCheck: 'Cognitive laddering: appropriately distributes foundational analytical outcomes into higher-order design and assessment.',
+        redundancyAssessment: 'No direct competency overlap detected across outcomes. Each outcome addresses a discrete engineering competency.',
         recommendations: [
-          'Ensure all foundational outcomes utilize observable action verbs (avoiding "understand" or "know").',
-          'Map laboratory assessment components directly to the C4 and C6 psychomotor/cognitive milestones.',
-          'Verify rubric threshold levels during end-of-semester course review folders.'
+          'Ensure all outcomes utilize observable Bloom action verbs (avoiding passive cognition like "understand" or "know").',
+          'Align summative exam questions and rubric criteria directly to the specified Bloom taxonomy levels.',
+          'Document Continuous Quality Improvement (CQI) closing-the-loop actions in the end-of-semester course folder.'
         ],
         isSimulated: true,
-        simulationNotice: errorNote ? `Live API note: ${errorNote}` : 'Generated via Academic Accreditation Audit Engine (PEC Standards)'
+        simulationNotice: errorNote ? `Live API note: ${errorNote}` : 'Generated via Academic Accreditation Audit Engine (PEC / Washington Accord Standards)'
       },
       outlineAnalysis: outlineAnalysis,
       cloResults: results

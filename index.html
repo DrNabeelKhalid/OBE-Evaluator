@@ -372,15 +372,37 @@
             </div>
           </div>
 
-          <!-- Syllabus Outline Upload Box -->
-          <div class="p-5 bg-slate-50/90 border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/40 transition-all shadow-2xs" id="syllabus-dropzone">
-            <input type="file" id="syllabus-file-input" class="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt" />
-            <div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-2.5 shadow-2xs">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <!-- Syllabus Upload & Paste Options -->
+          <div class="space-y-3 flex flex-col justify-between">
+            <div class="p-5 bg-slate-50/90 border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-orange-500 hover:bg-orange-50/40 transition-all shadow-2xs flex-1" id="syllabus-dropzone">
+              <input type="file" id="syllabus-file-input" class="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.md,.csv,.rtf" />
+              <div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-2 shadow-2xs">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              </div>
+              <span class="text-sm font-extrabold text-slate-950">Upload Course Outline</span>
+              <p class="text-xs text-slate-600 mt-0.5">Word (.docx), PDF, or Text file</p>
+              <div id="syllabus-upload-status" class="mt-2 text-xs"></div>
             </div>
-            <span class="text-sm font-extrabold text-slate-950">Upload Course Outline</span>
-            <p class="text-xs text-slate-600 mt-0.5">Drag &amp; drop PDF, Word, or Syllabus image</p>
-            <div id="syllabus-upload-status" class="mt-2 text-xs"></div>
+
+            <!-- Paste Button -->
+            <button id="btn-open-paste-modal" type="button" class="btn-interactive w-full py-2.5 px-3 rounded-xl bg-white border border-slate-300 hover:border-orange-400 hover:bg-orange-50/50 text-slate-800 hover:text-orange-700 text-xs font-bold flex items-center justify-center gap-2 shadow-2xs transition-all">
+              <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <span>📋 Paste Syllabus / Course Plan Text</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Detection & Entry Options Banner -->
+        <div id="syllabus-detection-banner" class="mt-5 p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+          <div class="flex items-center gap-2.5">
+            <div id="syllabus-banner-icon" class="w-7 h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 font-bold">ℹ️</div>
+            <div class="text-slate-800">
+              <span class="font-extrabold text-slate-950" id="syllabus-banner-title">Input &amp; Extraction Options:</span>
+              <span class="text-slate-600 ml-1" id="syllabus-banner-desc">You can upload a syllabus document (.docx, .pdf, .txt), click "Paste Syllabus", or directly enter your course details and CLOs below.</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto" id="syllabus-banner-actions">
+            <span class="text-[11px] font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">Manual Entry &amp; Document Extraction Active</span>
           </div>
         </div>
       </div>
@@ -2097,6 +2119,48 @@
       </div>
 
       <div class="overflow-y-auto flex-1 pr-1" id="verbs-by-level-container"></div>
+    </div>
+  <!-- ==================== QUICK PASTE SYLLABUS MODAL ==================== -->
+  <div id="paste-syllabus-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-base">📋</div>
+          <div>
+            <h4 class="font-extrabold text-slate-900 text-base">Paste Syllabus or Course Plan Text</h4>
+            <p class="text-xs text-slate-600 font-medium">Paste your course outline, lecture plan, or CLOs. The intelligent parser will automatically extract and populate the fields.</p>
+          </div>
+        </div>
+        <button id="btn-close-paste-modal" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="flex-1 mb-4 flex flex-col">
+        <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+          Syllabus Content (Any Format)
+        </label>
+        <textarea 
+          id="input-pasted-syllabus-text" 
+          rows="12" 
+          class="w-full flex-1 p-4 text-xs font-mono bg-slate-50 border border-slate-300 rounded-2xl focus:bg-white focus:border-orange-500 focus:outline-none text-slate-900 shadow-2xs leading-relaxed" 
+          placeholder="Paste course title, weekly plan, and outcomes here...&#10;&#10;Course Title: EE-312 Microcontroller Systems&#10;Course Description: Study of embedded architectures, firmware, and peripherals...&#10;&#10;Course Plan:&#10;Week 1: ARM Architecture & Registers&#10;Week 2: Memory Mapping & Interrupts&#10;Week 3: Timers & PWM Generation&#10;Week 4: Serial Communication (SPI/I2C)&#10;&#10;Course Learning Outcomes:&#10;CLO-1: Explain microcontroller registers and bus structures [PLO-1, C2]&#10;CLO-2: Analyze serial communication waveforms [PLO-2, C4]&#10;CLO-3: Design an embedded data acquisition prototype [PLO-3, C6]"
+        ></textarea>
+        <div id="paste-parse-status" class="mt-2 text-xs"></div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <span class="text-xs text-slate-500">Auto-detects course title, weekly breakdown, and CLOs</span>
+        <div class="flex items-center gap-2">
+          <button id="btn-cancel-paste-modal" type="button" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+            Cancel
+          </button>
+          <button id="btn-parse-pasted-syllabus" type="button" class="btn-interactive px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-orange-500 text-white hover:bg-orange-600 shadow-md transition-all flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>Auto-Detect &amp; Populate Fields</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

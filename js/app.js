@@ -9,6 +9,7 @@ import {
 } from './constants.js';
 import { geminiEngine } from './gemini.js';
 import { PDFReportGenerator } from './pdf-export.js';
+import { extractTextFromFile, parseSyllabusText } from './document-extractor.js';
 
 class OBEApp {
   constructor() {
@@ -188,6 +189,12 @@ class OBEApp {
     // Bloom's Verb Guide Modal
     document.getElementById('btn-open-verbs-guide')?.addEventListener('click', () => this.openVerbsModal());
     document.getElementById('btn-close-verbs-modal')?.addEventListener('click', () => this.closeVerbsModal());
+
+    // Quick Paste Syllabus Modal
+    document.getElementById('btn-open-paste-modal')?.addEventListener('click', () => this.openPasteSyllabusModal());
+    document.getElementById('btn-close-paste-modal')?.addEventListener('click', () => this.closePasteSyllabusModal());
+    document.getElementById('btn-cancel-paste-modal')?.addEventListener('click', () => this.closePasteSyllabusModal());
+    document.getElementById('btn-parse-pasted-syllabus')?.addEventListener('click', () => this.handlePastedSyllabus());
   }
 
   switchEvalView(view) {
@@ -1130,6 +1137,19 @@ class OBEApp {
     this.coursePlanText = '';
     this.courseTopics = [];
     this.renderCLOInputs();
+
+    const bannerTitle = document.getElementById('syllabus-banner-title');
+    const bannerDesc = document.getElementById('syllabus-banner-desc');
+    const bannerIcon = document.getElementById('syllabus-banner-icon');
+    const uploadStatus = document.getElementById('syllabus-upload-status');
+    if (uploadStatus) uploadStatus.innerHTML = '';
+    if (bannerTitle && bannerDesc) {
+      bannerTitle.textContent = 'Input & Extraction Options:';
+      bannerDesc.textContent = 'You can upload a syllabus document (.docx, .pdf, .txt), click "Paste Syllabus", or directly enter your course details and CLOs below.';
+      if (bannerIcon) bannerIcon.innerHTML = 'ℹ️';
+      document.getElementById('syllabus-detection-banner')?.classList.add('bg-amber-50/80', 'border-amber-200/80');
+      document.getElementById('syllabus-detection-banner')?.classList.remove('bg-emerald-50/90', 'border-emerald-300');
+    }
   }
 
   loadSampleCourse(key) {
@@ -1144,6 +1164,17 @@ class OBEApp {
     this.courseTopics = sample.topics ? JSON.parse(JSON.stringify(sample.topics)) : [];
     this.clos = JSON.parse(JSON.stringify(sample.clos));
     this.renderCLOInputs();
+
+    const bannerTitle = document.getElementById('syllabus-banner-title');
+    const bannerDesc = document.getElementById('syllabus-banner-desc');
+    const bannerIcon = document.getElementById('syllabus-banner-icon');
+    if (bannerTitle && bannerDesc) {
+      bannerTitle.textContent = `Loaded Sample Course: ${sample.name}`;
+      bannerDesc.textContent = `Populated sample Course Plan and ${this.clos.length} CLOs. You can edit any fields or replace them with your own course plan.`;
+      if (bannerIcon) bannerIcon.innerHTML = '📋';
+      document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
+      document.getElementById('syllabus-detection-banner')?.classList.add('bg-emerald-50/90', 'border-emerald-300');
+    }
   }
 
   checkStoredSample() {
@@ -1320,48 +1351,154 @@ class OBEApp {
 
   async handleSyllabusFile(file) {
     const statusMsg = document.getElementById('syllabus-upload-status');
+    const bannerTitle = document.getElementById('syllabus-banner-title');
+    const bannerDesc = document.getElementById('syllabus-banner-desc');
+    const bannerIcon = document.getElementById('syllabus-banner-icon');
+
     if (statusMsg) {
       statusMsg.innerHTML = `<span class="inline-flex items-center gap-2 text-orange-600 font-bold"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Scanning document: "${file.name}"...</span>`;
     }
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64Data = e.target.result;
-        const mimeType = file.type || 'application/pdf';
+      // 1. Zero-dependency client-side extraction for Word (.docx), PDF (.pdf), and text (.txt, .md, .csv)
+      let rawText = '';
+      try {
+        rawText = await extractTextFromFile(file);
+      } catch (extractErr) {
+        console.warn('extractTextFromFile warning:', extractErr);
+      }
 
-        const extracted = await geminiEngine.extractSyllabus(base64Data, mimeType, file.name);
-
-        if (extracted) {
-          document.getElementById('input-course-name').value = extracted.courseName || file.name.replace(/\.[^/.]+$/, "");
-          document.getElementById('input-course-desc').value = extracted.courseDescription || '';
-
-          if (extracted.coursePlan) {
-            const planInput = document.getElementById('input-course-plan');
-            if (planInput) planInput.value = extracted.coursePlan;
-            this.coursePlanText = extracted.coursePlan;
-          }
-
-          if (extracted.clos && extracted.clos.length) {
-            this.clos = extracted.clos.map((c, i) => ({
-              id: i + 1,
-              statement: c.statement,
-              plo: c.plo || 'PLO-1',
-              taxonomy: c.taxonomy || 'C3'
-            }));
-            this.renderCLOInputs();
-          }
-
-          if (statusMsg) {
-            statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted ${this.clos.length} CLOs and Course Plan from "${file.name}"!</span>`;
-          }
+      // 2. Read base64 data for fallback / Gemini API
+      let base64Data = '';
+      const mimeType = file.type || 'application/pdf';
+      if (!rawText || file.type.startsWith('image/') || file.type === 'application/pdf') {
+        try {
+          base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result || '');
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+          });
+        } catch (readErr) {
+          console.warn('FileReader error:', readErr);
         }
-      };
-      reader.readAsDataURL(file);
+      }
+
+      const extracted = await geminiEngine.extractSyllabus(base64Data, mimeType, file.name, rawText);
+
+      if (extracted) {
+        if (extracted.courseName) {
+          document.getElementById('input-course-name').value = extracted.courseName;
+        }
+        if (extracted.courseDescription) {
+          document.getElementById('input-course-desc').value = extracted.courseDescription;
+        }
+
+        if (extracted.coursePlan) {
+          const planInput = document.getElementById('input-course-plan');
+          if (planInput) planInput.value = extracted.coursePlan;
+          this.coursePlanText = extracted.coursePlan;
+        }
+
+        if (extracted.clos && extracted.clos.length > 0) {
+          this.clos = extracted.clos.map((c, i) => ({
+            id: i + 1,
+            statement: c.statement,
+            plo: c.plo || 'PLO-1',
+            taxonomy: c.taxonomy || 'C3'
+          }));
+          this.renderCLOInputs();
+        }
+
+        const cloCount = extracted.clos?.length || 0;
+        const hasPlan = Boolean(extracted.coursePlan && extracted.coursePlan.length > 10);
+
+        if (statusMsg) {
+          statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${extracted.courseName || file.name} (${cloCount} CLOs detected)</span>`;
+        }
+
+        if (bannerTitle && bannerDesc) {
+          bannerTitle.textContent = `Extracted from "${file.name}":`;
+          bannerDesc.textContent = `Course Name: "${extracted.courseName || 'Extracted'}" | ${hasPlan ? 'Weekly Course Plan Extracted' : 'Course Plan Empty'} | ${cloCount} CLOs Detected. You can review, edit, or add further information below before evaluating.`;
+          if (bannerIcon) bannerIcon.innerHTML = '✅';
+          document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
+          document.getElementById('syllabus-detection-banner')?.classList.add('bg-emerald-50/90', 'border-emerald-300');
+        }
+      }
     } catch (err) {
       if (statusMsg) {
-        statusMsg.innerHTML = `<span class="text-rose-600 font-bold">Extraction failed: ${err.message}</span>`;
+        statusMsg.innerHTML = `<span class="text-rose-600 font-bold">Extraction note: ${err.message}. You can manually enter or paste below.</span>`;
       }
+    }
+  }
+
+  // --- Quick Paste Syllabus Modal Handlers ---
+  openPasteSyllabusModal() {
+    const modal = document.getElementById('paste-syllabus-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      const input = document.getElementById('input-pasted-syllabus-text');
+      if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+      }
+      const statusEl = document.getElementById('paste-parse-status');
+      if (statusEl) statusEl.innerHTML = '';
+    }
+  }
+
+  closePasteSyllabusModal() {
+    document.getElementById('paste-syllabus-modal')?.classList.add('hidden');
+  }
+
+  handlePastedSyllabus() {
+    const rawText = document.getElementById('input-pasted-syllabus-text')?.value.trim();
+    const statusEl = document.getElementById('paste-parse-status');
+    if (!rawText) {
+      if (statusEl) statusEl.innerHTML = '<span class="text-rose-600 font-bold">Please paste your syllabus text into the box above.</span>';
+      return;
+    }
+
+    try {
+      const parsed = parseSyllabusText(rawText, 'Pasted Syllabus');
+      if (parsed) {
+        if (parsed.courseName) {
+          document.getElementById('input-course-name').value = parsed.courseName;
+        }
+        if (parsed.courseDescription) {
+          document.getElementById('input-course-desc').value = parsed.courseDescription;
+        }
+        if (parsed.coursePlan) {
+          const planInput = document.getElementById('input-course-plan');
+          if (planInput) planInput.value = parsed.coursePlan;
+          this.coursePlanText = parsed.coursePlan;
+        }
+        if (parsed.clos && parsed.clos.length > 0) {
+          this.clos = parsed.clos.map((c, i) => ({
+            id: i + 1,
+            statement: c.statement,
+            plo: c.plo || 'PLO-1',
+            taxonomy: c.taxonomy || 'C3'
+          }));
+          this.renderCLOInputs();
+        }
+
+        const cloCount = parsed.clos?.length || 0;
+        const bannerTitle = document.getElementById('syllabus-banner-title');
+        const bannerDesc = document.getElementById('syllabus-banner-desc');
+        const bannerIcon = document.getElementById('syllabus-banner-icon');
+        if (bannerTitle && bannerDesc) {
+          bannerTitle.textContent = 'Detected from Pasted Syllabus:';
+          bannerDesc.textContent = `Course Name: "${parsed.courseName || 'Detected'}" | ${parsed.coursePlan ? 'Course Plan Populated' : 'Add Course Plan'} | ${cloCount} CLOs Detected. Review or edit before running evaluation.`;
+          if (bannerIcon) bannerIcon.innerHTML = '✅';
+          document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
+          document.getElementById('syllabus-detection-banner')?.classList.add('bg-emerald-50/90', 'border-emerald-300');
+        }
+
+        this.closePasteSyllabusModal();
+      }
+    } catch (e) {
+      if (statusEl) statusEl.innerHTML = `<span class="text-rose-600 font-bold">Parse error: ${e.message}</span>`;
     }
   }
 
@@ -1371,6 +1508,23 @@ class OBEApp {
     const courseDescription = document.getElementById('input-course-desc').value.trim();
     const coursePlan = document.getElementById('input-course-plan')?.value.trim() || this.coursePlanText || '';
     this.coursePlanText = coursePlan;
+
+    // Ensure this.clos is perfectly synchronized with DOM input values
+    const container = document.getElementById('clo-inputs-container');
+    if (container) {
+      container.querySelectorAll('.clo-statement-input').forEach(textarea => {
+        const idx = parseInt(textarea.getAttribute('data-index'));
+        if (this.clos[idx]) this.clos[idx].statement = textarea.value.trim();
+      });
+      container.querySelectorAll('.clo-plo-select').forEach(sel => {
+        const idx = parseInt(sel.getAttribute('data-index'));
+        if (this.clos[idx]) this.clos[idx].plo = sel.value;
+      });
+      container.querySelectorAll('.clo-tax-select').forEach(sel => {
+        const idx = parseInt(sel.getAttribute('data-index'));
+        if (this.clos[idx]) this.clos[idx].taxonomy = sel.value;
+      });
+    }
 
     if (!courseName) {
       alert('Please enter the Course Name before starting the evaluation.');
