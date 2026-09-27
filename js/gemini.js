@@ -628,16 +628,47 @@ Respond strictly with valid JSON:
   }
 
   /**
-   * Suggests / Generates accreditation-aligned CLOs based on course outline, user-specified PLOs and taxonomy levels
+   * Suggests / Generates accreditation-aligned CLOs based on course outline and user-specified CLO-to-PLO mapping specifications
+   * Supports N-to-M mappings (e.g. multiple CLOs mapped to the same PLO at different Bloom levels)
    */
-  async suggestCLOsForCourse({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], ploTaxonomyMap = {}, isLab = false }) {
-    if (!this.hasApiKey()) {
-      return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, ploTaxonomyMap, isLab });
+  async suggestCLOsForCourse({ 
+    courseName, 
+    courseDescription, 
+    coursePlan, 
+    cloSpecifications = [], 
+    targetPLOs = [], 
+    ploTaxonomyMap = {}, 
+    isLab = false 
+  }) {
+    // Normalize cloSpecifications
+    let specs = cloSpecifications;
+    if (!specs || specs.length === 0) {
+      if (targetPLOs && targetPLOs.length > 0) {
+        specs = targetPLOs.map((plo, i) => ({
+          id: i + 1,
+          plo,
+          taxonomy: (ploTaxonomyMap && ploTaxonomyMap[plo]) || (isLab ? 'P4' : 'C3')
+        }));
+      } else {
+        specs = isLab ? [
+          { id: 1, plo: 'PLO-4', taxonomy: 'P3' },
+          { id: 2, plo: 'PLO-4', taxonomy: 'P4' },
+          { id: 3, plo: 'PLO-5', taxonomy: 'P5' }
+        ] : [
+          { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+          { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+          { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+        ];
+      }
     }
 
-    const ploTaxonomyInstructions = targetPLOs.map(plo => {
-      const tax = ploTaxonomyMap[plo] || (isLab ? 'P4' : 'C3');
-      return `• ${plo}: Target Taxonomy Level ${tax}`;
+    if (!this.hasApiKey()) {
+      return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, cloSpecifications: specs, isLab });
+    }
+
+    const ploTaxonomyInstructions = specs.map((spec, i) => {
+      const tax = spec.taxonomy || (isLab ? 'P4' : 'C3');
+      return `• CLO ${i + 1}: Target PLO: ${spec.plo}, Required Taxonomy Level: ${tax}`;
     }).join('\n');
 
     const systemPrompt = `You are a Senior OBE Curriculum Specialist and Washington Accord / ABET / PEC Engineering Accreditation Auditor.
@@ -648,11 +679,11 @@ Course Description: ${courseDescription}
 Course Plan & Weekly Topics: ${coursePlan}
 Course Type: ${isLab ? 'Laboratory / Practical' : 'Theory / Lecture'}
 
-User-Specified PLOs & Required Bloom's Taxonomy Levels:
+User-Specified CLO-to-PLO Mapping Matrix (${specs.length} CLOs required):
 ${ploTaxonomyInstructions}
 
 Rules:
-1. Generate EXACTLY one distinct, measurable CLO for each target PLO provided.
+1. Generate EXACTLY ${specs.length} distinct, measurable CLOs matching each specified target PLO and taxonomy level in the exact order requested. Note: Multiple CLOs CAN and DO map to the same PLO (e.g. two CLOs under PLO-1 with different taxonomy levels or focusing on different topical modules).
 2. For each CLO, strictly enforce the user's requested Taxonomy Level:
    - C1 (Remembering): Define, Identify, List, Recall, State
    - C2 (Understanding): Explain, Interpret, Describe, Classify, Illustrate
@@ -660,9 +691,9 @@ Rules:
    - C4 (Analyzing): Analyze, Diagnose, Differentiate, Investigate, Compare
    - C5 (Evaluating): Evaluate, Critique, Assess, Appraise, Justify
    - C6 (Creating/Design): Design, Formulate, Synthesize, Develop, Devise
-   - P3-P7 (Psychomotor/Lab): Assemble, Calibrate, Conduct, Construct, Troubleshoot, Measure
+   - P1-P7 (Psychomotor/Lab): Assemble, Calibrate, Conduct, Construct, Troubleshoot, Measure
    - A1-A5 (Affective/Ethics/Teamwork): Collaborate, Present, Practice ethics, Respect, Coordinate
-3. Ground the CLO statements directly in the specific technical topics, concepts, and weekly modules provided in the Course Plan.
+3. Ground the CLO statements directly in the specific technical topics, concepts, and weekly modules provided in the Course Plan. When multiple CLOs share the same PLO, ensure they cover distinct technical topics and distinct cognitive depths.
 4. Each outcome must satisfy SMART criteria and align with Washington Accord engineering problem solving attributes.
 
 Respond strictly with valid JSON matching this schema:
@@ -677,7 +708,7 @@ Respond strictly with valid JSON matching this schema:
   ]
 }`;
 
-    const userPrompt = `Please synthesize ${targetPLOs.length} accreditation-aligned CLOs for ${courseName} using the specified PLOs and taxonomy levels:\n${ploTaxonomyInstructions}\n\nWeekly Course Topics:\n${coursePlan}`;
+    const userPrompt = `Please synthesize ${specs.length} accreditation-aligned CLOs for ${courseName} adhering strictly to the user's CLO-to-PLO mapping specifications:\n${ploTaxonomyInstructions}\n\nWeekly Course Topics:\n${coursePlan}`;
 
     try {
       const response = await this.callGeminiAPI(systemPrompt, userPrompt);
@@ -689,7 +720,7 @@ Respond strictly with valid JSON matching this schema:
       console.warn('Gemini CLO suggestion failed, using simulated curriculum synthesis:', err);
     }
 
-    return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, ploTaxonomyMap, isLab });
+    return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, cloSpecifications: specs, isLab });
   }
 
   /**
@@ -916,9 +947,39 @@ Respond strictly with valid JSON matching this schema:
   }
 
   /**
-   * Simulated dynamic CLO synthesis from course outline, target PLOs and user-selected taxonomy levels
+   * Simulated dynamic CLO synthesis from course outline and CLO specifications
+   * Supports multiple CLOs mapped to the same PLO
    */
-  simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], ploTaxonomyMap = {}, isLab = false }) {
+  simulateCLOGenerationFromOutline({ 
+    courseName, 
+    courseDescription, 
+    coursePlan, 
+    cloSpecifications = [], 
+    targetPLOs = [], 
+    ploTaxonomyMap = {}, 
+    isLab = false 
+  }) {
+    let specs = cloSpecifications;
+    if (!specs || specs.length === 0) {
+      if (targetPLOs && targetPLOs.length > 0) {
+        specs = targetPLOs.map((plo, i) => ({
+          id: i + 1,
+          plo,
+          taxonomy: (ploTaxonomyMap && ploTaxonomyMap[plo]) || (isLab ? 'P4' : 'C3')
+        }));
+      } else {
+        specs = isLab ? [
+          { id: 1, plo: 'PLO-4', taxonomy: 'P3' },
+          { id: 2, plo: 'PLO-4', taxonomy: 'P4' },
+          { id: 3, plo: 'PLO-5', taxonomy: 'P5' }
+        ] : [
+          { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+          { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+          { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+        ];
+      }
+    }
+
     const rawLines = (coursePlan || '').split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 5);
     const cleanTopicRegex = /^(?:weeks?\s*\d+(?:\s*[-–]\s*\d+)?|wk\s*\d+|modules?\s*\d+|units?\s*\d+|lectures?\s*\d+|sessions?\s*\d+|ch(?:apter)?\s*\d+|exp(?:eriment)?\s*\d+|labs?\s*\d+|\d+[.)\-]|•|\*|-|–)[:\-–\s]*/i;
     let topics = rawLines
@@ -941,10 +1002,11 @@ Respond strictly with valid JSON matching this schema:
 
     const cleanCourse = (courseName || 'Course').replace(/^[A-Z]{2,5}[ -]?\d{3,4}[:\-–\s]*/i, '').trim() || courseName;
 
-    return targetPLOs.map((plo, idx) => {
-      const topic = topics[idx % topics.length] || `technical modules in ${cleanCourse}`;
+    return specs.map((spec, idx) => {
+      const plo = spec.plo || 'PLO-1';
       const defaultTax = isLab ? (['PLO-4', 'PLO-5', 'PLO-9'].includes(plo) ? 'P4' : 'C3') : (plo === 'PLO-1' ? 'C2' : plo === 'PLO-2' ? 'C4' : plo === 'PLO-3' ? 'C6' : plo === 'PLO-7' ? 'A3' : 'C4');
-      const tax = (ploTaxonomyMap && ploTaxonomyMap[plo]) ? ploTaxonomyMap[plo] : defaultTax;
+      const tax = spec.taxonomy || defaultTax;
+      const topic = topics[idx % topics.length] || `technical modules in ${cleanCourse}`;
 
       let statement = '';
 

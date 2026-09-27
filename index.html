@@ -450,10 +450,10 @@
                 </div>
                 <div>
                   <h4 class="text-xs font-black uppercase tracking-wider text-emerald-950 flex items-center gap-2" id="clo-suggest-card-title">
-                    Course PLO Mapping &amp; Automated CLO Suggestions
+                    CLO-to-PLO Mapping Matrix &amp; Automated Suggestions
                   </h4>
                   <p class="text-xs text-slate-700 font-medium mt-0.5" id="clo-suggest-card-desc">
-                    Identify which Program Learning Outcomes (PLOs) are mapped to this course and customize their target Bloom's Taxonomy levels. The system will synthesize SMART, accreditation-aligned CLOs tailored to your weekly topics:
+                    Map multiple CLOs to the same PLO or assign each CLO a distinct PLO and Bloom's Taxonomy level. The system will synthesize SMART, accreditation-aligned CLOs tailored to your weekly topics:
                   </p>
                 </div>
               </div>
@@ -464,27 +464,36 @@
 
             <!-- Quick PLO Selection Presets -->
             <div class="flex flex-wrap items-center gap-1.5 pt-1">
-              <span class="text-[11px] font-black uppercase text-emerald-950 tracking-wide mr-1">Quick Presets:</span>
+              <span class="text-[11px] font-black uppercase text-emerald-950 tracking-wide mr-1">Presets:</span>
+              <button type="button" id="btn-plo-preset-2on1" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-all shadow-2xs">
+                ⭐ 3 CLOs (2 on PLO-1 [C2, C3], 1 on PLO-2 [C4])
+              </button>
               <button type="button" id="btn-plo-preset-core" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs">
-                Core Theory (PLO 1 [C2], 2 [C4], 3 [C6])
+                3 CLOs Core (PLO 1 [C2], 2 [C4], 3 [C6])
+              </button>
+              <button type="button" id="btn-plo-preset-4balanced" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs">
+                4 CLOs (2 on PLO-1 [C2, C3], 2 on PLO-2 [C4, C4])
               </button>
               <button type="button" id="btn-plo-preset-lab" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs">
-                Lab / Practical (PLO 4 [P4], 5 [P5], 9 [P4])
+                Lab Course (2 on PLO-4 [P3, P4], 1 on PLO-5 [P5])
               </button>
-              <button type="button" id="btn-plo-preset-design" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs">
-                Design Heavy (PLO 3 [C6], 5 [C3])
-              </button>
-              <button type="button" id="btn-plo-preset-all" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all shadow-2xs">
-                All 11 PLOs
-              </button>
-              <button type="button" id="btn-plo-preset-clear" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-slate-300 text-rose-600 hover:bg-rose-50 transition-all shadow-2xs">
-                Clear
+              <button type="button" id="btn-plo-preset-clear" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all shadow-2xs">
+                Reset
               </button>
             </div>
 
-            <!-- Interactive PLO & Taxonomy Mapping Container -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1 max-h-64 overflow-y-auto pr-1" id="clo-suggest-plo-checkboxes">
-              <!-- Rendered dynamically by js/app.js with PLO checkboxes & Taxonomy selects -->
+            <!-- Interactive CLO-to-PLO Mapping Matrix List Container -->
+            <div class="space-y-2 pt-1 max-h-72 overflow-y-auto pr-1" id="clo-suggest-plo-checkboxes">
+              <!-- Rendered dynamically by js/app.js with CLO-to-PLO mapping rows -->
+            </div>
+
+            <!-- Add Another CLO Row Action Button -->
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" id="btn-add-clo-spec" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-emerald-400 text-emerald-900 hover:bg-emerald-50 transition-all shadow-2xs flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>+ Add Another CLO to Mapping</span>
+              </button>
+              <span class="text-[11px] text-slate-600 font-medium">Multiple CLOs can share the same PLO</span>
             </div>
 
             <!-- Generation Action Bar -->
@@ -2317,7 +2326,7 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=3.7"></script>
-  <script type="module" src="./js/demo-video.js?v=3.7"></script>
+  <script type="module" src="./js/app.js?v=3.8"></script>
+  <script type="module" src="./js/demo-video.js?v=3.8"></script>
 </body>
 </html>

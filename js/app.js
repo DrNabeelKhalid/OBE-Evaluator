@@ -48,7 +48,13 @@ class OBEApp {
     this.selectedRoutineCategory = 'all';
 
     // Course PLO Mapping & CLO Suggestion State
-    this.cloTargetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'];
+    // Supports arbitrary CLO specifications including multiple CLOs mapped to the same PLO
+    this.cloSpecs = [
+      { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+      { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+      { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+    ];
+    this.cloTargetPLOs = ['PLO-1', 'PLO-2'];
     this.cloTaxonomyMap = {
       'PLO-1': 'C2',
       'PLO-2': 'C4',
@@ -1053,37 +1059,55 @@ class OBEApp {
     });
 
     // Quick PLO Selection Presets
+    document.getElementById('btn-plo-preset-2on1')?.addEventListener('click', () => {
+      this.cloSpecs = [
+        { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+        { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+        { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+      ];
+      this.renderCLOSuggestPLOCheckboxes();
+    });
+
     document.getElementById('btn-plo-preset-core')?.addEventListener('click', () => {
-      this.cloTargetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'];
-      this.cloTaxonomyMap['PLO-1'] = 'C2';
-      this.cloTaxonomyMap['PLO-2'] = 'C4';
-      this.cloTaxonomyMap['PLO-3'] = 'C6';
+      this.cloSpecs = [
+        { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+        { id: 2, plo: 'PLO-2', taxonomy: 'C4' },
+        { id: 3, plo: 'PLO-3', taxonomy: 'C6' }
+      ];
+      this.renderCLOSuggestPLOCheckboxes();
+    });
+
+    document.getElementById('btn-plo-preset-4balanced')?.addEventListener('click', () => {
+      this.cloSpecs = [
+        { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+        { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+        { id: 3, plo: 'PLO-2', taxonomy: 'C4' },
+        { id: 4, plo: 'PLO-2', taxonomy: 'C4' }
+      ];
       this.renderCLOSuggestPLOCheckboxes();
     });
 
     document.getElementById('btn-plo-preset-lab')?.addEventListener('click', () => {
-      this.cloTargetPLOs = ['PLO-4', 'PLO-5', 'PLO-9'];
-      this.cloTaxonomyMap['PLO-4'] = 'P4';
-      this.cloTaxonomyMap['PLO-5'] = 'P5';
-      this.cloTaxonomyMap['PLO-9'] = 'P4';
-      this.renderCLOSuggestPLOCheckboxes();
-    });
-
-    document.getElementById('btn-plo-preset-design')?.addEventListener('click', () => {
-      this.cloTargetPLOs = ['PLO-3', 'PLO-5'];
-      this.cloTaxonomyMap['PLO-3'] = 'C6';
-      this.cloTaxonomyMap['PLO-5'] = 'C3';
-      this.renderCLOSuggestPLOCheckboxes();
-    });
-
-    document.getElementById('btn-plo-preset-all')?.addEventListener('click', () => {
-      this.cloTargetPLOs = PLO_LIST.map(p => p.id);
+      this.cloSpecs = [
+        { id: 1, plo: 'PLO-4', taxonomy: 'P3' },
+        { id: 2, plo: 'PLO-4', taxonomy: 'P4' },
+        { id: 3, plo: 'PLO-5', taxonomy: 'P5' }
+      ];
       this.renderCLOSuggestPLOCheckboxes();
     });
 
     document.getElementById('btn-plo-preset-clear')?.addEventListener('click', () => {
-      this.cloTargetPLOs = [];
+      this.cloSpecs = [
+        { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+        { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+        { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+      ];
       this.renderCLOSuggestPLOCheckboxes();
+    });
+
+    // Add Another CLO to Mapping button
+    document.getElementById('btn-add-clo-spec')?.addEventListener('click', () => {
+      this.addCLOSpec();
     });
 
     // Generate Action Button
@@ -1092,112 +1116,158 @@ class OBEApp {
     });
   }
 
+  addCLOSpec() {
+    if (!this.cloSpecs) this.cloSpecs = [];
+    const nextId = this.cloSpecs.length + 1;
+    const lastSpec = this.cloSpecs[this.cloSpecs.length - 1];
+    const plo = lastSpec ? lastSpec.plo : 'PLO-1';
+    let taxonomy = 'C3';
+    if (lastSpec) {
+      if (lastSpec.taxonomy === 'C2') taxonomy = 'C3';
+      else if (lastSpec.taxonomy === 'C3') taxonomy = 'C4';
+      else if (lastSpec.taxonomy === 'C4') taxonomy = 'C4';
+      else if (lastSpec.taxonomy === 'P3') taxonomy = 'P4';
+      else if (lastSpec.taxonomy === 'P4') taxonomy = 'P5';
+      else taxonomy = lastSpec.taxonomy;
+    }
+    this.cloSpecs.push({ id: nextId, plo, taxonomy });
+    this.renderCLOSuggestPLOCheckboxes();
+  }
+
+  updateCLOSpecSummary() {
+    const countEl = document.getElementById('clo-suggest-selected-count');
+    if (!countEl) return;
+
+    if (!this.cloSpecs || this.cloSpecs.length === 0) {
+      countEl.textContent = '0 CLOs configured (Add at least 1)';
+      countEl.className = 'text-xs font-black text-rose-600';
+      return;
+    }
+
+    const ploCounts = {};
+    this.cloSpecs.forEach(spec => {
+      if (!ploCounts[spec.plo]) ploCounts[spec.plo] = [];
+      ploCounts[spec.plo].push(spec.taxonomy);
+    });
+
+    const ploKeys = Object.keys(ploCounts);
+    const summary = ploKeys.map(plo => {
+      return `${plo} (${ploCounts[plo].length} CLO${ploCounts[plo].length > 1 ? 's' : ''}: ${ploCounts[plo].join(', ')})`;
+    }).join(' • ');
+
+    countEl.textContent = `${this.cloSpecs.length} CLO${this.cloSpecs.length === 1 ? '' : 's'} across ${ploKeys.length} PLO${ploKeys.length === 1 ? '' : 's'}: ${summary}`;
+    countEl.className = 'text-xs font-black text-emerald-950 truncate max-w-[320px] sm:max-w-none';
+  }
+
   renderCLOSuggestPLOCheckboxes() {
     const container = document.getElementById('clo-suggest-plo-checkboxes');
     if (!container) return;
 
-    const courseName = document.getElementById('input-course-name')?.value || '';
-    const isLab = /lab|practical|experiment/i.test(courseName);
-
-    const defaultTaxMap = isLab ? {
-      'PLO-1': 'C3', 'PLO-2': 'C4', 'PLO-3': 'C6', 'PLO-4': 'P4', 'PLO-5': 'P5',
-      'PLO-6': 'C4', 'PLO-7': 'A3', 'PLO-8': 'A2', 'PLO-9': 'P4', 'PLO-10': 'C3', 'PLO-11': 'C4'
-    } : {
-      'PLO-1': 'C2', 'PLO-2': 'C4', 'PLO-3': 'C6', 'PLO-4': 'C4', 'PLO-5': 'C3',
-      'PLO-6': 'C4', 'PLO-7': 'A3', 'PLO-8': 'A2', 'PLO-9': 'A2', 'PLO-10': 'C3', 'PLO-11': 'C4'
-    };
-
-    const countEl = document.getElementById('clo-suggest-selected-count');
-    if (countEl) {
-      if (this.cloTargetPLOs.length === 0) {
-        countEl.textContent = '0 PLOs selected (Select at least 1)';
-        countEl.className = 'text-xs font-black text-rose-600';
-      } else {
-        const summary = this.cloTargetPLOs.map(id => `${id} (${this.cloTaxonomyMap[id] || defaultTaxMap[id] || 'C3'})`).join(', ');
-        countEl.textContent = `${this.cloTargetPLOs.length} PLO${this.cloTargetPLOs.length === 1 ? '' : 's'}: ${summary}`;
-        countEl.className = 'text-xs font-black text-emerald-950 truncate max-w-[320px] sm:max-w-none';
-      }
+    if (!this.cloSpecs || this.cloSpecs.length === 0) {
+      this.cloSpecs = [
+        { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+        { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+        { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+      ];
     }
 
-    container.innerHTML = PLO_LIST.map(p => {
-      const isChecked = this.cloTargetPLOs.includes(p.id);
-      const currentTax = this.cloTaxonomyMap[p.id] || defaultTaxMap[p.id] || 'C3';
+    this.updateCLOSpecSummary();
 
+    container.innerHTML = this.cloSpecs.map((spec, idx) => {
       return `
-        <div class="p-2.5 rounded-xl border transition-all ${isChecked ? 'bg-white border-emerald-400 shadow-2xs' : 'bg-emerald-50/40 border-emerald-200/60 opacity-80'}">
-          <div class="flex items-center justify-between gap-2">
-            <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
-              <input 
-                type="checkbox" 
-                class="clo-suggest-cb rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 shrink-0" 
-                value="${p.id}" 
-                ${isChecked ? 'checked' : ''}
-              />
-              <div class="leading-tight min-w-0">
-                <span class="font-black text-xs text-slate-900 block">${p.code}</span>
-                <span class="text-[11px] text-slate-600 font-medium truncate block" title="${p.title}">${p.title}</span>
-              </div>
-            </label>
-            <div class="shrink-0 flex items-center gap-1.5">
-              <span class="text-[10px] font-bold text-slate-500 uppercase">Tax:</span>
-              <select 
-                class="clo-suggest-tax-select text-xs font-bold px-1.5 py-1 bg-white border rounded-lg text-slate-900 focus:outline-none focus:border-emerald-500 ${isChecked ? 'border-emerald-400 font-black text-emerald-950 bg-emerald-50/50' : 'border-slate-200 text-slate-400 bg-slate-50'}" 
-                data-plo="${p.id}"
-                ${!isChecked ? 'disabled' : ''}
-              >
-                <optgroup label="Cognitive Domain">
-                  <option value="C1" ${currentTax === 'C1' ? 'selected' : ''}>C1 - Remembering</option>
-                  <option value="C2" ${currentTax === 'C2' ? 'selected' : ''}>C2 - Understanding</option>
-                  <option value="C3" ${currentTax === 'C3' ? 'selected' : ''}>C3 - Applying</option>
-                  <option value="C4" ${currentTax === 'C4' ? 'selected' : ''}>C4 - Analyzing</option>
-                  <option value="C5" ${currentTax === 'C5' ? 'selected' : ''}>C5 - Evaluating</option>
-                  <option value="C6" ${currentTax === 'C6' ? 'selected' : ''}>C6 - Creating / Design</option>
+        <div class="p-3 bg-white border border-emerald-300/80 rounded-xl shadow-2xs hover:border-emerald-500 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3" data-spec-index="${idx}">
+          <div class="flex items-center gap-2.5 shrink-0">
+            <span class="w-8 h-8 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+              C${idx + 1}
+            </span>
+            <div class="leading-tight">
+              <span class="font-black text-xs text-slate-900 block">CLO ${idx + 1}</span>
+              <span class="text-[10px] text-emerald-800 font-bold uppercase tracking-wider">Target Specification</span>
+            </div>
+          </div>
+
+          <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
+            <!-- PLO Selector Dropdown (All 11 PLOs) -->
+            <div class="flex items-center gap-2 min-w-0 bg-emerald-50/40 p-1.5 rounded-lg border border-emerald-200/60">
+              <label class="text-[11px] font-black text-slate-700 uppercase shrink-0">Mapped PLO:</label>
+              <select class="clo-spec-plo-select flex-1 text-xs font-bold px-2 py-1.5 bg-white border border-emerald-300 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-w-0" data-index="${idx}">
+                ${PLO_LIST.map(p => `
+                  <option value="${p.id}" ${spec.plo === p.id ? 'selected' : ''}>
+                    ${p.code}: ${p.title}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <!-- Bloom's Taxonomy Level Selector Dropdown -->
+            <div class="flex items-center gap-2 min-w-0 bg-emerald-50/40 p-1.5 rounded-lg border border-emerald-200/60">
+              <label class="text-[11px] font-black text-slate-700 uppercase shrink-0">Bloom Level:</label>
+              <select class="clo-spec-tax-select flex-1 text-xs font-bold px-2 py-1.5 bg-white border border-emerald-300 rounded-md text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-w-0" data-index="${idx}">
+                <optgroup label="Cognitive Domain (Theory / Problem Solving)">
+                  <option value="C1" ${spec.taxonomy === 'C1' ? 'selected' : ''}>C1 - Remembering (Recall)</option>
+                  <option value="C2" ${spec.taxonomy === 'C2' ? 'selected' : ''}>C2 - Understanding (Explain)</option>
+                  <option value="C3" ${spec.taxonomy === 'C3' ? 'selected' : ''}>C3 - Applying (Solve / Calculate)</option>
+                  <option value="C4" ${spec.taxonomy === 'C4' ? 'selected' : ''}>C4 - Analyzing (Diagnose / Differentiate)</option>
+                  <option value="C5" ${spec.taxonomy === 'C5' ? 'selected' : ''}>C5 - Evaluating (Assess / Critique)</option>
+                  <option value="C6" ${spec.taxonomy === 'C6' ? 'selected' : ''}>C6 - Creating / Design (Formulate / Devise)</option>
                 </optgroup>
-                <optgroup label="Psychomotor Domain (Lab)">
-                  <option value="P1" ${currentTax === 'P1' ? 'selected' : ''}>P1 - Perception</option>
-                  <option value="P2" ${currentTax === 'P2' ? 'selected' : ''}>P2 - Set</option>
-                  <option value="P3" ${currentTax === 'P3' ? 'selected' : ''}>P3 - Guided Response</option>
-                  <option value="P4" ${currentTax === 'P4' ? 'selected' : ''}>P4 - Mechanism</option>
-                  <option value="P5" ${currentTax === 'P5' ? 'selected' : ''}>P5 - Complex Execution</option>
-                  <option value="P6" ${currentTax === 'P6' ? 'selected' : ''}>P6 - Adaptation</option>
-                  <option value="P7" ${currentTax === 'P7' ? 'selected' : ''}>P7 - Origination</option>
+                <optgroup label="Psychomotor Domain (Laboratory / Practical)">
+                  <option value="P1" ${spec.taxonomy === 'P1' ? 'selected' : ''}>P1 - Perception</option>
+                  <option value="P2" ${spec.taxonomy === 'P2' ? 'selected' : ''}>P2 - Set</option>
+                  <option value="P3" ${spec.taxonomy === 'P3' ? 'selected' : ''}>P3 - Guided Response (Apparatus Setup)</option>
+                  <option value="P4" ${spec.taxonomy === 'P4' ? 'selected' : ''}>P4 - Mechanism (Systematic Measurement)</option>
+                  <option value="P5" ${spec.taxonomy === 'P5' ? 'selected' : ''}>P5 - Complex Execution (Troubleshoot &amp; Test)</option>
+                  <option value="P6" ${spec.taxonomy === 'P6' ? 'selected' : ''}>P6 - Adaptation</option>
+                  <option value="P7" ${spec.taxonomy === 'P7' ? 'selected' : ''}>P7 - Origination</option>
                 </optgroup>
-                <optgroup label="Affective Domain">
-                  <option value="A1" ${currentTax === 'A1' ? 'selected' : ''}>A1 - Receiving</option>
-                  <option value="A2" ${currentTax === 'A2' ? 'selected' : ''}>A2 - Responding</option>
-                  <option value="A3" ${currentTax === 'A3' ? 'selected' : ''}>A3 - Valuing / Ethics</option>
-                  <option value="A4" ${currentTax === 'A4' ? 'selected' : ''}>A4 - Organization</option>
-                  <option value="A5" ${currentTax === 'A5' ? 'selected' : ''}>A5 - Characterization</option>
+                <optgroup label="Affective Domain (Ethics / Communication / Teamwork)">
+                  <option value="A1" ${spec.taxonomy === 'A1' ? 'selected' : ''}>A1 - Receiving</option>
+                  <option value="A2" ${spec.taxonomy === 'A2' ? 'selected' : ''}>A2 - Responding (Active Participation)</option>
+                  <option value="A3" ${spec.taxonomy === 'A3' ? 'selected' : ''}>A3 - Valuing / Ethics (Professionalism)</option>
+                  <option value="A4" ${spec.taxonomy === 'A4' ? 'selected' : ''}>A4 - Organization</option>
+                  <option value="A5" ${spec.taxonomy === 'A5' ? 'selected' : ''}>A5 - Characterization</option>
                 </optgroup>
               </select>
             </div>
           </div>
+
+          <!-- Remove CLO Row Button -->
+          <button type="button" class="btn-remove-clo-spec p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shrink-0 self-end md:self-center ${this.cloSpecs.length <= 1 ? 'invisible pointer-events-none' : ''}" data-index="${idx}" title="Remove this CLO mapping">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
         </div>
       `;
     }).join('');
 
-    container.querySelectorAll('.clo-suggest-cb').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (e.target.checked) {
-          if (!this.cloTargetPLOs.includes(val)) this.cloTargetPLOs.push(val);
-        } else {
-          this.cloTargetPLOs = this.cloTargetPLOs.filter(id => id !== val);
+    // Event Listeners for PLO Selects
+    container.querySelectorAll('.clo-spec-plo-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10);
+        if (this.cloSpecs[idx]) {
+          this.cloSpecs[idx].plo = e.target.value;
+          this.updateCLOSpecSummary();
         }
-        this.renderCLOSuggestPLOCheckboxes();
       });
     });
 
-    container.querySelectorAll('.clo-suggest-tax-select').forEach(sel => {
+    // Event Listeners for Taxonomy Selects
+    container.querySelectorAll('.clo-spec-tax-select').forEach(sel => {
       sel.addEventListener('change', (e) => {
-        const ploId = e.target.getAttribute('data-plo');
-        if (ploId) {
-          this.cloTaxonomyMap[ploId] = e.target.value;
-          const countEl = document.getElementById('clo-suggest-selected-count');
-          if (countEl && this.cloTargetPLOs.length > 0) {
-            const summary = this.cloTargetPLOs.map(id => `${id} (${this.cloTaxonomyMap[id] || defaultTaxMap[id] || 'C3'})`).join(', ');
-            countEl.textContent = `${this.cloTargetPLOs.length} PLO${this.cloTargetPLOs.length === 1 ? '' : 's'}: ${summary}`;
-          }
+        const idx = parseInt(e.target.getAttribute('data-index'), 10);
+        if (this.cloSpecs[idx]) {
+          this.cloSpecs[idx].taxonomy = e.target.value;
+          this.updateCLOSpecSummary();
+        }
+      });
+    });
+
+    // Event Listeners for Remove Buttons
+    container.querySelectorAll('.btn-remove-clo-spec').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(btn.getAttribute('data-index'), 10);
+        if (this.cloSpecs.length > 1 && !isNaN(idx)) {
+          this.cloSpecs.splice(idx, 1);
+          this.renderCLOSuggestPLOCheckboxes();
         }
       });
     });
@@ -1209,8 +1279,8 @@ class OBEApp {
     let coursePlan = document.getElementById('input-course-plan')?.value.trim() || this.coursePlanText || '';
     const isLab = /lab|practical|experiment/i.test(courseName);
 
-    if (this.cloTargetPLOs.length === 0) {
-      alert('Please select at least one PLO mapped to this course before generating suggestions.');
+    if (!this.cloSpecs || this.cloSpecs.length === 0) {
+      alert('Please configure at least one CLO mapping before generating suggestions.');
       return;
     }
 
@@ -1230,22 +1300,22 @@ class OBEApp {
     const origText = btnText ? btnText.textContent : 'Suggest & Apply CLOs for this Course';
 
     if (btn) btn.disabled = true;
-    if (btnText) btnText.textContent = `Synthesizing ${this.cloTargetPLOs.length} CLOs with mapped Taxonomy...`;
+    if (btnText) btnText.textContent = `Synthesizing ${this.cloSpecs.length} CLOs with mapped PLOs & Taxonomy...`;
 
     try {
       const generated = await geminiEngine.suggestCLOsForCourse({
         courseName,
         courseDescription,
         coursePlan,
-        targetPLOs: this.cloTargetPLOs,
-        ploTaxonomyMap: this.cloTaxonomyMap,
+        cloSpecifications: this.cloSpecs,
         isLab
       });
 
       if (generated && generated.length > 0) {
         this.clos = generated.map((c, i) => {
-          const plo = c.plo || this.cloTargetPLOs[i % this.cloTargetPLOs.length] || 'PLO-1';
-          const taxonomy = c.taxonomy || this.cloTaxonomyMap[plo] || (isLab ? 'P4' : 'C3');
+          const spec = this.cloSpecs[i] || {};
+          const plo = c.plo || spec.plo || 'PLO-1';
+          const taxonomy = c.taxonomy || spec.taxonomy || (isLab ? 'P4' : 'C3');
           return {
             id: i + 1,
             statement: c.statement,
@@ -1719,9 +1789,17 @@ class OBEApp {
           this.renderCLOInputs();
           document.getElementById('clo-suggestion-card')?.classList.add('hidden');
         } else {
-          // No CLOs found in document -> Prompt user to select mapped PLOs and auto-suggest
+          // No CLOs found in document -> Prompt user to customize CLO-to-PLO mapping and auto-suggest
           const isLab = /lab|practical|experiment/i.test(cName || file.name);
-          this.cloTargetPLOs = isLab ? ['PLO-4', 'PLO-5', 'PLO-9'] : ['PLO-1', 'PLO-2', 'PLO-3'];
+          this.cloSpecs = isLab ? [
+            { id: 1, plo: 'PLO-4', taxonomy: 'P3' },
+            { id: 2, plo: 'PLO-4', taxonomy: 'P4' },
+            { id: 3, plo: 'PLO-5', taxonomy: 'P5' }
+          ] : [
+            { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+            { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+            { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+          ];
           this.renderCLOSuggestPLOCheckboxes();
           const suggestCard = document.getElementById('clo-suggestion-card');
           if (suggestCard) {
@@ -1818,9 +1896,17 @@ class OBEApp {
           this.renderCLOInputs();
           document.getElementById('clo-suggestion-card')?.classList.add('hidden');
         } else {
-          // No CLOs in pasted text -> Prompt user for mapped PLOs
+          // No CLOs in pasted text -> Prompt user to customize CLO-to-PLO mapping and auto-suggest
           const isLab = /lab|practical|experiment/i.test(cName);
-          this.cloTargetPLOs = isLab ? ['PLO-4', 'PLO-5', 'PLO-9'] : ['PLO-1', 'PLO-2', 'PLO-3'];
+          this.cloSpecs = isLab ? [
+            { id: 1, plo: 'PLO-4', taxonomy: 'P3' },
+            { id: 2, plo: 'PLO-4', taxonomy: 'P4' },
+            { id: 3, plo: 'PLO-5', taxonomy: 'P5' }
+          ] : [
+            { id: 1, plo: 'PLO-1', taxonomy: 'C2' },
+            { id: 2, plo: 'PLO-1', taxonomy: 'C3' },
+            { id: 3, plo: 'PLO-2', taxonomy: 'C4' }
+          ];
           this.renderCLOSuggestPLOCheckboxes();
           const suggestCard = document.getElementById('clo-suggestion-card');
           if (suggestCard) {
