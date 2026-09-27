@@ -191,12 +191,12 @@ Target Taxonomy: ${q.targetTaxonomy}`).join('\n\n')}`;
     // 1. If API key is present and raw text is available, send directly to Gemini
     if (this.hasApiKey() && rawText && rawText.trim().length > 20) {
       const systemPrompt = `You are an automated curriculum extraction engine for Washington Accord / ABET / PEC accredited engineering programs.
-Extract the Course Name, Course Description, Course Plan / Weekly Topical Outline, and all Course Learning Outcomes (CLOs) from the provided syllabus document text.
-For each CLO, identify or infer the most suitable Mapped PLO (from PLO-1 to PLO-12) and Bloom's Taxonomy level (e.g., C1, C2, C3, C4, C5, C6, P1-P7, A1-A5).
+Extract the Course Name (including BOTH the Course Code and Course Title, e.g. "EE-312: Microcontroller & Embedded Systems"), Course Description, Course Plan / Weekly Topical Outline, and all Course Learning Outcomes (CLOs) from the provided syllabus document text.
+For each CLO, identify or infer the most suitable Mapped PLO (from PLO-1 to PLO-11) and Bloom's Taxonomy level (e.g., C1, C2, C3, C4, C5, C6, P1-P7, A1-A5).
 
 Respond strictly with valid JSON:
 {
-  "courseName": "Extracted Course Title",
+  "courseName": "Full Course Code and Title (e.g. EE-312: Microcontroller & Embedded Systems)",
   "courseDescription": "Extracted or summarized course description",
   "coursePlan": "Extracted weekly lecture plan or topical modules list with contact hours",
   "clos": [
@@ -223,12 +223,12 @@ Respond strictly with valid JSON:
     // 2. If API key is present and file is binary image or PDF (and no rawText)
     if (this.hasApiKey() && fileData && (mimeType.startsWith('image/') || mimeType === 'application/pdf')) {
       const systemPrompt = `You are an automated curriculum extraction engine. 
-Extract the Course Name, Course Description, Course Plan / Weekly Topical Outline, and all Course Learning Outcomes (CLOs) from the provided syllabus document.
+Extract the Course Name (including BOTH the Course Code and Course Title, e.g. "EE-312: Microcontroller & Embedded Systems"), Course Description, Course Plan / Weekly Topical Outline, and all Course Learning Outcomes (CLOs) from the provided syllabus document.
 For each CLO, identify or infer the most suitable Mapped PLO (from PLO-1 to PLO-11 as defined by PEC) and Bloom's Taxonomy level (e.g., C1, C2, C3, C4, C5, C6, P1-P7, A1-A5).
 
 Respond strictly with valid JSON:
 {
-  "courseName": "Extracted Course Title",
+  "courseName": "Full Course Code and Title (e.g. EE-312: Microcontroller & Embedded Systems)",
   "courseDescription": "Extracted or summarized course description",
   "coursePlan": "Extracted weekly lecture plan or topical modules list with contact hours",
   "clos": [
@@ -625,6 +625,133 @@ Respond strictly with valid JSON:
       outlineAnalysis: outlineAnalysis,
       cloResults: results
     };
+  }
+
+  /**
+   * Suggests / Generates accreditation-aligned CLOs based on course outline and user-specified PLOs
+   */
+  async suggestCLOsForCourse({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], isLab = false }) {
+    if (!this.hasApiKey()) {
+      return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, isLab });
+    }
+
+    const systemPrompt = `You are a Senior OBE Curriculum Specialist and Washington Accord / ABET / PEC Engineering Accreditation Auditor.
+Your task is to generate high-quality, measurable Course Learning Outcomes (CLOs) for an engineering course.
+
+Course Code & Title: ${courseName}
+Course Description: ${courseDescription}
+Course Plan & Weekly Topics: ${coursePlan}
+Target Mapped PLOs: ${targetPLOs.join(', ')}
+Course Type: ${isLab ? 'Laboratory / Practical' : 'Theory / Lecture'}
+
+Rules:
+1. Generate EXACTLY one distinct, measurable CLO for each target PLO provided (${targetPLOs.join(', ')}).
+2. Each CLO MUST start with an active Bloom's Taxonomy action verb (e.g., C2 Explain, C3 Apply/Calculate, C4 Analyze, C5 Evaluate, C6 Design/Formulate, or P3-P5 for lab). Strictly avoid vague verbs like "understand", "know", "learn", "study".
+3. Ground the CLO statements directly in the specific technical topics and weekly modules provided in the Course Plan.
+4. Each outcome must satisfy SMART criteria and align with Washington Accord engineering problem solving attributes.
+
+Respond strictly with valid JSON matching this schema:
+{
+  "clos": [
+    {
+      "id": 1,
+      "statement": "Actionable CLO statement starting with an active Bloom's verb...",
+      "plo": "PLO-1",
+      "taxonomy": "C3"
+    }
+  ]
+}`;
+
+    const userPrompt = `Please synthesize ${targetPLOs.length} accreditation-aligned CLOs for ${courseName} directly mapped to: ${targetPLOs.join(', ')}.`;
+
+    try {
+      const response = await this.callGeminiAPI(systemPrompt, userPrompt);
+      const parsed = this.parseJSONResponse(response);
+      if (parsed && parsed.clos && parsed.clos.length > 0) {
+        return parsed.clos;
+      }
+    } catch (err) {
+      console.warn('Gemini CLO suggestion failed, using simulated curriculum synthesis:', err);
+    }
+
+    return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, isLab });
+  }
+
+  /**
+   * Simulated dynamic CLO synthesis from course outline and target PLOs
+   */
+  simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], isLab = false }) {
+    const rawLines = (coursePlan || '').split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 5);
+    const cleanTopicRegex = /^(?:weeks?\s*\d+(?:\s*[-–]\s*\d+)?|modules?\s*\d+|lectures?\s*\d+|sessions?\s*\d+|ch(?:apter)?\s*\d+)[:\-–\s]*/i;
+    const topics = rawLines.map(l => l.replace(cleanTopicRegex, '').replace(/\([^)]*\)/g, '').trim()).filter(t => t.length > 4);
+
+    const t1 = topics[0] || (courseDescription ? courseDescription.slice(0, 50) : 'fundamental theoretical concepts');
+    const t2 = topics[1] || (topics[0] ? `${topics[0]} analytical models` : 'diagnostic problem analysis');
+    const t3 = topics[2] || (topics[1] ? `${topics[1]} engineering systems` : 'comprehensive system design');
+    const t4 = topics[3] || 'experimental investigation and testbench validation';
+    const t5 = topics[4] || 'modern computer-aided simulation tools';
+    const cleanCourse = (courseName || 'Course').replace(/^[A-Z]{2,5}[ -]?\d{3,4}[:\-–\s]*/i, '').trim() || courseName;
+
+    const ploTemplates = {
+      'PLO-1': {
+        tax: 'C2',
+        statement: `Explain and apply the fundamental physical principles, governing equations, and operational theory of ${t1}.`
+      },
+      'PLO-2': {
+        tax: 'C4',
+        statement: `Analyze and diagnose complex engineering problems in ${t2} using systematic analytical models and diagnostic criteria.`
+      },
+      'PLO-3': {
+        tax: 'C6',
+        statement: `Design and formulate comprehensive engineering solutions and prototype architectures for ${t3} satisfying realistic operational, safety, and performance constraints.`
+      },
+      'PLO-4': {
+        tax: isLab ? 'P4' : 'C4',
+        statement: `Investigate and experimentally validate the behavior of ${t4} through systematic empirical testing, data acquisition, and error analysis.`
+      },
+      'PLO-5': {
+        tax: isLab ? 'P5' : 'C3',
+        statement: `Implement modern computer-aided simulation software and digital testbenches to model, simulate, and verify ${t5}.`
+      },
+      'PLO-6': {
+        tax: 'C4',
+        statement: `Assess the societal, environmental, sustainability, and public safety impacts associated with engineering solutions in ${cleanCourse}.`
+      },
+      'PLO-7': {
+        tax: 'A3',
+        statement: `Apply professional engineering ethics, regulatory standards of practice, and academic integrity in all technical documentation and designs.`
+      },
+      'PLO-8': {
+        tax: 'A2',
+        statement: `Collaborate effectively as a contributing team member in multidisciplinary technical tasks and engineering project deliverables.`
+      },
+      'PLO-9': {
+        tax: isLab ? 'P4' : 'A2',
+        statement: `Communicate technical analyses, design rationales, and project findings in ${cleanCourse} effectively through formal engineering documentation and oral presentations.`
+      },
+      'PLO-10': {
+        tax: 'C3',
+        statement: `Apply engineering project management techniques, cost estimation, and resource scheduling to the execution of ${cleanCourse} design milestones.`
+      },
+      'PLO-11': {
+        tax: 'C4',
+        statement: `Demonstrate self-directed learning by critically reviewing contemporary technical literature and emerging engineering standards relevant to ${cleanCourse}.`
+      }
+    };
+
+    return targetPLOs.map((plo, idx) => {
+      const template = ploTemplates[plo] || {
+        tax: 'C3',
+        statement: `Apply specialized engineering methodologies in ${cleanCourse} to evaluate system performance and satisfy ${plo} criteria.`
+      };
+
+      return {
+        id: idx + 1,
+        statement: template.statement,
+        plo: plo,
+        taxonomy: template.tax
+      };
+    });
   }
 
   simulateAssessmentEvaluation({ courseName, clos, questions, errorNote }) {

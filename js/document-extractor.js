@@ -40,8 +40,8 @@ export async function extractTextFromFile(file) {
         const text = await extractTextFromPdfJs(arrayBuffer);
         if (text && text.trim().length > 10) return text;
       }
-      // Pure JS stream fallback
-      const streamText = extractTextFromPdfStreams(arrayBuffer);
+      // Pure JS stream fallback with decompression
+      const streamText = await extractTextFromPdfStreams(arrayBuffer);
       if (streamText && streamText.trim().length > 10) return streamText;
     } catch (err) {
       console.warn('PDF extraction error:', err);
@@ -167,23 +167,94 @@ async function extractTextFromPdfJs(arrayBuffer) {
 }
 
 /**
- * Fallback stream text extractor for PDF files without external library
+/**
+ * Fallback stream text extractor for PDF files with in-browser stream decompression
  */
-function extractTextFromPdfStreams(arrayBuffer) {
+export async function extractTextFromPdfStreams(arrayBuffer) {
   const bytes = new Uint8Array(arrayBuffer);
-  const text = new TextDecoder('latin1').decode(bytes);
+  const latin1Decoder = new TextDecoder('latin1');
   const textBlocks = [];
 
-  // Match text in ( ... ) Tj
+  // 1. Scan for stream ... endstream blocks in PDF binary bytes
+  // ASCII codes: 'stream' = [115, 116, 114, 101, 97, 109], 'endstream' = [101, 110, 100, 115, 116, 114, 101, 97, 109]
+  let offset = 0;
+  while (offset < bytes.length - 20) {
+    if (bytes[offset] === 115 && bytes[offset + 1] === 116 && bytes[offset + 2] === 114 && bytes[offset + 3] === 101 && bytes[offset + 4] === 97 && bytes[offset + 5] === 109) {
+      let dataStart = offset + 6;
+      if (bytes[dataStart] === 13) dataStart++;
+      if (bytes[dataStart] === 10) dataStart++;
+
+      // Scan for 'endstream'
+      let endPos = -1;
+      const searchLimit = Math.min(bytes.length - 9, dataStart + 2000000);
+      for (let j = dataStart; j < searchLimit; j++) {
+        if (bytes[j] === 101 && bytes[j + 1] === 110 && bytes[j + 2] === 100 && bytes[j + 3] === 115 && bytes[j + 4] === 116 && bytes[j + 5] === 114 && bytes[j + 6] === 101 && bytes[j + 7] === 97 && bytes[j + 8] === 109) {
+          endPos = j;
+          break;
+        }
+      }
+
+      if (endPos > dataStart) {
+        let dataEnd = endPos;
+        if (bytes[dataEnd - 1] === 10) dataEnd--;
+        if (bytes[dataEnd - 1] === 13) dataEnd--;
+
+        const chunk = bytes.slice(dataStart, dataEnd);
+        let streamStr = '';
+
+        if (typeof DecompressionStream !== 'undefined' && chunk.length > 2) {
+          try {
+            const ds = new DecompressionStream('deflate');
+            const writer = ds.writable.getWriter();
+            writer.write(chunk);
+            writer.close();
+            const decompBuf = await new Response(ds.readable).arrayBuffer();
+            streamStr = latin1Decoder.decode(decompBuf);
+          } catch (e1) {
+            try {
+              const ds = new DecompressionStream('deflate-raw');
+              const writer = ds.writable.getWriter();
+              writer.write(chunk);
+              writer.close();
+              const decompBuf = await new Response(ds.readable).arrayBuffer();
+              streamStr = latin1Decoder.decode(decompBuf);
+            } catch (e2) {}
+          }
+        }
+
+        if (!streamStr) {
+          streamStr = latin1Decoder.decode(chunk);
+        }
+
+        if (streamStr) {
+          extractPdfOperators(streamStr, textBlocks);
+        }
+
+        offset = endPos + 9;
+        continue;
+      }
+    }
+    offset++;
+  }
+
+  // 2. Also extract from uncompressed objects in the file
+  const fullRaw = latin1Decoder.decode(bytes);
+  extractPdfOperators(fullRaw, textBlocks);
+
+  return textBlocks.join('\n');
+}
+
+function extractPdfOperators(text, textBlocks) {
+  // Tj: (text) Tj
   const tjRegex = /\(([^)]+)\)\s*Tj/g;
   let match;
   while ((match = tjRegex.exec(text)) !== null) {
     const str = match[1].replace(/\\([()\\])/g, '$1').trim();
-    if (str.length > 1) textBlocks.push(str);
+    if (str.length > 0 && !textBlocks.includes(str)) textBlocks.push(str);
   }
 
-  // Match text in array TJ [ (Hello) 10 (World) ] TJ
-  const arrayTjRegex = /\[([^\]]+)\]\s*TJ/g;
+  // TJ: [ (text1) 12 (text2) ] TJ
+  const arrayTjRegex = /\[(.*?)\]\s*TJ/gs;
   while ((match = arrayTjRegex.exec(text)) !== null) {
     const subRegex = /\(([^)]+)\)/g;
     let subMatch;
@@ -191,15 +262,14 @@ function extractTextFromPdfStreams(arrayBuffer) {
     while ((subMatch = subRegex.exec(match[1])) !== null) {
       phrase += subMatch[1].replace(/\\([()\\])/g, '$1') + ' ';
     }
-    if (phrase.trim().length > 1) textBlocks.push(phrase.trim());
+    const clean = phrase.trim();
+    if (clean.length > 0 && !textBlocks.includes(clean)) textBlocks.push(clean);
   }
-
-  return textBlocks.join('\n');
 }
 
 /**
  * Intelligent Syllabus Parser
- * Extracts Course Title, Description, Weekly Outline, and CLOs from raw syllabus text
+ * Extracts Course Code & Title, Description, Weekly Outline, and CLOs from raw syllabus text
  */
 export function parseSyllabusText(rawText, fileName = '') {
   if (!rawText || !rawText.trim()) return null;
@@ -210,24 +280,98 @@ export function parseSyllabusText(rawText, fileName = '') {
   let coursePlan = '';
   const clos = [];
 
-  // 1. Detect Course Name / Code
-  const nameHeaderRegex = /(?:Course\s*(?:Title|Name|Code)?|Subject)\s*[:\-–]\s*([^\n\r]+)/i;
-  const courseCodeRegex = /\b([A-Z]{2,4}[ -]?\d{3}[A-Z]?(?:\s*[:\-–]\s*[^\n\r]+)?)/i;
+  // 1. Dual Detection: Course Code & Course Title
+  let detectedCode = '';
+  let detectedTitle = '';
 
-  for (const line of lines.slice(0, 20)) {
-    const matchHeader = line.match(nameHeaderRegex);
-    if (matchHeader && matchHeader[1].trim().length > 3 && !/department|faculty|university|semester|credit/i.test(matchHeader[1])) {
-      courseName = matchHeader[1].trim();
-      break;
+  const codeRegex = /\b([A-Z]{2,5}[ -]?\d{3,4}[A-Z]?)\b/i;
+  const codeHeaderRegex = /(?:Course\s*Code|Course\s*No\.?|Subject\s*Code|Code)\s*[:\-–]\s*([A-Z0-9\s\-]+)/i;
+  const titleHeaderRegex = /(?:Course\s*(?:Title|Name)?|Subject\s*(?:Title|Name)?|Subject)\s*[:\-–]\s*([^\n\r]+)/i;
+
+  for (let i = 0; i < Math.min(lines.length, 25); i++) {
+    const line = lines[i];
+
+    // Check for explicit Course Code header: e.g. "Course Code: EE-312"
+    if (!detectedCode) {
+      const codeHeaderMatch = line.match(codeHeaderRegex);
+      if (codeHeaderMatch) {
+        const cm = codeHeaderMatch[1].trim().match(codeRegex);
+        if (cm) detectedCode = cm[1].trim().toUpperCase();
+      }
     }
-    const matchCode = line.match(courseCodeRegex);
-    if (matchCode && matchCode[1].trim().length > 3) {
-      courseName = matchCode[1].trim();
-      break;
+
+    // Check for explicit Course Title header: e.g. "Course Title: Microcontroller & Embedded Systems" or "Course: CS-101 Programming Fundamentals"
+    if (!detectedTitle) {
+      const titleHeaderMatch = line.match(titleHeaderRegex);
+      if (titleHeaderMatch && titleHeaderMatch[1].trim().length > 3) {
+        let t = titleHeaderMatch[1].trim();
+        if (!/department|faculty|university|semester|credit|instructor/i.test(t)) {
+          const inlineCode = t.match(codeRegex);
+          if (inlineCode && !detectedCode) {
+            detectedCode = inlineCode[1].trim().toUpperCase();
+          }
+          detectedTitle = t;
+        }
+      }
+    }
+
+    // Check for inline combo: e.g. "EE-312: Microcontroller & Embedded Systems" or "CS-101 - ..."
+    if (!detectedTitle && !detectedCode) {
+      const combo = line.match(/\b([A-Z]{2,5}[ -]?\d{3,4}[A-Z]?)\s*[:\-–]\s*([A-Za-z0-9\s&,/-]{4,})/);
+      if (combo) {
+        detectedCode = combo[1].trim().toUpperCase();
+        detectedTitle = combo[2].trim();
+      }
     }
   }
 
-  if (!courseName && lines.length > 0) {
+  // Fallback scan for Course Code in early lines if not found yet
+  if (!detectedCode) {
+    for (let i = 0; i < Math.min(lines.length, 15); i++) {
+      const line = lines[i];
+      if (/department|faculty|university|semester|credit|page|iso|ieee/i.test(line)) continue;
+      const cm = line.match(codeRegex);
+      if (cm) {
+        detectedCode = cm[1].trim().toUpperCase();
+        break;
+      }
+    }
+    if (!detectedCode && fileName) {
+      const fileCode = fileName.match(codeRegex);
+      if (fileCode) detectedCode = fileCode[1].trim().toUpperCase();
+    }
+  }
+
+  // Fallback scan for Course Title around detectedCode
+  if (detectedCode && !detectedTitle) {
+    for (let i = 0; i < Math.min(lines.length, 15); i++) {
+      const line = lines[i];
+      if (/department|faculty|university|semester|credit|instructor|prerequisite|session|academic/i.test(line)) continue;
+      const clean = line.replace(codeRegex, '').replace(/course\s*(?:code|title|name)?/gi, '').replace(/[:\-–]/g, '').trim();
+      if (clean.length >= 4 && clean.length <= 75 && !/^\d+$/.test(clean)) {
+        detectedTitle = clean;
+        break;
+      }
+    }
+  }
+
+  // Synthesize Course Name & Code together
+  if (detectedCode && detectedTitle) {
+    const cleanTitle = detectedTitle.replace(new RegExp('^' + detectedCode.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '[:\\-–\\s]*', 'i'), '').trim();
+    if (cleanTitle) {
+      courseName = `${detectedCode}: ${cleanTitle}`;
+    } else {
+      courseName = detectedTitle;
+    }
+  } else if (detectedTitle) {
+    courseName = detectedTitle;
+  } else if (detectedCode) {
+    let fallbackTitle = '';
+    if (fileName) {
+      fallbackTitle = fileName.replace(/\.[^/.]+$/, "").replace(codeRegex, '').replace(/[-_]/g, ' ').trim();
+    }
+    courseName = fallbackTitle ? `${detectedCode}: ${fallbackTitle}` : detectedCode;
+  } else if (lines.length > 0) {
     for (let j = 0; j < Math.min(lines.length, 5); j++) {
       if (lines[j].length > 4 && lines[j].length < 80 && !/department|faculty|university|syllabus|course outline/i.test(lines[j])) {
         courseName = lines[j];

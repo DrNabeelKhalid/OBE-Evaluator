@@ -47,16 +47,21 @@ class OBEApp {
     this.lbaiEvaluationResult = null;
     this.selectedRoutineCategory = 'all';
 
+    // Course PLO Mapping & CLO Suggestion State
+    this.cloTargetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'];
+
     this.init();
   }
 
   init() {
     this.bindTabNavigation();
     this.bindDOM();
+    this.bindCLOSuggestionControls();
     this.bindGeneratorControls();
     this.bindResilienceControls();
     this.bindLBAIControls();
     this.renderGenPLOCheckboxes();
+    this.renderCLOSuggestPLOCheckboxes();
     this.renderCLOInputs();
     this.populateResilienceCLODropdown();
     this.renderAssessmentQuestions();
@@ -987,6 +992,154 @@ class OBEApp {
         </div>
       `).join('');
     }
+  // --- Course PLO Mapping & Automated CLO Suggestion Controls ---
+  bindCLOSuggestionControls() {
+    // Open Suggestion Card button in CLO header
+    document.getElementById('btn-open-suggest-clos')?.addEventListener('click', () => {
+      const card = document.getElementById('clo-suggestion-card');
+      if (card) {
+        card.classList.toggle('hidden');
+        if (!card.classList.contains('hidden')) {
+          this.renderCLOSuggestPLOCheckboxes();
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    });
+
+    // Dismiss Suggestion Card button
+    document.getElementById('btn-toggle-clo-suggest-card')?.addEventListener('click', () => {
+      document.getElementById('clo-suggestion-card')?.classList.add('hidden');
+    });
+
+    // Quick PLO Selection Presets
+    document.getElementById('btn-plo-preset-core')?.addEventListener('click', () => {
+      this.cloTargetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'];
+      this.renderCLOSuggestPLOCheckboxes();
+    });
+
+    document.getElementById('btn-plo-preset-lab')?.addEventListener('click', () => {
+      this.cloTargetPLOs = ['PLO-4', 'PLO-5', 'PLO-9'];
+      this.renderCLOSuggestPLOCheckboxes();
+    });
+
+    document.getElementById('btn-plo-preset-design')?.addEventListener('click', () => {
+      this.cloTargetPLOs = ['PLO-3', 'PLO-5'];
+      this.renderCLOSuggestPLOCheckboxes();
+    });
+
+    document.getElementById('btn-plo-preset-all')?.addEventListener('click', () => {
+      this.cloTargetPLOs = PLO_LIST.map(p => p.id);
+      this.renderCLOSuggestPLOCheckboxes();
+    });
+
+    document.getElementById('btn-plo-preset-clear')?.addEventListener('click', () => {
+      this.cloTargetPLOs = [];
+      this.renderCLOSuggestPLOCheckboxes();
+    });
+
+    // Generate Action Button
+    document.getElementById('btn-generate-suggested-clos')?.addEventListener('click', () => {
+      this.handleGenerateSuggestedCLOs();
+    });
+  }
+
+  renderCLOSuggestPLOCheckboxes() {
+    const container = document.getElementById('clo-suggest-plo-checkboxes');
+    if (!container) return;
+
+    const countEl = document.getElementById('clo-suggest-selected-count');
+    if (countEl) {
+      countEl.textContent = `${this.cloTargetPLOs.length} PLO${this.cloTargetPLOs.length === 1 ? '' : 's'} selected`;
+    }
+
+    container.innerHTML = PLO_LIST.map(p => {
+      const isChecked = this.cloTargetPLOs.includes(p.id);
+      return `
+        <label class="flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition-all ${isChecked ? 'bg-white border-emerald-400 text-emerald-950 font-bold shadow-2xs' : 'bg-emerald-50/50 border-emerald-200/60 text-slate-700 hover:bg-white'}">
+          <input 
+            type="checkbox" 
+            class="clo-suggest-cb rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" 
+            value="${p.id}" 
+            ${isChecked ? 'checked' : ''}
+          />
+          <div class="leading-tight overflow-hidden">
+            <span class="font-black text-xs text-slate-900 block">${p.code}</span>
+            <span class="text-[11px] text-slate-600 font-medium truncate block" title="${p.title}">${p.title}</span>
+          </div>
+        </label>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.clo-suggest-cb').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (e.target.checked) {
+          if (!this.cloTargetPLOs.includes(val)) this.cloTargetPLOs.push(val);
+        } else {
+          this.cloTargetPLOs = this.cloTargetPLOs.filter(id => id !== val);
+        }
+        this.renderCLOSuggestPLOCheckboxes();
+      });
+    });
+  }
+
+  async handleGenerateSuggestedCLOs() {
+    const courseName = document.getElementById('input-course-name')?.value.trim() || 'Course';
+    const courseDescription = document.getElementById('input-course-desc')?.value.trim() || '';
+    const coursePlan = document.getElementById('input-course-plan')?.value.trim() || this.coursePlanText || '';
+    const isLab = /lab|practical|experiment/i.test(courseName);
+
+    if (this.cloTargetPLOs.length === 0) {
+      alert('Please select at least one PLO mapped to this course before generating suggestions.');
+      return;
+    }
+
+    const btn = document.getElementById('btn-generate-suggested-clos');
+    const btnText = document.getElementById('btn-generate-suggested-clos-text');
+    const origText = btnText ? btnText.textContent : 'Suggest & Apply CLOs for this Course';
+
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = `Synthesizing ${this.cloTargetPLOs.length} CLOs...`;
+
+    try {
+      const generated = await geminiEngine.suggestCLOsForCourse({
+        courseName,
+        courseDescription,
+        coursePlan,
+        targetPLOs: this.cloTargetPLOs,
+        isLab
+      });
+
+      if (generated && generated.length > 0) {
+        this.clos = generated.map((c, i) => ({
+          id: i + 1,
+          statement: c.statement,
+          plo: c.plo || this.cloTargetPLOs[i % this.cloTargetPLOs.length] || 'PLO-1',
+          taxonomy: c.taxonomy || (isLab ? 'P4' : 'C3')
+        }));
+        this.renderCLOInputs();
+
+        // Update banner
+        const bannerTitle = document.getElementById('syllabus-banner-title');
+        const bannerDesc = document.getElementById('syllabus-banner-desc');
+        const bannerIcon = document.getElementById('syllabus-banner-icon');
+        if (bannerTitle && bannerDesc) {
+          bannerTitle.textContent = `CLOs Synthesized for ${courseName}:`;
+          bannerDesc.textContent = `Generated ${generated.length} accreditation-aligned CLOs mapped to: ${this.cloTargetPLOs.join(', ')}. Review or edit below before running evaluation.`;
+          if (bannerIcon) bannerIcon.innerHTML = '✨';
+          document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
+          document.getElementById('syllabus-detection-banner')?.classList.add('bg-emerald-50/90', 'border-emerald-300');
+        }
+
+        // Hide card after successful generation
+        document.getElementById('clo-suggestion-card')?.classList.add('hidden');
+      }
+    } catch (err) {
+      alert(`CLO generation error: ${err.message}`);
+    } finally {
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.textContent = origText;
+    }
   }
 
   // --- Dynamic CLO Inputs Rendering ---
@@ -1408,19 +1561,39 @@ class OBEApp {
             taxonomy: c.taxonomy || 'C3'
           }));
           this.renderCLOInputs();
+          document.getElementById('clo-suggestion-card')?.classList.add('hidden');
+        } else {
+          // No CLOs found in document -> Prompt user to select mapped PLOs and auto-suggest
+          const isLab = /lab|practical|experiment/i.test(extracted.courseName || file.name);
+          this.cloTargetPLOs = isLab ? ['PLO-4', 'PLO-5', 'PLO-9'] : ['PLO-1', 'PLO-2', 'PLO-3'];
+          this.renderCLOSuggestPLOCheckboxes();
+          const suggestCard = document.getElementById('clo-suggestion-card');
+          if (suggestCard) {
+            suggestCard.classList.remove('hidden');
+            setTimeout(() => suggestCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+          }
         }
 
         const cloCount = extracted.clos?.length || 0;
         const hasPlan = Boolean(extracted.coursePlan && extracted.coursePlan.length > 10);
 
         if (statusMsg) {
-          statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${extracted.courseName || file.name} (${cloCount} CLOs detected)</span>`;
+          if (cloCount > 0) {
+            statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${extracted.courseName || file.name} (${cloCount} CLOs detected)</span>`;
+          } else {
+            statusMsg.innerHTML = `<span class="text-emerald-600 font-bold">✓ Extracted: ${extracted.courseName || file.name} (Course info & plan found — select mapped PLOs below to generate CLOs)</span>`;
+          }
         }
 
         if (bannerTitle && bannerDesc) {
           bannerTitle.textContent = `Extracted from "${file.name}":`;
-          bannerDesc.textContent = `Course Name: "${extracted.courseName || 'Extracted'}" | ${hasPlan ? 'Weekly Course Plan Extracted' : 'Course Plan Empty'} | ${cloCount} CLOs Detected. You can review, edit, or add further information below before evaluating.`;
-          if (bannerIcon) bannerIcon.innerHTML = '✅';
+          if (cloCount > 0) {
+            bannerDesc.textContent = `Course Name & Code: "${extracted.courseName || 'Extracted'}" | ${hasPlan ? 'Weekly Course Plan Extracted' : 'Course Plan Empty'} | ${cloCount} CLOs Detected. You can review, edit, or add further information below before evaluating.`;
+            if (bannerIcon) bannerIcon.innerHTML = '✅';
+          } else {
+            bannerDesc.textContent = `Course Name & Code: "${extracted.courseName || 'Extracted'}" | ${hasPlan ? 'Weekly Course Plan Extracted' : 'Course Plan Empty'} | No CLOs detected in document. Please select the course's mapped PLOs below to automatically synthesize CLOs.`;
+            if (bannerIcon) bannerIcon.innerHTML = '💡';
+          }
           document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
           document.getElementById('syllabus-detection-banner')?.classList.add('bg-emerald-50/90', 'border-emerald-300');
         }
@@ -1481,6 +1654,17 @@ class OBEApp {
             taxonomy: c.taxonomy || 'C3'
           }));
           this.renderCLOInputs();
+          document.getElementById('clo-suggestion-card')?.classList.add('hidden');
+        } else {
+          // No CLOs in pasted text -> Prompt user for mapped PLOs
+          const isLab = /lab|practical|experiment/i.test(parsed.courseName || '');
+          this.cloTargetPLOs = isLab ? ['PLO-4', 'PLO-5', 'PLO-9'] : ['PLO-1', 'PLO-2', 'PLO-3'];
+          this.renderCLOSuggestPLOCheckboxes();
+          const suggestCard = document.getElementById('clo-suggestion-card');
+          if (suggestCard) {
+            suggestCard.classList.remove('hidden');
+            setTimeout(() => suggestCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+          }
         }
 
         const cloCount = parsed.clos?.length || 0;
@@ -1489,8 +1673,13 @@ class OBEApp {
         const bannerIcon = document.getElementById('syllabus-banner-icon');
         if (bannerTitle && bannerDesc) {
           bannerTitle.textContent = 'Detected from Pasted Syllabus:';
-          bannerDesc.textContent = `Course Name: "${parsed.courseName || 'Detected'}" | ${parsed.coursePlan ? 'Course Plan Populated' : 'Add Course Plan'} | ${cloCount} CLOs Detected. Review or edit before running evaluation.`;
-          if (bannerIcon) bannerIcon.innerHTML = '✅';
+          if (cloCount > 0) {
+            bannerDesc.textContent = `Course Name & Code: "${parsed.courseName || 'Detected'}" | ${parsed.coursePlan ? 'Course Plan Populated' : 'Add Course Plan'} | ${cloCount} CLOs Detected. Review or edit before running evaluation.`;
+            if (bannerIcon) bannerIcon.innerHTML = '✅';
+          } else {
+            bannerDesc.textContent = `Course Name & Code: "${parsed.courseName || 'Detected'}" | ${parsed.coursePlan ? 'Course Plan Populated' : 'Add Course Plan'} | No CLOs detected. Select mapped PLOs below to automatically generate CLOs.`;
+            if (bannerIcon) bannerIcon.innerHTML = '💡';
+          }
           document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
           document.getElementById('syllabus-detection-banner')?.classList.add('bg-emerald-50/90', 'border-emerald-300');
         }
