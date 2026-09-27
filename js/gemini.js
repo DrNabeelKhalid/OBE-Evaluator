@@ -628,12 +628,17 @@ Respond strictly with valid JSON:
   }
 
   /**
-   * Suggests / Generates accreditation-aligned CLOs based on course outline and user-specified PLOs
+   * Suggests / Generates accreditation-aligned CLOs based on course outline, user-specified PLOs and taxonomy levels
    */
-  async suggestCLOsForCourse({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], isLab = false }) {
+  async suggestCLOsForCourse({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], ploTaxonomyMap = {}, isLab = false }) {
     if (!this.hasApiKey()) {
-      return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, isLab });
+      return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, ploTaxonomyMap, isLab });
     }
+
+    const ploTaxonomyInstructions = targetPLOs.map(plo => {
+      const tax = ploTaxonomyMap[plo] || (isLab ? 'P4' : 'C3');
+      return `• ${plo}: Target Taxonomy Level ${tax}`;
+    }).join('\n');
 
     const systemPrompt = `You are a Senior OBE Curriculum Specialist and Washington Accord / ABET / PEC Engineering Accreditation Auditor.
 Your task is to generate high-quality, measurable Course Learning Outcomes (CLOs) for an engineering course.
@@ -641,13 +646,23 @@ Your task is to generate high-quality, measurable Course Learning Outcomes (CLOs
 Course Code & Title: ${courseName}
 Course Description: ${courseDescription}
 Course Plan & Weekly Topics: ${coursePlan}
-Target Mapped PLOs: ${targetPLOs.join(', ')}
 Course Type: ${isLab ? 'Laboratory / Practical' : 'Theory / Lecture'}
 
+User-Specified PLOs & Required Bloom's Taxonomy Levels:
+${ploTaxonomyInstructions}
+
 Rules:
-1. Generate EXACTLY one distinct, measurable CLO for each target PLO provided (${targetPLOs.join(', ')}).
-2. Each CLO MUST start with an active Bloom's Taxonomy action verb (e.g., C2 Explain, C3 Apply/Calculate, C4 Analyze, C5 Evaluate, C6 Design/Formulate, or P3-P5 for lab). Strictly avoid vague verbs like "understand", "know", "learn", "study".
-3. Ground the CLO statements directly in the specific technical topics and weekly modules provided in the Course Plan.
+1. Generate EXACTLY one distinct, measurable CLO for each target PLO provided.
+2. For each CLO, strictly enforce the user's requested Taxonomy Level:
+   - C1 (Remembering): Define, Identify, List, Recall, State
+   - C2 (Understanding): Explain, Interpret, Describe, Classify, Illustrate
+   - C3 (Applying): Apply, Calculate, Solve, Implement, Demonstrate
+   - C4 (Analyzing): Analyze, Diagnose, Differentiate, Investigate, Compare
+   - C5 (Evaluating): Evaluate, Critique, Assess, Appraise, Justify
+   - C6 (Creating/Design): Design, Formulate, Synthesize, Develop, Devise
+   - P3-P7 (Psychomotor/Lab): Assemble, Calibrate, Conduct, Construct, Troubleshoot, Measure
+   - A1-A5 (Affective/Ethics/Teamwork): Collaborate, Present, Practice ethics, Respect, Coordinate
+3. Ground the CLO statements directly in the specific technical topics, concepts, and weekly modules provided in the Course Plan.
 4. Each outcome must satisfy SMART criteria and align with Washington Accord engineering problem solving attributes.
 
 Respond strictly with valid JSON matching this schema:
@@ -657,12 +672,12 @@ Respond strictly with valid JSON matching this schema:
       "id": 1,
       "statement": "Actionable CLO statement starting with an active Bloom's verb...",
       "plo": "PLO-1",
-      "taxonomy": "C3"
+      "taxonomy": "C2"
     }
   ]
 }`;
 
-    const userPrompt = `Please synthesize ${targetPLOs.length} accreditation-aligned CLOs for ${courseName} directly mapped to: ${targetPLOs.join(', ')}.`;
+    const userPrompt = `Please synthesize ${targetPLOs.length} accreditation-aligned CLOs for ${courseName} using the specified PLOs and taxonomy levels:\n${ploTaxonomyInstructions}\n\nWeekly Course Topics:\n${coursePlan}`;
 
     try {
       const response = await this.callGeminiAPI(systemPrompt, userPrompt);
@@ -674,82 +689,76 @@ Respond strictly with valid JSON matching this schema:
       console.warn('Gemini CLO suggestion failed, using simulated curriculum synthesis:', err);
     }
 
-    return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, isLab });
+    return this.simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs, ploTaxonomyMap, isLab });
   }
 
   /**
-   * Simulated dynamic CLO synthesis from course outline and target PLOs
+   * Simulated dynamic CLO synthesis from course outline, target PLOs and user-selected taxonomy levels
    */
-  simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], isLab = false }) {
+  simulateCLOGenerationFromOutline({ courseName, courseDescription, coursePlan, targetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'], ploTaxonomyMap = {}, isLab = false }) {
     const rawLines = (coursePlan || '').split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 5);
     const cleanTopicRegex = /^(?:weeks?\s*\d+(?:\s*[-–]\s*\d+)?|modules?\s*\d+|lectures?\s*\d+|sessions?\s*\d+|ch(?:apter)?\s*\d+)[:\-–\s]*/i;
     const topics = rawLines.map(l => l.replace(cleanTopicRegex, '').replace(/\([^)]*\)/g, '').trim()).filter(t => t.length > 4);
 
-    const t1 = topics[0] || (courseDescription ? courseDescription.slice(0, 50) : 'fundamental theoretical concepts');
-    const t2 = topics[1] || (topics[0] ? `${topics[0]} analytical models` : 'diagnostic problem analysis');
-    const t3 = topics[2] || (topics[1] ? `${topics[1]} engineering systems` : 'comprehensive system design');
-    const t4 = topics[3] || 'experimental investigation and testbench validation';
-    const t5 = topics[4] || 'modern computer-aided simulation tools';
     const cleanCourse = (courseName || 'Course').replace(/^[A-Z]{2,5}[ -]?\d{3,4}[:\-–\s]*/i, '').trim() || courseName;
 
-    const ploTemplates = {
-      'PLO-1': {
-        tax: 'C2',
-        statement: `Explain and apply the fundamental physical principles, governing equations, and operational theory of ${t1}.`
-      },
-      'PLO-2': {
-        tax: 'C4',
-        statement: `Analyze and diagnose complex engineering problems in ${t2} using systematic analytical models and diagnostic criteria.`
-      },
-      'PLO-3': {
-        tax: 'C6',
-        statement: `Design and formulate comprehensive engineering solutions and prototype architectures for ${t3} satisfying realistic operational, safety, and performance constraints.`
-      },
-      'PLO-4': {
-        tax: isLab ? 'P4' : 'C4',
-        statement: `Investigate and experimentally validate the behavior of ${t4} through systematic empirical testing, data acquisition, and error analysis.`
-      },
-      'PLO-5': {
-        tax: isLab ? 'P5' : 'C3',
-        statement: `Implement modern computer-aided simulation software and digital testbenches to model, simulate, and verify ${t5}.`
-      },
-      'PLO-6': {
-        tax: 'C4',
-        statement: `Assess the societal, environmental, sustainability, and public safety impacts associated with engineering solutions in ${cleanCourse}.`
-      },
-      'PLO-7': {
-        tax: 'A3',
-        statement: `Apply professional engineering ethics, regulatory standards of practice, and academic integrity in all technical documentation and designs.`
-      },
-      'PLO-8': {
-        tax: 'A2',
-        statement: `Collaborate effectively as a contributing team member in multidisciplinary technical tasks and engineering project deliverables.`
-      },
-      'PLO-9': {
-        tax: isLab ? 'P4' : 'A2',
-        statement: `Communicate technical analyses, design rationales, and project findings in ${cleanCourse} effectively through formal engineering documentation and oral presentations.`
-      },
-      'PLO-10': {
-        tax: 'C3',
-        statement: `Apply engineering project management techniques, cost estimation, and resource scheduling to the execution of ${cleanCourse} design milestones.`
-      },
-      'PLO-11': {
-        tax: 'C4',
-        statement: `Demonstrate self-directed learning by critically reviewing contemporary technical literature and emerging engineering standards relevant to ${cleanCourse}.`
-      }
-    };
-
     return targetPLOs.map((plo, idx) => {
-      const template = ploTemplates[plo] || {
-        tax: 'C3',
-        statement: `Apply specialized engineering methodologies in ${cleanCourse} to evaluate system performance and satisfy ${plo} criteria.`
-      };
+      const topic = topics[idx % (topics.length || 1)] || (topics.length > 0 ? topics[0] : (courseDescription ? courseDescription.slice(0, 55) : `${cleanCourse} technical modules`));
+      const defaultTax = isLab ? (['PLO-4', 'PLO-5', 'PLO-9'].includes(plo) ? 'P4' : 'C3') : (plo === 'PLO-1' ? 'C2' : plo === 'PLO-2' ? 'C4' : plo === 'PLO-3' ? 'C6' : plo === 'PLO-7' ? 'A3' : 'C4');
+      const tax = (ploTaxonomyMap && ploTaxonomyMap[plo]) ? ploTaxonomyMap[plo] : defaultTax;
+
+      let statement = '';
+
+      switch (tax) {
+        case 'C1':
+          statement = `Define, recall, and identify the fundamental engineering principles, terminology, and standard configurations of ${topic}.`;
+          break;
+        case 'C2':
+          statement = `Explain, describe, and interpret the operational theory, governing equations, and architectural principles of ${topic}.`;
+          break;
+        case 'C3':
+          statement = `Apply governing mathematical models, algorithmic procedures, and engineering calculations to solve practical problems in ${topic}.`;
+          break;
+        case 'C4':
+          statement = `Analyze and diagnose complex technical challenges, functional parameters, and operational bottlenecks in ${topic} using systematic analytical criteria.`;
+          break;
+        case 'C5':
+          statement = `Evaluate, critique, and validate engineering performance metrics, design trade-offs, and compliance specifications for ${topic}.`;
+          break;
+        case 'C6':
+          statement = `Design, formulate, and synthesize comprehensive prototype implementations and system architectures for ${topic} meeting operational constraints.`;
+          break;
+        case 'P1':
+        case 'P2':
+        case 'P3':
+          statement = `Assemble, calibrate, and position experimental apparatus and test instrumentation to prepare laboratory setups for ${topic}.`;
+          break;
+        case 'P4':
+          statement = `Conduct, calibrate, and experimentally measure physical parameters and system responses of ${topic} through systematic empirical testing.`;
+          break;
+        case 'P5':
+        case 'P6':
+        case 'P7':
+          statement = `Construct, troubleshoot, and execute integrated testbenches and real-time hardware/software setups to verify behavior of ${topic}.`;
+          break;
+        case 'A1':
+        case 'A2':
+          statement = `Collaborate effectively as a contributing team member in multidisciplinary tasks to present technical documentation and reports for ${topic}.`;
+          break;
+        case 'A3':
+        case 'A4':
+        case 'A5':
+          statement = `Apply professional engineering ethics, regulatory safety standards, and sustainable environmental practices during design and execution of ${topic}.`;
+          break;
+        default:
+          statement = `Apply specialized engineering methodologies to investigate and evaluate technical performance in ${topic}.`;
+      }
 
       return {
         id: idx + 1,
-        statement: template.statement,
-        plo: plo,
-        taxonomy: template.tax
+        statement,
+        plo,
+        taxonomy: tax
       };
     });
   }

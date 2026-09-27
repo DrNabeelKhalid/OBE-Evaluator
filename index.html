@@ -360,11 +360,17 @@
               ></textarea>
             </div>
             <div>
-              <div class="flex items-center justify-between mb-1.5">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                 <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800">
                   Course Plan &amp; Topical Syllabus Outline <span class="text-rose-500">*</span>
                 </label>
-                <span class="text-xs text-slate-600 font-semibold">Weekly modules, topic descriptions, contact hours</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-600 font-semibold hidden md:inline">Weekly modules, topic descriptions</span>
+                  <button type="button" id="btn-suggest-from-plan-quick" class="btn-interactive px-3 py-1 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-xs transition-all" title="Synthesize Bloom-aligned CLOs directly from this Course Plan">
+                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>✨ Suggest CLOs from Course Plan</span>
+                  </button>
+                </div>
               </div>
               <textarea 
                 id="input-course-plan" 
@@ -372,6 +378,9 @@
                 class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-slate-900 text-sm focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all leading-relaxed shadow-2xs" 
                 placeholder="Week 1-3: Module Title (subtopics, concepts, contact hours)&#10;Week 4-6: Module Title (subtopics, concepts, contact hours)..."
               ></textarea>
+              <div id="course-plan-hint" class="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                <span id="course-plan-status-text">Enter weekly topics or click a sample above, then press "Suggest CLOs" to auto-generate aligned outcomes.</span>
+              </div>
             </div>
           </div>
 
@@ -444,7 +453,7 @@
                     Course PLO Mapping &amp; Automated CLO Suggestions
                   </h4>
                   <p class="text-xs text-slate-700 font-medium mt-0.5" id="clo-suggest-card-desc">
-                    Tell us which Program Learning Outcomes (PLOs) are mapped to this course. The system will automatically synthesize SMART, Bloom-aligned CLOs tailored to your course outline:
+                    Identify which Program Learning Outcomes (PLOs) are mapped to this course and customize their target Bloom's Taxonomy levels. The system will synthesize SMART, accreditation-aligned CLOs tailored to your weekly topics:
                   </p>
                 </div>
               </div>
@@ -457,13 +466,13 @@
             <div class="flex flex-wrap items-center gap-1.5 pt-1">
               <span class="text-[11px] font-black uppercase text-emerald-950 tracking-wide mr-1">Quick Presets:</span>
               <button type="button" id="btn-plo-preset-core" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs">
-                Core Theory (PLO 1, 2, 3)
+                Core Theory (PLO 1 [C2], 2 [C4], 3 [C6])
               </button>
               <button type="button" id="btn-plo-preset-lab" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs">
-                Lab / Practical (PLO 4, 5, 9)
+                Lab / Practical (PLO 4 [P4], 5 [P5], 9 [P4])
               </button>
               <button type="button" id="btn-plo-preset-design" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs">
-                Design Heavy (PLO 3, 5)
+                Design Heavy (PLO 3 [C6], 5 [C3])
               </button>
               <button type="button" id="btn-plo-preset-all" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all shadow-2xs">
                 All 11 PLOs
@@ -473,9 +482,9 @@
               </button>
             </div>
 
-            <!-- Interactive PLO Checkboxes Grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 max-h-48 overflow-y-auto pr-1" id="clo-suggest-plo-checkboxes">
-              <!-- Rendered dynamically by js/app.js -->
+            <!-- Interactive PLO & Taxonomy Mapping Container -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1 max-h-64 overflow-y-auto pr-1" id="clo-suggest-plo-checkboxes">
+              <!-- Rendered dynamically by js/app.js with PLO checkboxes & Taxonomy selects -->
             </div>
 
             <!-- Generation Action Bar -->
@@ -2308,7 +2317,7 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=3.5"></script>
-  <script type="module" src="./js/demo-video.js?v=3.5"></script>
+  <script type="module" src="./js/app.js?v=3.6"></script>
+  <script type="module" src="./js/demo-video.js?v=3.6"></script>
 </body>
 </html>

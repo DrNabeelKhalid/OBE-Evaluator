@@ -49,6 +49,19 @@ class OBEApp {
 
     // Course PLO Mapping & CLO Suggestion State
     this.cloTargetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'];
+    this.cloTaxonomyMap = {
+      'PLO-1': 'C2',
+      'PLO-2': 'C4',
+      'PLO-3': 'C6',
+      'PLO-4': 'C4',
+      'PLO-5': 'C3',
+      'PLO-6': 'C4',
+      'PLO-7': 'A3',
+      'PLO-8': 'A2',
+      'PLO-9': 'A2',
+      'PLO-10': 'C3',
+      'PLO-11': 'C4'
+    };
 
     this.init();
   }
@@ -153,6 +166,15 @@ class OBEApp {
     // Course Plan input listener
     document.getElementById('input-course-plan')?.addEventListener('input', (e) => {
       this.coursePlanText = e.target.value;
+      const statusText = document.getElementById('course-plan-status-text');
+      if (statusText) {
+        if (e.target.value.trim().length > 15) {
+          const linesCount = e.target.value.trim().split(/\r?\n/).filter(l => l.trim().length > 0).length;
+          statusText.innerHTML = `<span class="text-emerald-700 font-bold">✓ Course Plan content active (${linesCount} weekly modules detected). Click <strong>"✨ Suggest CLOs from Course Plan"</strong> above to auto-generate aligned outcomes.</span>`;
+        } else {
+          statusText.textContent = 'Enter weekly topics or click a sample above, then press "Suggest CLOs" to auto-generate aligned outcomes.';
+        }
+      }
     });
 
     // Dynamic CLO controls
@@ -996,6 +1018,23 @@ class OBEApp {
 
   // --- Course PLO Mapping & Automated CLO Suggestion Controls ---
   bindCLOSuggestionControls() {
+    // Quick Suggest Button directly in Course Plan Header
+    document.getElementById('btn-suggest-from-plan-quick')?.addEventListener('click', () => {
+      const planVal = document.getElementById('input-course-plan')?.value.trim();
+      if (!planVal) {
+        alert('Please enter or paste your Course Plan in the box first, or click a course sample above (e.g. EE-312 / EE-415).');
+        document.getElementById('input-course-plan')?.focus();
+        return;
+      }
+      this.coursePlanText = planVal;
+      const card = document.getElementById('clo-suggestion-card');
+      if (card) {
+        card.classList.remove('hidden');
+        this.renderCLOSuggestPLOCheckboxes();
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+
     // Open Suggestion Card button in CLO header
     document.getElementById('btn-open-suggest-clos')?.addEventListener('click', () => {
       const card = document.getElementById('clo-suggestion-card');
@@ -1016,16 +1055,24 @@ class OBEApp {
     // Quick PLO Selection Presets
     document.getElementById('btn-plo-preset-core')?.addEventListener('click', () => {
       this.cloTargetPLOs = ['PLO-1', 'PLO-2', 'PLO-3'];
+      this.cloTaxonomyMap['PLO-1'] = 'C2';
+      this.cloTaxonomyMap['PLO-2'] = 'C4';
+      this.cloTaxonomyMap['PLO-3'] = 'C6';
       this.renderCLOSuggestPLOCheckboxes();
     });
 
     document.getElementById('btn-plo-preset-lab')?.addEventListener('click', () => {
       this.cloTargetPLOs = ['PLO-4', 'PLO-5', 'PLO-9'];
+      this.cloTaxonomyMap['PLO-4'] = 'P4';
+      this.cloTaxonomyMap['PLO-5'] = 'P5';
+      this.cloTaxonomyMap['PLO-9'] = 'P4';
       this.renderCLOSuggestPLOCheckboxes();
     });
 
     document.getElementById('btn-plo-preset-design')?.addEventListener('click', () => {
       this.cloTargetPLOs = ['PLO-3', 'PLO-5'];
+      this.cloTaxonomyMap['PLO-3'] = 'C6';
+      this.cloTaxonomyMap['PLO-5'] = 'C3';
       this.renderCLOSuggestPLOCheckboxes();
     });
 
@@ -1049,26 +1096,83 @@ class OBEApp {
     const container = document.getElementById('clo-suggest-plo-checkboxes');
     if (!container) return;
 
+    const courseName = document.getElementById('input-course-name')?.value || '';
+    const isLab = /lab|practical|experiment/i.test(courseName);
+
+    const defaultTaxMap = isLab ? {
+      'PLO-1': 'C3', 'PLO-2': 'C4', 'PLO-3': 'C6', 'PLO-4': 'P4', 'PLO-5': 'P5',
+      'PLO-6': 'C4', 'PLO-7': 'A3', 'PLO-8': 'A2', 'PLO-9': 'P4', 'PLO-10': 'C3', 'PLO-11': 'C4'
+    } : {
+      'PLO-1': 'C2', 'PLO-2': 'C4', 'PLO-3': 'C6', 'PLO-4': 'C4', 'PLO-5': 'C3',
+      'PLO-6': 'C4', 'PLO-7': 'A3', 'PLO-8': 'A2', 'PLO-9': 'A2', 'PLO-10': 'C3', 'PLO-11': 'C4'
+    };
+
     const countEl = document.getElementById('clo-suggest-selected-count');
     if (countEl) {
-      countEl.textContent = `${this.cloTargetPLOs.length} PLO${this.cloTargetPLOs.length === 1 ? '' : 's'} selected`;
+      if (this.cloTargetPLOs.length === 0) {
+        countEl.textContent = '0 PLOs selected (Select at least 1)';
+        countEl.className = 'text-xs font-black text-rose-600';
+      } else {
+        const summary = this.cloTargetPLOs.map(id => `${id} (${this.cloTaxonomyMap[id] || defaultTaxMap[id] || 'C3'})`).join(', ');
+        countEl.textContent = `${this.cloTargetPLOs.length} PLO${this.cloTargetPLOs.length === 1 ? '' : 's'}: ${summary}`;
+        countEl.className = 'text-xs font-black text-emerald-950 truncate max-w-[320px] sm:max-w-none';
+      }
     }
 
     container.innerHTML = PLO_LIST.map(p => {
       const isChecked = this.cloTargetPLOs.includes(p.id);
+      const currentTax = this.cloTaxonomyMap[p.id] || defaultTaxMap[p.id] || 'C3';
+
       return `
-        <label class="flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition-all ${isChecked ? 'bg-white border-emerald-400 text-emerald-950 font-bold shadow-2xs' : 'bg-emerald-50/50 border-emerald-200/60 text-slate-700 hover:bg-white'}">
-          <input 
-            type="checkbox" 
-            class="clo-suggest-cb rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" 
-            value="${p.id}" 
-            ${isChecked ? 'checked' : ''}
-          />
-          <div class="leading-tight overflow-hidden">
-            <span class="font-black text-xs text-slate-900 block">${p.code}</span>
-            <span class="text-[11px] text-slate-600 font-medium truncate block" title="${p.title}">${p.title}</span>
+        <div class="p-2.5 rounded-xl border transition-all ${isChecked ? 'bg-white border-emerald-400 shadow-2xs' : 'bg-emerald-50/40 border-emerald-200/60 opacity-80'}">
+          <div class="flex items-center justify-between gap-2">
+            <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+              <input 
+                type="checkbox" 
+                class="clo-suggest-cb rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 shrink-0" 
+                value="${p.id}" 
+                ${isChecked ? 'checked' : ''}
+              />
+              <div class="leading-tight min-w-0">
+                <span class="font-black text-xs text-slate-900 block">${p.code}</span>
+                <span class="text-[11px] text-slate-600 font-medium truncate block" title="${p.title}">${p.title}</span>
+              </div>
+            </label>
+            <div class="shrink-0 flex items-center gap-1.5">
+              <span class="text-[10px] font-bold text-slate-500 uppercase">Tax:</span>
+              <select 
+                class="clo-suggest-tax-select text-xs font-bold px-1.5 py-1 bg-white border rounded-lg text-slate-900 focus:outline-none focus:border-emerald-500 ${isChecked ? 'border-emerald-400 font-black text-emerald-950 bg-emerald-50/50' : 'border-slate-200 text-slate-400 bg-slate-50'}" 
+                data-plo="${p.id}"
+                ${!isChecked ? 'disabled' : ''}
+              >
+                <optgroup label="Cognitive Domain">
+                  <option value="C1" ${currentTax === 'C1' ? 'selected' : ''}>C1 - Remembering</option>
+                  <option value="C2" ${currentTax === 'C2' ? 'selected' : ''}>C2 - Understanding</option>
+                  <option value="C3" ${currentTax === 'C3' ? 'selected' : ''}>C3 - Applying</option>
+                  <option value="C4" ${currentTax === 'C4' ? 'selected' : ''}>C4 - Analyzing</option>
+                  <option value="C5" ${currentTax === 'C5' ? 'selected' : ''}>C5 - Evaluating</option>
+                  <option value="C6" ${currentTax === 'C6' ? 'selected' : ''}>C6 - Creating / Design</option>
+                </optgroup>
+                <optgroup label="Psychomotor Domain (Lab)">
+                  <option value="P1" ${currentTax === 'P1' ? 'selected' : ''}>P1 - Perception</option>
+                  <option value="P2" ${currentTax === 'P2' ? 'selected' : ''}>P2 - Set</option>
+                  <option value="P3" ${currentTax === 'P3' ? 'selected' : ''}>P3 - Guided Response</option>
+                  <option value="P4" ${currentTax === 'P4' ? 'selected' : ''}>P4 - Mechanism</option>
+                  <option value="P5" ${currentTax === 'P5' ? 'selected' : ''}>P5 - Complex Execution</option>
+                  <option value="P6" ${currentTax === 'P6' ? 'selected' : ''}>P6 - Adaptation</option>
+                  <option value="P7" ${currentTax === 'P7' ? 'selected' : ''}>P7 - Origination</option>
+                </optgroup>
+                <optgroup label="Affective Domain">
+                  <option value="A1" ${currentTax === 'A1' ? 'selected' : ''}>A1 - Receiving</option>
+                  <option value="A2" ${currentTax === 'A2' ? 'selected' : ''}>A2 - Responding</option>
+                  <option value="A3" ${currentTax === 'A3' ? 'selected' : ''}>A3 - Valuing / Ethics</option>
+                  <option value="A4" ${currentTax === 'A4' ? 'selected' : ''}>A4 - Organization</option>
+                  <option value="A5" ${currentTax === 'A5' ? 'selected' : ''}>A5 - Characterization</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
-        </label>
+        </div>
       `;
     }).join('');
 
@@ -1083,16 +1187,37 @@ class OBEApp {
         this.renderCLOSuggestPLOCheckboxes();
       });
     });
+
+    container.querySelectorAll('.clo-suggest-tax-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const ploId = e.target.getAttribute('data-plo');
+        if (ploId) {
+          this.cloTaxonomyMap[ploId] = e.target.value;
+          const countEl = document.getElementById('clo-suggest-selected-count');
+          if (countEl && this.cloTargetPLOs.length > 0) {
+            const summary = this.cloTargetPLOs.map(id => `${id} (${this.cloTaxonomyMap[id] || defaultTaxMap[id] || 'C3'})`).join(', ');
+            countEl.textContent = `${this.cloTargetPLOs.length} PLO${this.cloTargetPLOs.length === 1 ? '' : 's'}: ${summary}`;
+          }
+        }
+      });
+    });
   }
 
   async handleGenerateSuggestedCLOs() {
     const courseName = document.getElementById('input-course-name')?.value.trim() || 'Course';
     const courseDescription = document.getElementById('input-course-desc')?.value.trim() || '';
     const coursePlan = document.getElementById('input-course-plan')?.value.trim() || this.coursePlanText || '';
+    this.coursePlanText = coursePlan;
     const isLab = /lab|practical|experiment/i.test(courseName);
 
     if (this.cloTargetPLOs.length === 0) {
       alert('Please select at least one PLO mapped to this course before generating suggestions.');
+      return;
+    }
+
+    if (!coursePlan) {
+      alert('Please enter or paste your Course Plan in the box above so CLOs can be tailored to your course topics.');
+      document.getElementById('input-course-plan')?.focus();
       return;
     }
 
@@ -1101,7 +1226,7 @@ class OBEApp {
     const origText = btnText ? btnText.textContent : 'Suggest & Apply CLOs for this Course';
 
     if (btn) btn.disabled = true;
-    if (btnText) btnText.textContent = `Synthesizing ${this.cloTargetPLOs.length} CLOs...`;
+    if (btnText) btnText.textContent = `Synthesizing ${this.cloTargetPLOs.length} CLOs with mapped Taxonomy...`;
 
     try {
       const generated = await geminiEngine.suggestCLOsForCourse({
@@ -1109,25 +1234,31 @@ class OBEApp {
         courseDescription,
         coursePlan,
         targetPLOs: this.cloTargetPLOs,
+        ploTaxonomyMap: this.cloTaxonomyMap,
         isLab
       });
 
       if (generated && generated.length > 0) {
-        this.clos = generated.map((c, i) => ({
-          id: i + 1,
-          statement: c.statement,
-          plo: c.plo || this.cloTargetPLOs[i % this.cloTargetPLOs.length] || 'PLO-1',
-          taxonomy: c.taxonomy || (isLab ? 'P4' : 'C3')
-        }));
+        this.clos = generated.map((c, i) => {
+          const plo = c.plo || this.cloTargetPLOs[i % this.cloTargetPLOs.length] || 'PLO-1';
+          const taxonomy = c.taxonomy || this.cloTaxonomyMap[plo] || (isLab ? 'P4' : 'C3');
+          return {
+            id: i + 1,
+            statement: c.statement,
+            plo,
+            taxonomy
+          };
+        });
         this.renderCLOInputs();
 
         // Update banner
         const bannerTitle = document.getElementById('syllabus-banner-title');
         const bannerDesc = document.getElementById('syllabus-banner-desc');
         const bannerIcon = document.getElementById('syllabus-banner-icon');
+        const summary = this.clos.map(c => `CLO-${c.id} (${c.plo} • ${c.taxonomy})`).join(', ');
         if (bannerTitle && bannerDesc) {
           bannerTitle.textContent = `CLOs Synthesized for ${courseName}:`;
-          bannerDesc.textContent = `Generated ${generated.length} accreditation-aligned CLOs mapped to: ${this.cloTargetPLOs.join(', ')}. Review or edit below before running evaluation.`;
+          bannerDesc.textContent = `Generated ${this.clos.length} accreditation-aligned CLOs tailored to your Course Plan: ${summary}. You can review or edit below.`;
           if (bannerIcon) bannerIcon.innerHTML = '✨';
           document.getElementById('syllabus-detection-banner')?.classList.remove('bg-amber-50/80', 'border-amber-200/80');
           document.getElementById('syllabus-detection-banner')?.classList.add('bg-emerald-50/90', 'border-emerald-300');
@@ -1135,6 +1266,12 @@ class OBEApp {
 
         // Hide card after successful generation
         document.getElementById('clo-suggestion-card')?.classList.add('hidden');
+
+        // Scroll to CLO inputs container so user sees the newly populated CLOs
+        const cloContainer = document.getElementById('clo-inputs-container');
+        if (cloContainer) {
+          cloContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
       }
     } catch (err) {
       alert(`CLO generation error: ${err.message}`);
