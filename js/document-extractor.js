@@ -113,34 +113,97 @@ export async function extractTextFromDocx(arrayBuffer) {
 }
 
 /**
- * Parses XML text from word/document.xml into paragraphs
+ * Parses XML text from word/document.xml into paragraphs and pipe-delimited table rows
  */
 function parseDocxXmlText(xmlString) {
-  // Extract all <w:p> paragraphs
-  const paragraphs = [];
-  const pRegex = /<w:p(?:\s+[^>]*)?>([\s\S]*?)<\/w:p>/gi;
-  let pMatch;
-
-  while ((pMatch = pRegex.exec(xmlString)) !== null) {
-    const pContent = pMatch[1];
-    const tRegex = /<w:t(?:\s+[^>]*)?>([^<]*)<\/w:t>/gi;
-    let tMatch;
-    let line = '';
-    while ((tMatch = tRegex.exec(pContent)) !== null) {
-      line += tMatch[1];
-    }
-    if (line.trim()) {
-      paragraphs.push(line.trim());
+  // 1. If DOMParser is available (browser environment), perform structured DOM traversal
+  if (typeof DOMParser !== 'undefined') {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlString, 'text/xml');
+      const body = doc.getElementsByTagName('w:body')[0] || doc.querySelector('body') || doc.documentElement;
+      if (body) {
+        const lines = [];
+        const children = body.children;
+        for (let i = 0; i < children.length; i++) {
+          const node = children[i];
+          const tag = (node.localName || node.nodeName || '').replace(/^.*:/, '').toLowerCase();
+          if (tag === 'p') {
+            const tNodes = node.getElementsByTagName('w:t');
+            let pText = '';
+            for (let j = 0; j < tNodes.length; j++) pText += tNodes[j].textContent || '';
+            pText = pText.trim();
+            if (pText) lines.push(pText);
+          } else if (tag === 'tbl') {
+            const trNodes = node.getElementsByTagName('w:tr');
+            for (let r = 0; r < trNodes.length; r++) {
+              const tr = trNodes[r];
+              const tcNodes = tr.getElementsByTagName('w:tc');
+              const cells = [];
+              for (let c = 0; c < tcNodes.length; c++) {
+                const tc = tcNodes[c];
+                const tNodes = tc.getElementsByTagName('w:t');
+                let cellText = '';
+                for (let j = 0; j < tNodes.length; j++) cellText += tNodes[j].textContent || '';
+                cells.push(cellText.trim().replace(/\s+/g, ' '));
+              }
+              if (cells.some(c => c.length > 0)) {
+                lines.push(cells.join(' | '));
+              }
+            }
+          }
+        }
+        if (lines.length > 0) return lines.join('\n');
+      }
+    } catch (e) {
+      console.warn('DOMParser failed for docx, using regex fallback:', e);
     }
   }
 
-  if (paragraphs.length > 0) {
-    return paragraphs.join('\n');
-  }
-
-  // Generic fallback if <w:p> wrapper was altered
-  const allTexts = [];
+  // 2. High-fidelity Regex fallback: sequentially processes <w:tbl> and <w:p>
+  const pattern = /(<w:tbl[\s>][\s\S]*?<\/w:tbl>|<w:p[\s>][\s\S]*?<\/w:p>)/gi;
   const tRegex = /<w:t(?:\s+[^>]*)?>([^<]*)<\/w:t>/gi;
+  const trRegex = /<w:tr[\s>][\s\S]*?<\/w:tr>/gi;
+  const tcRegex = /<w:tc[\s>][\s\S]*?<\/w:tc>/gi;
+  const lines = [];
+  let chunkMatch;
+
+  while ((chunkMatch = pattern.exec(xmlString)) !== null) {
+    const chunk = chunkMatch[1];
+    if (chunk.startsWith('<w:tbl')) {
+      let trMatch;
+      while ((trMatch = trRegex.exec(chunk)) !== null) {
+        const tr = trMatch[0];
+        const cells = [];
+        let tcMatch;
+        while ((tcMatch = tcRegex.exec(tr)) !== null) {
+          const tc = tcMatch[0];
+          let cellText = '';
+          let tMatch;
+          while ((tMatch = tRegex.exec(tc)) !== null) {
+            cellText += tMatch[1];
+          }
+          cells.push(cellText.trim().replace(/\s+/g, ' '));
+        }
+        if (cells.some(c => c.length > 0)) {
+          lines.push(cells.join(' | '));
+        }
+      }
+    } else {
+      let pText = '';
+      let tMatch;
+      while ((tMatch = tRegex.exec(chunk)) !== null) {
+        pText += tMatch[1];
+      }
+      pText = pText.trim().replace(/\s+/g, ' ');
+      if (pText) lines.push(pText);
+    }
+  }
+
+  if (lines.length > 0) return lines.join('\n');
+
+  // 3. Flat fallback
+  const allTexts = [];
   let match;
   while ((match = tRegex.exec(xmlString)) !== null) {
     if (match[1].trim()) allTexts.push(match[1].trim());
@@ -149,7 +212,7 @@ function parseDocxXmlText(xmlString) {
 }
 
 /**
- * Extracts text from PDF using PDF.js when loaded
+ * Extracts text from PDF using PDF.js with 2D spatial coordinate line and table reconstruction
  */
 async function extractTextFromPdfJs(arrayBuffer) {
   if (window.pdfjsLib && !window.pdfjsLib.GlobalWorkerOptions?.workerSrc) {
@@ -162,8 +225,77 @@ async function extractTextFromPdfJs(arrayBuffer) {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const pageStr = textContent.items.map(item => item.str).join(' ');
-    if (pageStr.trim()) pageTexts.push(pageStr.trim());
+    if (!textContent || !textContent.items || textContent.items.length === 0) continue;
+
+    // Filter items with valid text
+    const items = textContent.items.filter(item => item.str && item.str.trim().length > 0);
+    if (items.length === 0) continue;
+
+    // Sort items vertically from top of page to bottom of page (PDF Y is ascending from bottom)
+    // with horizontal tie-breaker left to right (ascending X)
+    items.sort((a, b) => {
+      const yA = a.transform[5];
+      const yB = b.transform[5];
+      if (Math.abs(yA - yB) > 3.5) {
+        return yB - yA;
+      }
+      return a.transform[4] - b.transform[4];
+    });
+
+    // Group items into physical visual lines
+    const visualLines = [];
+    let currentLine = [];
+    let currentY = null;
+
+    for (const item of items) {
+      const y = item.transform[5];
+      if (currentY === null || Math.abs(currentY - y) <= 3.5) {
+        currentLine.push(item);
+        if (currentY === null) currentY = y;
+      } else {
+        visualLines.push(currentLine);
+        currentLine = [item];
+        currentY = y;
+      }
+    }
+    if (currentLine.length > 0) visualLines.push(currentLine);
+
+    // Format each line: detect column gaps and delimit table cells with ' | '
+    const formattedLines = [];
+    for (const lineItems of visualLines) {
+      lineItems.sort((a, b) => a.transform[4] - b.transform[4]);
+      let lineStr = '';
+      let prevRight = null;
+
+      for (let j = 0; j < lineItems.length; j++) {
+        const item = lineItems[j];
+        const x = item.transform[4];
+        const str = item.str.trim();
+        if (!str) continue;
+
+        if (prevRight !== null) {
+          const gap = x - prevRight;
+          if (gap > 18) {
+            lineStr += ' | ' + str;
+          } else if (gap > 2) {
+            lineStr += ' ' + str;
+          } else {
+            lineStr += (lineStr.endsWith(' ') ? '' : ' ') + str;
+          }
+        } else {
+          lineStr = str;
+        }
+        prevRight = x + (item.width || str.length * 6);
+      }
+
+      if (lineStr.trim()) {
+        formattedLines.push(lineStr.trim());
+      }
+    }
+
+    if (formattedLines.length > 0) {
+      pageTexts.push(formattedLines.join('\n'));
+    }
   }
 
   return pageTexts.join('\n\n');
@@ -403,7 +535,7 @@ export function parseSyllabusText(rawText, fileName = '') {
     'design': 'C6', 'create': 'C6', 'develop': 'C6', 'formulate': 'C6', 'synthesize': 'C6', 'construct': 'C6', 'devise': 'C6', 'optimize': 'C6'
   };
 
-  const cloRegex = /(?:CLO|CO|LO|Outcome)\s*[-_#]?\s*(\d+)[:.\-–]?\s*(.+)/i;
+  const cloRegex = /^\s*(?:CLO|CO|LO|Outcome)\s*[-_#]?\s*(\d+)[:.\-–\s]+(.+)/i;
   let inCLOSection = false;
   let inPlanSection = false;
   let inDescSection = false;
@@ -415,14 +547,14 @@ export function parseSyllabusText(rawText, fileName = '') {
     const line = lines[i];
 
     // Section terminators (only when line starts explicitly with these headings)
-    if (/^(?:grading\s*policy|grade\s*distribution|evaluation\s*scheme|course\s*policy|academic\s*integrity|plagiarism\s*policy)/i.test(line)) {
+    if (/^(?:grading\s*policy|grade\s*distribution|evaluation\s*scheme|course\s*policy|academic\s*integrity|plagiarism\s*policy|practical\s*applications|course\s*books|text\s*books|reference\s*books|student\s*assessment|\b(?:3|4|5)\.\s*(?:course\s*books|student\s*assessment|practical\s*applications))/i.test(line)) {
       inCLOSection = false;
       inPlanSection = false;
       inDescSection = false;
       continue;
     }
 
-    // Section triggers
+    // Section triggers via headings
     if (/course\s*learning\s*outcomes|learning\s*outcomes|\bclos\b|\bintended\s*learning\s*outcomes\b|\bcourse\s*objectives\b|\bobjectives\b/i.test(line)) {
       inCLOSection = true;
       inPlanSection = false;
@@ -440,6 +572,91 @@ export function parseSyllabusText(rawText, fileName = '') {
       inCLOSection = false;
       inPlanSection = false;
       continue;
+    }
+
+    // Section triggers via table header detection
+    if (/\bclo\s*no\.?|\bclo\b.*\b(?:statement|outcome|plo|bloom|taxonomy)\b/i.test(line)) {
+      inCLOSection = true;
+      inPlanSection = false;
+      inDescSection = false;
+      continue;
+    }
+    if (/\bweek\s*no\.?|\bweek\b.*\b(?:topic|content|lecture|activity|reference)\b/i.test(line)) {
+      inPlanSection = true;
+      inCLOSection = false;
+      inDescSection = false;
+      continue;
+    }
+
+    // Process table row lines (pipe-delimited or multi-space column separated)
+    let processedLine = line;
+    if (!processedLine.includes('|') && !processedLine.includes('\t') && /\s{3,}/.test(processedLine)) {
+      processedLine = processedLine.replace(/\s{3,}/g, ' | ');
+    }
+
+    if (processedLine.includes('|') || processedLine.includes('\t')) {
+      const parts = processedLine.split(/[|\t]/).map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        // Skip header rows
+        if (/^(?:week\s*no\.?|week|wk|no\.?|s\.?no\.?)$/i.test(parts[0]) && /^(?:topics?|contents?|reference|activity|lecture|module)/i.test(parts[1])) {
+          inPlanSection = true;
+          inCLOSection = false;
+          continue;
+        }
+        if (/^(?:clo\s*no\.?|clo|outcome\s*no\.?|no\.?)$/i.test(parts[0]) && /^(?:clo\s*statement|statement|outcome|learning\s*outcome|plo|bloom|taxonomy)/i.test(parts[1])) {
+          inCLOSection = true;
+          inPlanSection = false;
+          continue;
+        }
+
+        // 1. CLO Table Row: e.g. 1 | Apply manufacturer datasheets... | 1 | C3 (Apply)
+        const cloDigitMatch = parts[0].match(/^(?:CLO\s*[-_#]?\s*)?(\d{1,2})$/i);
+        const hasTaxInRow = /\b([CPA][1-7])\b/i.test(processedLine);
+        if (cloDigitMatch && parts.length >= 3 && (inCLOSection || (hasTaxInRow && !inPlanSection))) {
+          let statement = parts[1];
+          if (statement.length > 10 && !/^(?:topics?|reference|activity|week|clo\s*statement|contents?)/i.test(statement)) {
+            const bloomMatch = processedLine.match(/\b([CPA][1-7])\b/i);
+            let detectedTax = bloomMatch ? bloomMatch[1].toUpperCase() : '';
+            if (!detectedTax) {
+              const cleanWords = statement.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+              for (const w of cleanWords.slice(0, 4)) {
+                if (verbBloomMap[w]) {
+                  detectedTax = verbBloomMap[w];
+                  break;
+                }
+              }
+            }
+            if (!detectedTax) detectedTax = 'C3';
+
+            // Extract PLO from parts[2] or line
+            const ploMatch = parts[2].match(/\b(\d{1,2})\b/) || processedLine.match(/\b(?:PLO|PO|SO)[-_ ]?(\d{1,2})\b/i);
+            const detectedPLO = ploMatch ? `PLO-${ploMatch[1]}` : `PLO-${cloDigitMatch[1]}`;
+
+            statement = statement.replace(/\[\s*(?:PLO|PO|SO)[^\]]*\]|\(\s*(?:PLO|PO|SO)[^)]*\)/gi, '').trim();
+            statement = statement.replace(/\[\s*[CPA][1-7][^\]]*\]|\(\s*[CPA][1-7][^)]*\)/gi, '').trim();
+
+            clos.push({
+              id: parseInt(cloDigitMatch[1]),
+              statement: statement,
+              plo: detectedPLO,
+              taxonomy: detectedTax
+            });
+            continue;
+          }
+        }
+
+        // 2. Weekly Plan Table Row: e.g. 1 | Introduction to Embedded Systems... | Chapter 1... | -
+        const weekDigitMatch = parts[0].match(/^(?:weeks?\s*[-_#]?\s*)?(\d{1,2}(?:\s*[-–]\s*\d{1,2})?)$/i);
+        if (weekDigitMatch && parts.length >= 2 && (inPlanSection || !inCLOSection)) {
+          const wNum = weekDigitMatch[1];
+          let topic = parts[1];
+          if (topic.length > 3 && !/^(?:topics?|reference|activity|week|-|nil)$/i.test(topic)) {
+            const cleanTopic = topic.replace(/^week\s*\d+[:\-–\s]*/i, '').trim();
+            planLines.push(`Week ${wNum}: ${cleanTopic}`);
+            continue;
+          }
+        }
+      }
     }
 
     // Try parsing explicit CLO format: CLO-1: ... or CO 1: ...
@@ -516,8 +733,12 @@ export function parseSyllabusText(rawText, fileName = '') {
 
     if (inPlanSection) {
       // Exclude pure page numbers or empty artifacts
-      if (line.length > 3 && !/^(?:page\s*\d+|\d+\s*of\s*\d+|confidential)$/i.test(line)) {
-        planLines.push(line);
+      if (line.length > 3 && !/^(?:page\s*\d+|\d+\s*of\s*\d+|confidential|week\s*no\.?|topics?|reference|activity|-|nil)$/i.test(line)) {
+        if (/^week\s*\d+/i.test(line)) {
+          planLines.push(line);
+        } else if (!/^(?:quizzes|assignments|mid\s*term|final\s*term|\d+%)$/i.test(line) && !/^(?:textbook|reference\s*book|author)/i.test(line)) {
+          planLines.push(line);
+        }
       }
     } else if (inDescSection) {
       if (line.length > 5 && !/^(?:page\s*\d+|\d+\s*of\s*\d+)$/i.test(line)) {
@@ -574,12 +795,77 @@ export function parseSyllabusText(rawText, fileName = '') {
 
   // Fallback 3 for Course Plan: Synthesize authentic topical outline tailored to courseName
   if (planLines.length > 0) {
-    coursePlan = planLines.join('\n');
+    const cleanPlanLines = planLines.filter(l => !/^(?:week\s*no\.?|topics?|reference|activity|-|nil)$/i.test(l.trim()));
+    coursePlan = cleanPlanLines.join('\n');
   } else {
     coursePlan = synthesizeDefaultOutlineForCourse(courseName, courseDescription);
   }
 
-  // Fallback CLOs detection across entire text if inCLOSection missed
+  // Fallback CLOs detection: Multi-line action verb assembly for unstructured/PDF documents
+  if (clos.length === 0) {
+    const cloSectionLines = [];
+    let captureCLO = false;
+    for (const l of lines) {
+      if (/course\s*learning\s*outcomes|learning\s*outcomes|\bclos\b/i.test(l)) {
+        captureCLO = true;
+        continue;
+      }
+      if (captureCLO && /^(?:grading\s*policy|evaluation\s*scheme|practical\s*applications|course\s*books|text\s*books|student\s*assessment|\b(?:3|4|5)\.\s)/i.test(l)) {
+        captureCLO = false;
+        break;
+      }
+      if (captureCLO) cloSectionLines.push(l);
+    }
+
+    const actionVerbRegex = /^\s*(?:the\s+students\s+(?:will\s+)?(?:be\s+able\s+to\s+)?|apply|analyze|analyse|design|evaluate|understand|formulate|demonstrate|solve|calculate|investigate|develop|explain|differentiate)\b/i;
+    const starts = [];
+    for (let idx = 0; idx < cloSectionLines.length; idx++) {
+      const l = cloSectionLines[idx];
+      if (/clo\s*no|clo\s*statement|bloom|taxonomy|level\*/i.test(l)) continue;
+      const clean = l.replace(/^\s*\d{1,2}\s+/, '').trim();
+      if (actionVerbRegex.test(clean)) {
+        starts.push(idx);
+      }
+    }
+
+    if (starts.length > 0) {
+      for (let sIdx = 0; sIdx < starts.length; sIdx++) {
+        const sStart = starts[sIdx];
+        const sEnd = (sIdx + 1 < starts.length) ? starts[sIdx + 1] : cloSectionLines.length;
+        const combined = [];
+        let tax = 'C3';
+        let plo = `PLO-${sIdx + 1}`;
+
+        for (let k = sStart; k < sEnd; k++) {
+          const l = cloSectionLines[k];
+          if (/^\s*\*\s*c\s*–|cognitive|affective/i.test(l)) continue;
+          const tM = l.match(/\b([CPA][1-7])\b/i);
+          if (tM) tax = tM[1].toUpperCase();
+          const pM = l.replace(/^\s*\d+\s+/, '').match(/\b(\d+)\b/);
+          if (pM) plo = `PLO-${pM[1]}`;
+
+          let cleanL = l.replace(/^\s*\d{1,2}\b/, '');
+          cleanL = cleanL.replace(/\b[CPA][1-7]\b.*$/, '');
+          cleanL = cleanL.replace(/\b\d{1,2}\s*$/, '');
+          cleanL = cleanL.trim();
+          if (cleanL) combined.push(cleanL);
+        }
+
+        let statement = combined.join(' ');
+        statement = statement.replace(/(\w+)-\s+(\w+)/g, '$1$2').replace(/\s+/g, ' ').trim();
+        if (statement.length > 15) {
+          clos.push({
+            id: sIdx + 1,
+            statement,
+            plo,
+            taxonomy: tax
+          });
+        }
+      }
+    }
+  }
+
+  // Fallback CLOs detection across entire text if still empty
   if (clos.length === 0) {
     const cloActionVerbs = ['design', 'develop', 'analyze', 'evaluate', 'apply', 'calculate', 'explain', 'implement', 'formulate', 'construct'];
     for (const line of lines) {
