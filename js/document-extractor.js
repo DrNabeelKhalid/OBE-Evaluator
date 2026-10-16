@@ -410,6 +410,239 @@ function extractPdfOperators(text, textBlocks) {
 }
 
 /**
+ * High-fidelity CLO table & section extractor.
+ * Handles:
+ * 1. Multi-line wrapped table cells in PDFs (where statements wrap across 2-5 lines and numbers are centered).
+ * 2. Pipe-delimited single-line table rows in Word (.docx) documents.
+ * 3. Multi-PLO extraction (e.g. "3, 5" -> "PLO-3, PLO-5").
+ * 4. Full Bloom taxonomy parsing (C1-C6, P1-P7, A1-A5).
+ * 5. Automatic hyphenated word stitching (e.g. "synchro-" + "nization" -> "synchronization").
+ */
+export function extractCLOsFromDocument(rawText) {
+  if (!rawText || !rawText.trim()) return [];
+
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const verbBloomMap = {
+    'remember': 'C1', 'define': 'C1', 'list': 'C1', 'state': 'C1', 'identify': 'C1', 'recall': 'C1', 'name': 'C1', 'label': 'C1',
+    'understand': 'C2', 'explain': 'C2', 'describe': 'C2', 'discuss': 'C2', 'classify': 'C2', 'summarize': 'C2', 'interpret': 'C2', 'illustrate': 'C2', 'comprehend': 'C2',
+    'apply': 'C3', 'calculate': 'C3', 'solve': 'C3', 'demonstrate': 'C3', 'implement': 'C3', 'execute': 'C3', 'operate': 'C3', 'compute': 'C3', 'determine': 'C3',
+    'analyze': 'C4', 'analyse': 'C4', 'differentiate': 'C4', 'compare': 'C4', 'investigate': 'C4', 'diagnose': 'C4', 'distinguish': 'C4', 'model': 'C4', 'examine': 'C4',
+    'evaluate': 'C5', 'appraise': 'C5', 'judge': 'C5', 'critique': 'C5', 'justify': 'C5', 'validate': 'C5', 'assess': 'C5', 'verify': 'C5',
+    'design': 'C6', 'create': 'C6', 'develop': 'C6', 'formulate': 'C6', 'synthesize': 'C6', 'construct': 'C6', 'devise': 'C6', 'optimize': 'C6'
+  };
+
+  const actionVerbRe = /^\s*(?:(?:The\s+students\s+(?:will\s+)?(?:be\s+able\s+to\s+)?|Students\s+will\s+(?:be\s+able\s+to\s+|comprehend\b)?)|(?:Apply|Analyze|Analyse|Design|Evaluate|Compute|Understand|Formulate|Demonstrate|Solve|Calculate|Investigate|Develop|Explain|Differentiate|Construct|Implement|Identify|Comprehend))\b/i;
+  const taxDescRe = /^\s*\(\s*(?:mechanism|apply|analyze|analyse|design|evaluate|create|understand|recall|remember|guided\s*response|adaptation|origination|perception|set|receiving|responding|valuing|organization|characterization|cognitive|affective|psycho-?motor)\s*\)\s*$/i;
+
+  // 1. Locate CLO section header
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const clean = lines[i].trim().toLowerCase();
+    if (/\bclo\b/.test(clean) && (clean.includes('statement') || clean.includes('plo') || clean.includes('taxonomy'))) {
+      headerIdx = i;
+      break;
+    } else if (clean.includes('course learning outcomes') || clean.includes('intended learning outcomes')) {
+      for (let k = i + 1; k < Math.min(i + 20, lines.length); k++) {
+        const kClean = lines[k].trim().toLowerCase();
+        if (/\bclo\b/.test(kClean) && (kClean.includes('statement') || kClean.includes('plo') || kClean.includes('taxonomy'))) {
+          headerIdx = k;
+          break;
+        }
+      }
+      if (headerIdx !== -1) break;
+      if (headerIdx === -1) headerIdx = i;
+    }
+  }
+
+  if (headerIdx === -1) return [];
+
+  // 2. Locate end of CLO section
+  let endIdx = lines.length;
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const clean = lines[i].trim();
+    if (/\bclo\s*(?:no\.?|statement)?\b/i.test(clean) && /(?:statement|plo|taxonomy)/i.test(clean)) continue;
+    if (/^\s*(?:(?:\d+[\.\)]\s*)?(?:course\s*books?|text\s*books?|reference\s*books?|recommended\s*books?|reading\s*materials?|readings?|student\s*assessment|assessment\s*(?:tools?|criteria|policy)?|grading\s*policy|evaluation\s*scheme|marks\s*distribution|practical\s*applications?|weekly\s*plan|course\s*plan|schedule\s*of\s*lectures|topical\s*outline)\b)/i.test(clean)) {
+      endIdx = i;
+      break;
+    }
+    if (/^\s*\d+[\.\)]\s+[A-Z]/.test(clean) && !/CLO|Outcome/i.test(clean)) {
+      endIdx = i;
+      break;
+    }
+  }
+
+  const rawSectionLines = lines.slice(headerIdx + 1, endIdx);
+  const tableLines = [];
+  for (const l of rawSectionLines) {
+    const s = l.trim();
+    if (!s) continue;
+    if (/^\s*\*\s*[CPA]\s*[–-]/i.test(s)) continue;
+    if (/^(?:Taxonomy\s*Level\*?|Level\*?|Bloom\'?s\s*Taxonomy\s*Level)$/i.test(s)) continue;
+    if (/^(?:CLO\s*No\.?|CLO|Outcome\s*No\.?)\s+(?:CLO\s*Statement|Statement)/i.test(s)) continue;
+    tableLines.push(l);
+  }
+
+  // 3. Find start indices of each CLO inside tableLines
+  const starts = [];
+  for (let idx = 0; idx < tableLines.length; idx++) {
+    const l = tableLines[idx];
+    const clean = l.trim();
+    const prevClean = idx > 0 ? tableLines[idx - 1].trim() : '';
+    const isContinuation = /\b(?:to|and|or|of|for|with|in|by|including|using|-)$/i.test(prevClean);
+
+    if (/^\s*(?:CLO|CO|LO|Outcome)\s*[-_#]?\s*\d+[:.\-–\s]/i.test(clean)) {
+      starts.push(idx);
+      continue;
+    }
+
+    if (!isContinuation && actionVerbRe.test(clean)) {
+      starts.push(idx);
+    } else {
+      const numMatch = l.match(/^\s*(?:CLO\s*[-_#]?\s*)?(\d{1,2})\s*(?:\||\s{2,})/);
+      if (numMatch && (starts.length === 0 || idx > starts[starts.length - 1])) {
+        if (starts.length > 0) {
+          const lastStart = starts[starts.length - 1];
+          const hasVerbInLast = actionVerbRe.test(tableLines[lastStart].trim());
+          const hasNumInLast = tableLines.slice(lastStart, idx).some(prev => /^\s*(?:CLO\s*[-_#]?\s*)?\d{1,2}\s*(?:\||\s{2,})/.test(prev));
+          if (hasVerbInLast && !hasNumInLast) {
+            continue;
+          }
+        }
+        starts.push(idx);
+      }
+    }
+  }
+
+  if (starts.length === 0) {
+    for (let idx = 0; idx < tableLines.length; idx++) {
+      if (/^\s*(?:CLO\s*[-_#]?\s*)?\d{1,2}[.)\s|]/i.test(tableLines[idx])) {
+        starts.push(idx);
+      }
+    }
+  }
+
+  const clos = [];
+  for (let sIdx = 0; sIdx < starts.length; sIdx++) {
+    const start = starts[sIdx];
+    const end = (sIdx + 1 < starts.length) ? starts[sIdx + 1] : tableLines.length;
+    const block = tableLines.slice(start, end);
+
+    let cloId = sIdx + 1;
+    const plos = [];
+    const taxes = [];
+    const stmtPieces = [];
+
+    for (const l of block) {
+      const taxMatches = l.match(/\b([CPA][1-7])\b/gi);
+      if (taxMatches) {
+        for (const t of taxMatches) {
+          const tUp = t.toUpperCase();
+          if (!taxes.includes(tUp)) taxes.push(tUp);
+        }
+      }
+
+      let cols = [];
+      if (l.includes('|') || l.includes('\t')) {
+        cols = l.split(/[|\t]/).map(c => c.trim()).filter(Boolean);
+      } else if (/\s{3,}/.test(l)) {
+        cols = l.split(/\s{3,}/).map(c => c.trim()).filter(Boolean);
+      } else {
+        cols = [l.trim()];
+      }
+
+      const digitMatch = l.match(/^\s*(?:CLO\s*[-_#]?\s*)?(\d{1,2})\b/i);
+      if (digitMatch && cols.length > 1) {
+        cloId = parseInt(digitMatch[1]);
+      }
+
+      for (let cIdx = 0; cIdx < cols.length; cIdx++) {
+        const c = cols[cIdx];
+        if (cIdx === 0 && /^(?:CLO\s*[-_#]?\s*)?\d{1,2}$/i.test(c)) {
+          continue;
+        }
+        if (/^(?:(?:PLO|PO|SO)[-_ ]?)?\d{1,2}(?:\s*[,&/]\s*(?:(?:PLO|PO|SO)[-_ ]?)?\d{1,2})*$/i.test(c)) {
+          const pNums = c.match(/\b\d{1,2}\b/g);
+          if (pNums) {
+            for (const p of pNums) {
+              const ploTag = 'PLO-' + p;
+              if (!plos.includes(ploTag)) plos.push(ploTag);
+            }
+          }
+          continue;
+        }
+        if (/^[CPA][1-7](?:\s*\([^)]*\))?(?:\s*[,&/]\s*[CPA][1-7](?:\s*\([^)]*\))?)*$/i.test(c) || taxDescRe.test(c)) {
+          const tCodes = c.match(/\b([CPA][1-7])\b/gi);
+          if (tCodes) {
+            for (const t of tCodes) {
+              const tUp = t.toUpperCase();
+              if (!taxes.includes(tUp)) taxes.push(tUp);
+            }
+          }
+          continue;
+        }
+
+        let cleanC = c;
+        cleanC = cleanC.replace(/^\s*(?:CLO|CO|LO|Outcome)\s*[-_#]?\s*\d+[:.\-–\s]+/i, '');
+        cleanC = cleanC.replace(/^\s*\d{1,2}[.)\-]\s+/, '');
+        cleanC = cleanC.replace(/\[\s*(?:PLO|PO|SO)[^\]]*\]|\(\s*(?:PLO|PO|SO)[^)]*\)/gi, '');
+        cleanC = cleanC.replace(/\[\s*[CPA][1-7][^\]]*\]/gi, '');
+        cleanC = cleanC.replace(/\b[CPA][1-7](?:\s*\([^)]*\))?/gi, '');
+        cleanC = cleanC.replace(taxDescRe, '');
+        cleanC = cleanC.trim();
+
+        if (cleanC.length > 0) {
+          stmtPieces.push(cleanC);
+        }
+      }
+    }
+
+    let fullStmt = '';
+    for (const piece of stmtPieces) {
+      if (!fullStmt) {
+        fullStmt = piece;
+      } else if (fullStmt.endsWith('-')) {
+        const prefix = fullStmt.slice(0, -1);
+        const knownHyphen = /(?:^|[\s\-])(?:real|on|high|low|time|multi|general|single|three|inter|object|built|cross|non|state)$/i.test(prefix.trim());
+        if (knownHyphen) {
+          fullStmt = fullStmt + piece;
+        } else {
+          fullStmt = prefix + piece;
+        }
+      } else {
+        fullStmt += ' ' + piece;
+      }
+    }
+
+    fullStmt = fullStmt.replace(/\s+/g, ' ').trim();
+
+    let finalTax = taxes[0] || '';
+    if (!finalTax) {
+      const words = fullStmt.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+      for (const w of words.slice(0, 5)) {
+        if (verbBloomMap[w]) {
+          finalTax = verbBloomMap[w];
+          break;
+        }
+      }
+    }
+    if (!finalTax) finalTax = 'C3';
+
+    const finalPLO = plos.length > 0 ? plos.join(', ') : `PLO-${cloId}`;
+
+    if (fullStmt.length >= 15) {
+      clos.push({
+        id: cloId,
+        statement: fullStmt,
+        plo: finalPLO,
+        taxonomy: finalTax
+      });
+    }
+  }
+
+  return clos;
+}
+
+/**
  * Intelligent Syllabus Parser
  * Extracts Course Code & Title, Description, Weekly Outline, and CLOs from raw syllabus text
  */
@@ -421,6 +654,12 @@ export function parseSyllabusText(rawText, fileName = '') {
   let courseDescription = '';
   let coursePlan = '';
   const clos = [];
+
+  // Run dedicated high-fidelity CLO extractor
+  const structuredCLOs = extractCLOsFromDocument(rawText);
+  if (structuredCLOs && structuredCLOs.length > 0) {
+    clos.push(...structuredCLOs);
+  }
 
   // 1. Dual Detection: Course Code & Course Title
   let detectedCode = '';
@@ -546,8 +785,13 @@ export function parseSyllabusText(rawText, fileName = '') {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
+    // Ignore sample course plan header on page 1
+    if (/^\s*sample\s*course\s*plan/i.test(line)) {
+      continue;
+    }
+
     // Section terminators (only when line starts explicitly with these headings)
-    if (/^(?:grading\s*policy|grade\s*distribution|evaluation\s*scheme|course\s*policy|academic\s*integrity|plagiarism\s*policy|practical\s*applications|course\s*books|text\s*books|reference\s*books|student\s*assessment|\b(?:3|4|5)\.\s*(?:course\s*books|student\s*assessment|practical\s*applications))/i.test(line)) {
+    if (/^\s*(?:grading\s*policy|grade\s*distribution|evaluation\s*scheme|course\s*policy|academic\s*integrity|plagiarism\s*policy|practical\s*applications|course\s*books|text\s*books|reference\s*books|recommended\s*books|student\s*assessment|\b(?:3|4|5|6|7)\.\s*(?:course\s*books|text\s*books|student\s*assessment|practical\s*applications|weekly\s*plan))/i.test(line)) {
       inCLOSection = false;
       inPlanSection = false;
       inDescSection = false;
@@ -555,19 +799,19 @@ export function parseSyllabusText(rawText, fileName = '') {
     }
 
     // Section triggers via headings
-    if (/course\s*learning\s*outcomes|learning\s*outcomes|\bclos\b|\bintended\s*learning\s*outcomes\b|\bcourse\s*objectives\b|\bobjectives\b/i.test(line)) {
+    if (/^\s*(?:(?:\d+[\.\)]\s*)?(?:course\s*learning\s*outcomes|learning\s*outcomes|\bclos\b|\bintended\s*learning\s*outcomes\b|\bcourse\s*objectives\b|\bobjectives\b))\b/i.test(line)) {
       inCLOSection = true;
       inPlanSection = false;
       inDescSection = false;
       continue;
     }
-    if (/course\s*plan|weekly\s*(?:plan|breakdown|schedule|outline)|topical\s*(?:outline|breakdown|syllabus)|course\s*content[s]?|course\s*outline|lecture\s*schedule|topics\s*covered|syllabus\s*details|detailed\s*syllabus|course\s*syllabus|list\s*of\s*topics|lecture\s*(?:plan|topics)|teaching\s*(?:plan|schedule)|module\s*breakdown|course\s*topics|table\s*of\s*contents|schedule\s*of\s*(?:lectures|classes|topics)|curriculum\s*content[s]?|\btopics\s*to\s*be\s*covered\b/i.test(line)) {
+    if (/^\s*(?:(?:\d+[\.\)]\s*)?(?:course\s*plan|weekly\s*(?:plan|breakdown|schedule|outline)|topical\s*(?:outline|breakdown|syllabus)|course\s*content[s]?|course\s*outline|lecture\s*schedule|detailed\s*syllabus|topics\s*to\s*be\s*covered))\b/i.test(line)) {
       inPlanSection = true;
       inCLOSection = false;
       inDescSection = false;
       continue;
     }
-    if (/course\s*(?:description|scope|overview|catalog)|about\s*the\s*course|course\s*aims|course\s*introduction/i.test(line)) {
+    if (/^\s*(?:(?:\d+[\.\)]\s*)?(?:course\s*(?:description|scope|overview|catalog)|about\s*the\s*course|course\s*aims|course\s*introduction))\b/i.test(line)) {
       inDescSection = true;
       inCLOSection = false;
       inPlanSection = false;
@@ -609,39 +853,48 @@ export function parseSyllabusText(rawText, fileName = '') {
           continue;
         }
 
-        // 1. CLO Table Row: e.g. 1 | Apply manufacturer datasheets... | 1 | C3 (Apply)
-        const cloDigitMatch = parts[0].match(/^(?:CLO\s*[-_#]?\s*)?(\d{1,2})$/i);
-        const hasTaxInRow = /\b([CPA][1-7])\b/i.test(processedLine);
-        if (cloDigitMatch && parts.length >= 3 && (inCLOSection || (hasTaxInRow && !inPlanSection))) {
-          let statement = parts[1];
-          if (statement.length > 10 && !/^(?:topics?|reference|activity|week|clo\s*statement|contents?)/i.test(statement)) {
-            const bloomMatch = processedLine.match(/\b([CPA][1-7])\b/i);
-            let detectedTax = bloomMatch ? bloomMatch[1].toUpperCase() : '';
-            if (!detectedTax) {
-              const cleanWords = statement.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
-              for (const w of cleanWords.slice(0, 4)) {
-                if (verbBloomMap[w]) {
-                  detectedTax = verbBloomMap[w];
-                  break;
+        // 1. CLO Table Row fallback (only if structured extractor did not find CLOs)
+        if (clos.length === 0) {
+          const cloDigitMatch = parts[0].match(/^(?:CLO\s*[-_#]?\s*)?(\d{1,2})$/i);
+          const hasTaxInRow = /\b([CPA][1-7])\b/i.test(processedLine);
+          if (cloDigitMatch && parts.length >= 3 && (inCLOSection || (hasTaxInRow && !inPlanSection))) {
+            let statement = parts[1];
+            if (statement.length > 10 && !/^(?:topics?|reference|activity|week|clo\s*statement|contents?)/i.test(statement)) {
+              const bloomMatch = processedLine.match(/\b([CPA][1-7])\b/i);
+              let detectedTax = bloomMatch ? bloomMatch[1].toUpperCase() : '';
+              if (!detectedTax) {
+                const cleanWords = statement.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+                for (const w of cleanWords.slice(0, 4)) {
+                  if (verbBloomMap[w]) {
+                    detectedTax = verbBloomMap[w];
+                    break;
+                  }
                 }
               }
+              if (!detectedTax) detectedTax = 'C3';
+
+              // Extract PLO from parts[2] or line (supporting multi-PLO)
+              const plos = [];
+              const pMatches = parts[2].match(/\b\d{1,2}\b/g) || (processedLine.match(/\b(?:PLO|PO|SO)[-_ ]?(\d{1,2})\b/gi) || []).map(p => p.replace(/[^\d]/g, ''));
+              if (pMatches) {
+                for (const p of pMatches) {
+                  const pTag = 'PLO-' + p;
+                  if (!plos.includes(pTag)) plos.push(pTag);
+                }
+              }
+              const detectedPLO = plos.length > 0 ? plos.join(', ') : `PLO-${cloDigitMatch[1]}`;
+
+              statement = statement.replace(/\[\s*(?:PLO|PO|SO)[^\]]*\]|\(\s*(?:PLO|PO|SO)[^)]*\)/gi, '').trim();
+              statement = statement.replace(/\[\s*[CPA][1-7][^\]]*\]|\(\s*[CPA][1-7][^)]*\)/gi, '').trim();
+
+              clos.push({
+                id: parseInt(cloDigitMatch[1]),
+                statement: statement,
+                plo: detectedPLO,
+                taxonomy: detectedTax
+              });
+              continue;
             }
-            if (!detectedTax) detectedTax = 'C3';
-
-            // Extract PLO from parts[2] or line
-            const ploMatch = parts[2].match(/\b(\d{1,2})\b/) || processedLine.match(/\b(?:PLO|PO|SO)[-_ ]?(\d{1,2})\b/i);
-            const detectedPLO = ploMatch ? `PLO-${ploMatch[1]}` : `PLO-${cloDigitMatch[1]}`;
-
-            statement = statement.replace(/\[\s*(?:PLO|PO|SO)[^\]]*\]|\(\s*(?:PLO|PO|SO)[^)]*\)/gi, '').trim();
-            statement = statement.replace(/\[\s*[CPA][1-7][^\]]*\]|\(\s*[CPA][1-7][^)]*\)/gi, '').trim();
-
-            clos.push({
-              id: parseInt(cloDigitMatch[1]),
-              statement: statement,
-              plo: detectedPLO,
-              taxonomy: detectedTax
-            });
-            continue;
           }
         }
 
@@ -659,47 +912,12 @@ export function parseSyllabusText(rawText, fileName = '') {
       }
     }
 
-    // Try parsing explicit CLO format: CLO-1: ... or CO 1: ...
-    const matchCLO = line.match(cloRegex);
-    if (matchCLO) {
-      let cloText = matchCLO[2].trim();
-      if (cloText.length > 8) {
-        const ploMatch = line.match(/(?:PLO|PO|SO)[-_ ]?(\d+)/i);
-        const detectedPLO = ploMatch ? `PLO-${ploMatch[1]}` : `PLO-${(clos.length % 5) + 1}`;
-
-        const bloomMatch = line.match(/\b([CPA][1-7])\b/i);
-        let detectedTax = bloomMatch ? bloomMatch[1].toUpperCase() : '';
-
-        if (!detectedTax) {
-          const cleanWords = cloText.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
-          for (const w of cleanWords.slice(0, 4)) {
-            if (verbBloomMap[w]) {
-              detectedTax = verbBloomMap[w];
-              break;
-            }
-          }
-        }
-        if (!detectedTax) detectedTax = 'C3';
-
-        cloText = cloText.replace(/\[\s*(?:PLO|PO|SO)[^\]]*\]|\(\s*(?:PLO|PO|SO)[^)]*\)/gi, '').trim();
-        cloText = cloText.replace(/\[\s*[CPA][1-7][^\]]*\]|\(\s*[CPA][1-7][^)]*\)/gi, '').trim();
-
-        clos.push({
-          id: clos.length + 1,
-          statement: cloText,
-          plo: detectedPLO,
-          taxonomy: detectedTax
-        });
-        continue;
-      }
-    }
-
-    // Numbered item inside CLO section: e.g. 1. Design a system...
-    if (inCLOSection) {
-      const numberedMatch = line.match(/^\d+[.)\-]\s*([A-Z][a-zA-Z\s].+)/);
-      if (numberedMatch) {
-        let cloText = numberedMatch[1].trim();
-        if (cloText.length > 10) {
+    // Try parsing explicit CLO format fallback (only if clos is empty): CLO-1: ... or CO 1: ...
+    if (clos.length === 0) {
+      const matchCLO = line.match(cloRegex);
+      if (matchCLO) {
+        let cloText = matchCLO[2].trim();
+        if (cloText.length > 8) {
           const ploMatch = line.match(/(?:PLO|PO|SO)[-_ ]?(\d+)/i);
           const detectedPLO = ploMatch ? `PLO-${ploMatch[1]}` : `PLO-${(clos.length % 5) + 1}`;
 
@@ -727,6 +945,43 @@ export function parseSyllabusText(rawText, fileName = '') {
             taxonomy: detectedTax
           });
           continue;
+        }
+      }
+
+      // Numbered item inside CLO section: e.g. 1. Design a system...
+      if (inCLOSection) {
+        const numberedMatch = line.match(/^\d+[.)\-]\s*([A-Z][a-zA-Z\s].+)/);
+        if (numberedMatch) {
+          let cloText = numberedMatch[1].trim();
+          if (cloText.length > 10) {
+            const ploMatch = line.match(/(?:PLO|PO|SO)[-_ ]?(\d+)/i);
+            const detectedPLO = ploMatch ? `PLO-${ploMatch[1]}` : `PLO-${(clos.length % 5) + 1}`;
+
+            const bloomMatch = line.match(/\b([CPA][1-7])\b/i);
+            let detectedTax = bloomMatch ? bloomMatch[1].toUpperCase() : '';
+
+            if (!detectedTax) {
+              const cleanWords = cloText.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+              for (const w of cleanWords.slice(0, 4)) {
+                if (verbBloomMap[w]) {
+                  detectedTax = verbBloomMap[w];
+                  break;
+                }
+              }
+            }
+            if (!detectedTax) detectedTax = 'C3';
+
+            cloText = cloText.replace(/\[\s*(?:PLO|PO|SO)[^\]]*\]|\(\s*(?:PLO|PO|SO)[^)]*\)/gi, '').trim();
+            cloText = cloText.replace(/\[\s*[CPA][1-7][^\]]*\]|\(\s*[CPA][1-7][^)]*\)/gi, '').trim();
+
+            clos.push({
+              id: clos.length + 1,
+              statement: cloText,
+              plo: detectedPLO,
+              taxonomy: detectedTax
+            });
+            continue;
+          }
         }
       }
     }
@@ -801,69 +1056,7 @@ export function parseSyllabusText(rawText, fileName = '') {
     coursePlan = synthesizeDefaultOutlineForCourse(courseName, courseDescription);
   }
 
-  // Fallback CLOs detection: Multi-line action verb assembly for unstructured/PDF documents
-  if (clos.length === 0) {
-    const cloSectionLines = [];
-    let captureCLO = false;
-    for (const l of lines) {
-      if (/course\s*learning\s*outcomes|learning\s*outcomes|\bclos\b/i.test(l)) {
-        captureCLO = true;
-        continue;
-      }
-      if (captureCLO && /^(?:grading\s*policy|evaluation\s*scheme|practical\s*applications|course\s*books|text\s*books|student\s*assessment|\b(?:3|4|5)\.\s)/i.test(l)) {
-        captureCLO = false;
-        break;
-      }
-      if (captureCLO) cloSectionLines.push(l);
-    }
 
-    const actionVerbRegex = /^\s*(?:the\s+students\s+(?:will\s+)?(?:be\s+able\s+to\s+)?|apply|analyze|analyse|design|evaluate|understand|formulate|demonstrate|solve|calculate|investigate|develop|explain|differentiate)\b/i;
-    const starts = [];
-    for (let idx = 0; idx < cloSectionLines.length; idx++) {
-      const l = cloSectionLines[idx];
-      if (/clo\s*no|clo\s*statement|bloom|taxonomy|level\*/i.test(l)) continue;
-      const clean = l.replace(/^\s*\d{1,2}\s+/, '').trim();
-      if (actionVerbRegex.test(clean)) {
-        starts.push(idx);
-      }
-    }
-
-    if (starts.length > 0) {
-      for (let sIdx = 0; sIdx < starts.length; sIdx++) {
-        const sStart = starts[sIdx];
-        const sEnd = (sIdx + 1 < starts.length) ? starts[sIdx + 1] : cloSectionLines.length;
-        const combined = [];
-        let tax = 'C3';
-        let plo = `PLO-${sIdx + 1}`;
-
-        for (let k = sStart; k < sEnd; k++) {
-          const l = cloSectionLines[k];
-          if (/^\s*\*\s*c\s*–|cognitive|affective/i.test(l)) continue;
-          const tM = l.match(/\b([CPA][1-7])\b/i);
-          if (tM) tax = tM[1].toUpperCase();
-          const pM = l.replace(/^\s*\d+\s+/, '').match(/\b(\d+)\b/);
-          if (pM) plo = `PLO-${pM[1]}`;
-
-          let cleanL = l.replace(/^\s*\d{1,2}\b/, '');
-          cleanL = cleanL.replace(/\b[CPA][1-7]\b.*$/, '');
-          cleanL = cleanL.replace(/\b\d{1,2}\s*$/, '');
-          cleanL = cleanL.trim();
-          if (cleanL) combined.push(cleanL);
-        }
-
-        let statement = combined.join(' ');
-        statement = statement.replace(/(\w+)-\s+(\w+)/g, '$1$2').replace(/\s+/g, ' ').trim();
-        if (statement.length > 15) {
-          clos.push({
-            id: sIdx + 1,
-            statement,
-            plo,
-            taxonomy: tax
-          });
-        }
-      }
-    }
-  }
 
   // Fallback CLOs detection across entire text if still empty
   if (clos.length === 0) {
