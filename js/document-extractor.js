@@ -643,6 +643,281 @@ export function extractCLOsFromDocument(rawText) {
 }
 
 /**
+ * Dedicated high-fidelity Course Plan & Weekly Topics extractor.
+ * Handles:
+ * 1. Strict start boundary detection (Weekly Plan, Schedule of Lectures, etc.), explicitly ignoring 'Sample Course Plan' template headers.
+ * 2. Strict section terminators: Complex Engineering Problem, Counseling Hours, Course Time Table, Office Hours, Class Schedule, etc.
+ * 3. Discards day-of-week rows, venue rows, and timetable serial number rows.
+ * 4. Dual-mode parsing:
+ *    - Mode A: Single-line table rows (e.g. Word .docx tables: "1 | Introduction to Embedded Systems...")
+ *    - Mode B: Multi-line wrapped tables (e.g. PDF.js & LaTeX layouts: Topic title, wrapped bullets, week numbers, Midterm/Final Exams).
+ * 5. Automatic word hyphen stitching ("computa-" + "tional" -> "computational").
+ */
+export function extractCoursePlanFromDocument(rawText) {
+  if (!rawText || !rawText.trim()) return '';
+
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  // 1. Locate start of Weekly Plan section
+  let startIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    // Explicitly ignore 'Sample Course Plan' header on page 1
+    if (/sample\s*course\s*plan/i.test(l)) continue;
+
+    if (/^\s*(?:\d+[\.\)]\s*)?(?:weekly\s*(?:course\s*)?plan|schedule\s*of\s*(?:lectures|classes)|course\s*schedule|topical\s*(?:outline|breakdown)|lecture\s*schedule|topics\s*to\s*be\s*covered)\b/i.test(l)) {
+      startIdx = i;
+      break;
+    }
+    if (/\b(?:week\s*no\.?|week)\b.*\b(?:topics?|contents?)\b/i.test(l)) {
+      startIdx = i;
+      break;
+    }
+  }
+
+  if (startIdx === -1) return '';
+
+  // 2. Locate end of Weekly Plan section
+  let endIdx = lines.length;
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const l = lines[i];
+    // Immediate terminators: Complex Engineering Problem, Counseling Hours, Time Table, etc.
+    if (/^\s*(?:\d+[\.\)]\s*)?(?:complex\s*engineering\s*problem|cep\b|counseling\s*hours|counselling\s*hours|course\s*time\s*table|time\s*table|timetable|office\s*hours|class\s*schedule|teaching\s*assistant|grading\s*policy|grade\s*distribution|evaluation\s*scheme|academic\s*integrity|plagiarism\s*policy|course\s*policies?)\b/i.test(l)) {
+      endIdx = i;
+      break;
+    }
+    // Subsequent numbered section header: e.g. '8. Complex...', '9. Counseling...', '10. Time Table...'
+    if (/^\s*(?:[8-9]|\d{2,})[\.\)]\s+[A-Z]/i.test(l)) {
+      endIdx = i;
+      break;
+    }
+    // Timetable table header
+    if (/\bsr\.?\s*no\.?\b.*\b(?:day|venue|time)\b/i.test(l)) {
+      endIdx = i;
+      break;
+    }
+  }
+
+  const rawSectionLines = lines.slice(startIdx + 1, endIdx);
+
+  // Common filters: Day names, Timetable rows, Serial numbers
+  const dayNamesRe = /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+  const timeSlotRe = /\b\d{1,2}:\d{2}\s*(?:am|pm)?\s*[-–]\s*\d{1,2}:\d{2}\s*(?:am|pm)?/i;
+  const venueRe = /\b(?:venue|room\s*no\.?|[a-z]-\d{3,4}|building\s*[a-z]|lab\s*\d+)\b/i;
+
+  const validLines = [];
+  for (const l of rawSectionLines) {
+    if (dayNamesRe.test(l) && (timeSlotRe.test(l) || venueRe.test(l) || /sr\.?\s*no\.?/i.test(l))) {
+      continue;
+    }
+    if (/^\s*(?:sr\.?\s*no\.?|day|time|venue|contact|office)\s*$/i.test(l)) {
+      continue;
+    }
+    if (/^\s*(?:week\s*no\.?|week|topics?|reference|activity|clo)\s*(?:\|\s*(?:topics?|reference|activity|clo)\s*)+$/i.test(l)) {
+      continue;
+    }
+    if (/^\s*week\s*(?:no\.?)?\s*topics?\b/i.test(l)) {
+      continue;
+    }
+    if (/^\s*(?:page\s*\d+|\d+\s*of\s*\d+)\s*$/i.test(l)) {
+      continue;
+    }
+    if (/^\s*\d{1,2}\s*$/.test(l) && parseInt(l.trim()) > 18) {
+      continue; // lone page numbers
+    }
+    validLines.push(l);
+  }
+
+  // Check if this is a clean single-line table (e.g. Word docx where EVERY row is "1 | Introduction to Embedded Systems...")
+  let singleLineCount = 0;
+  for (const l of validLines) {
+    if (l.includes('|')) {
+      const parts = l.split('|').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2 && /^(?:weeks?\s*[-_#]?\s*)?(\d{1,2})$/i.test(parts[0])) {
+        const topic = parts[1];
+        if (topic.length > 5 && !topic.startsWith('•') && !/^(?:clo|plo|quiz|assignment|ref|chapter|monday|tuesday|wednesday)/i.test(topic)) {
+          singleLineCount++;
+        }
+      }
+    }
+  }
+
+  if (singleLineCount >= 8) {
+    // Single-line table mode (like Word .docx)
+    const result = [];
+    for (const l of validLines) {
+      if (/mid-?term\s*exam(?:ination)?/i.test(l)) {
+        result.push('Mid-Term Examination');
+        continue;
+      }
+      if (/final\s*exam(?:ination)?/i.test(l)) {
+        result.push('Final Examination');
+        continue;
+      }
+      if (l.includes('|')) {
+        const parts = l.split('|').map(p => p.trim()).filter(Boolean);
+        const m = parts[0].match(/^(?:weeks?\s*[-_#]?\s*)?(\d{1,2}(?:\s*[-–]\s*\d{1,2})?)$/i);
+        if (m && parts.length >= 2) {
+          const wNum = m[1];
+          let topic = parts[1].replace(/^week\s*\d+[:\-–\s]*/i, '').trim();
+          if (topic.length > 3 && !/^(?:clo|plo|quiz|assignment|ref|chapter|monday|tuesday|wednesday)/i.test(topic)) {
+            result.push(`Week ${wNum}: ${topic}`);
+          }
+        }
+      }
+    }
+    return result.join('\n');
+  }
+
+  // Multi-line table mode (PDF.js / LaTeX)
+  const rawItems = [];
+  for (const l of validLines) {
+    if (/^\s*(?:mid-?term\s*exam(?:ination)?)\s*$/i.test(l)) {
+      rawItems.push({ type: 'exam', text: 'Midterm Examination' });
+      continue;
+    }
+    if (/^\s*(?:final\s*exam(?:ination)?)\s*$/i.test(l)) {
+      rawItems.push({ type: 'exam', text: 'Final Examination' });
+      continue;
+    }
+
+    let lineText = '';
+    let foundWeekNum = null;
+
+    if (l.includes('|')) {
+      const parts = l.split('|').map(p => p.trim()).filter(Boolean);
+      if (/^(?:weeks?\s*[-_#]?\s*)?(\d{1,2})$/i.test(parts[0])) {
+        foundWeekNum = parseInt(parts[0].match(/\d+/)[0]);
+        for (let c = 1; c < parts.length; c++) {
+          let col = parts[c];
+          if (/^(?:clo|plo|so|po)[-_ ]?\d+/i.test(col) || /^[cpa][1-7]$/i.test(col)) continue;
+          if (/^(?:quiz|assignment|homework|project|review|all)\b/i.test(col)) continue;
+          if (/^(?:•?\s*(?:ref|book|ch(?:apter)?)\b)/i.test(col) || /^\d+(?:,\s*\d+)*$/.test(col)) continue;
+          if (dayNamesRe.test(col)) continue;
+          lineText = col;
+          break;
+        }
+      } else {
+        for (let c = 0; c < parts.length; c++) {
+          let col = parts[c];
+          if (/^(?:clo|plo|so|po)[-_ ]?\d+/i.test(col) || /^[cpa][1-7]$/i.test(col)) continue;
+          if (/^(?:quiz|assignment|homework|project)\b/i.test(col)) continue;
+          if (/^(?:•?\s*(?:ref|book|ch(?:apter)?)\b)/i.test(col) || /^\d+(?:,\s*\d+)*$/.test(col)) continue;
+          if (dayNamesRe.test(col)) continue;
+          lineText = col;
+          break;
+        }
+      }
+    } else {
+      const loneDigit = l.match(/^(\d{1,2})$/);
+      if (loneDigit) {
+        const val = parseInt(loneDigit[1]);
+        if (val >= 1 && val <= 18) foundWeekNum = val;
+      } else {
+        lineText = l;
+      }
+    }
+
+    lineText = lineText.trim();
+    if (lineText) {
+      // Strip trailing CLO fragments glued by table cells: e.g. "BST deletion 2/CLO-3" -> "BST deletion"
+      lineText = lineText.replace(/\s*(?:(?:CLO|PLO|SO|PO)[-_ ]?\d*|\d+\s*\/\s*(?:CLO|PLO|SO|PO)[-_ ]?\d*|[CPA][1-7])$/i, '').trim();
+      lineText = lineText.replace(/\s*,\s*$/, '').trim();
+
+      if (/^(?:•?\s*(?:ref|book|ch(?:apter)?)\b)/i.test(lineText)) continue;
+      if (/^(?:quiz|assignment|homework|project)\s*\d*$/i.test(lineText)) continue;
+      if (/^(?:clo|plo|so|po)[-_ ]?\d*$/i.test(lineText) || /^[cpa][1-7]$/i.test(lineText)) continue;
+      if (dayNamesRe.test(lineText)) continue;
+      if (/^week\s*(?:no\.?)?\s*topics?\b/i.test(lineText)) continue;
+      if (!lineText) continue;
+
+      rawItems.push({ type: 'text', text: lineText, week: foundWeekNum });
+    }
+  }
+
+  // Stitch lines into Title vs Bullets
+  const weeks = [];
+  let currentTitle = '';
+  let currentBullets = [];
+
+  function flushWeek() {
+    if (currentTitle || currentBullets.length > 0) {
+      weeks.push({
+        title: currentTitle.trim(),
+        bullets: [...currentBullets]
+      });
+      currentTitle = '';
+      currentBullets = [];
+    }
+  }
+
+  for (let i = 0; i < rawItems.length; i++) {
+    const it = rawItems[i];
+    if (it.type === 'exam') {
+      flushWeek();
+      weeks.push({ type: 'exam', text: it.text });
+      continue;
+    }
+
+    let text = it.text.trim();
+    const isBullet = text.startsWith('•') || text.startsWith('-') || text.startsWith('*');
+
+    if (isBullet) {
+      const cleanBullet = text.replace(/^[•\-*]\s*/, '').trim();
+      currentBullets.push(cleanBullet);
+    } else {
+      if (currentBullets.length > 0) {
+        const lastBullet = currentBullets[currentBullets.length - 1];
+        const isHyphenContinuation = lastBullet.endsWith('-');
+        const isLower = /^[a-z0-9]/.test(text);
+        const isContinuationPhrase = /^(?:and|or|in|to|with|for|of|by|using|vers|against|from)\b/i.test(text);
+        const prevEndsWithPrep = /\b(?:in|and|or|of|for|with|between|versus|to|using|a|an|the|-)$/i.test(lastBullet.trim());
+        const isAbbr = /^\((?:ADTs?|PCBs?|BSTs?|C\+\+|I\/O)\)/i.test(text) || /^(?:C\+\+|ADTs?|PCBs?|BSTs?)$/i.test(text);
+        const isSingleWordNonTopic = text.split(/\s+/).length === 1 && !/^(?:Stacks|Queues|Graphs|Heaps|Recursion|Concurrency|Deadlocks)$/i.test(text);
+
+        if (isHyphenContinuation) {
+          currentBullets[currentBullets.length - 1] = lastBullet.slice(0, -1) + text;
+        } else if (isLower || isContinuationPhrase || prevEndsWithPrep || isAbbr || isSingleWordNonTopic) {
+          currentBullets[currentBullets.length - 1] = lastBullet + ' ' + text;
+        } else {
+          // This is a NEW WEEK's Title!
+          flushWeek();
+          currentTitle = text;
+        }
+      } else {
+        // No bullets yet in this week: it's part of the Title!
+        if (!currentTitle) {
+          currentTitle = text;
+        } else if (currentTitle.endsWith('-')) {
+          currentTitle = currentTitle.slice(0, -1) + text;
+        } else {
+          currentTitle += ' ' + text;
+        }
+      }
+    }
+  }
+  flushWeek();
+
+  // Format final plan
+  const outLines = [];
+  let wNum = 1;
+  for (const w of weeks) {
+    if (w.type === 'exam') {
+      outLines.push(`\n--- ${w.text.toUpperCase()} ---\n`);
+      continue;
+    }
+    const title = w.title || `Module ${wNum}`;
+    outLines.push(`Week ${wNum}: ${title}`);
+    for (const b of w.bullets) {
+      outLines.push(`  • ${b}`);
+    }
+    wNum++;
+  }
+
+  return outLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
  * Intelligent Syllabus Parser
  * Extracts Course Code & Title, Description, Weekly Outline, and CLOs from raw syllabus text
  */
@@ -659,6 +934,12 @@ export function parseSyllabusText(rawText, fileName = '') {
   const structuredCLOs = extractCLOsFromDocument(rawText);
   if (structuredCLOs && structuredCLOs.length > 0) {
     clos.push(...structuredCLOs);
+  }
+
+  // Run dedicated high-fidelity Course Plan extractor
+  const structuredPlan = extractCoursePlanFromDocument(rawText);
+  if (structuredPlan && structuredPlan.trim().length > 15) {
+    coursePlan = structuredPlan;
   }
 
   // 1. Dual Detection: Course Code & Course Title
@@ -791,7 +1072,7 @@ export function parseSyllabusText(rawText, fileName = '') {
     }
 
     // Section terminators (only when line starts explicitly with these headings)
-    if (/^\s*(?:grading\s*policy|grade\s*distribution|evaluation\s*scheme|course\s*policy|academic\s*integrity|plagiarism\s*policy|practical\s*applications|course\s*books|text\s*books|reference\s*books|recommended\s*books|student\s*assessment|\b(?:3|4|5|6|7)\.\s*(?:course\s*books|text\s*books|student\s*assessment|practical\s*applications|weekly\s*plan))/i.test(line)) {
+    if (/^\s*(?:grading\s*policy|grade\s*distribution|evaluation\s*scheme|course\s*policy|academic\s*integrity|plagiarism\s*policy|practical\s*applications|course\s*books|text\s*books|reference\s*books|recommended\s*books|student\s*assessment|complex\s*engineering\s*problem|cep\b|counseling\s*hours|counselling\s*hours|course\s*time\s*table|time\s*table|timetable|office\s*hours|class\s*schedule|\b(?:[8-9]|\d{2,})[\.\)]\s+[A-Z]|\b(?:3|4|5|6|7)\.\s*(?:course\s*books|text\s*books|student\s*assessment|practical\s*applications))\b/i.test(line) || /\bsr\.?\s*no\.?\b.*\b(?:day|venue|time)\b/i.test(line)) {
       inCLOSection = false;
       inPlanSection = false;
       inDescSection = false;
@@ -900,10 +1181,11 @@ export function parseSyllabusText(rawText, fileName = '') {
 
         // 2. Weekly Plan Table Row: e.g. 1 | Introduction to Embedded Systems... | Chapter 1... | -
         const weekDigitMatch = parts[0].match(/^(?:weeks?\s*[-_#]?\s*)?(\d{1,2}(?:\s*[-–]\s*\d{1,2})?)$/i);
-        if (weekDigitMatch && parts.length >= 2 && (inPlanSection || !inCLOSection)) {
+        if (weekDigitMatch && parts.length >= 2 && inPlanSection) {
           const wNum = weekDigitMatch[1];
           let topic = parts[1];
-          if (topic.length > 3 && !/^(?:topics?|reference|activity|week|-|nil)$/i.test(topic)) {
+          const daysOfWeekRe = /^(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i;
+          if (!daysOfWeekRe.test(topic) && topic.length > 3 && !/^(?:topics?|reference|activity|week|-|nil|clo\s*statement)$/i.test(topic) && !/^(?:clo|plo|so|po)[-_ ]?\d+/i.test(topic)) {
             const cleanTopic = topic.replace(/^week\s*\d+[:\-–\s]*/i, '').trim();
             planLines.push(`Week ${wNum}: ${cleanTopic}`);
             continue;
@@ -987,11 +1269,20 @@ export function parseSyllabusText(rawText, fileName = '') {
     }
 
     if (inPlanSection) {
-      // Exclude pure page numbers or empty artifacts
+      // Exclude pure page numbers, timetable entries, and stray section artifacts
+      const daysOfWeekRe = /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+      const isTimetableLine = daysOfWeekRe.test(line) && (/\d{1,2}:\d{2}/.test(line) || /venue|room|sr\.?\s*no\.?/i.test(line));
+      const isPostPlanHeader = /^\s*(?:\d+[\.\)]\s*)?(?:complex\s*engineering|counseling|course\s*time\s*table|timetable|office\s*hours)/i.test(line);
+
+      if (isPostPlanHeader || isTimetableLine) {
+        inPlanSection = false;
+        continue;
+      }
+
       if (line.length > 3 && !/^(?:page\s*\d+|\d+\s*of\s*\d+|confidential|week\s*no\.?|topics?|reference|activity|-|nil)$/i.test(line)) {
         if (/^week\s*\d+/i.test(line)) {
           planLines.push(line);
-        } else if (!/^(?:quizzes|assignments|mid\s*term|final\s*term|\d+%)$/i.test(line) && !/^(?:textbook|reference\s*book|author)/i.test(line)) {
+        } else if (!/^(?:quizzes|assignments|mid\s*term|final\s*term|\d+%)$/i.test(line) && !/^(?:textbook|reference\s*book|author)/i.test(line) && !daysOfWeekRe.test(line)) {
           planLines.push(line);
         }
       }
@@ -1048,12 +1339,14 @@ export function parseSyllabusText(rawText, fileName = '') {
     }
   }
 
-  // Fallback 3 for Course Plan: Synthesize authentic topical outline tailored to courseName
-  if (planLines.length > 0) {
-    const cleanPlanLines = planLines.filter(l => !/^(?:week\s*no\.?|topics?|reference|activity|-|nil)$/i.test(l.trim()));
-    coursePlan = cleanPlanLines.join('\n');
-  } else {
-    coursePlan = synthesizeDefaultOutlineForCourse(courseName, courseDescription);
+  // Fallback 3 for Course Plan: Synthesize authentic topical outline tailored to courseName if not already extracted
+  if (!coursePlan) {
+    if (planLines.length > 0) {
+      const cleanPlanLines = planLines.filter(l => !/^(?:week\s*no\.?|topics?|reference|activity|-|nil)$/i.test(l.trim()));
+      coursePlan = cleanPlanLines.join('\n');
+    } else {
+      coursePlan = synthesizeDefaultOutlineForCourse(courseName, courseDescription);
+    }
   }
 
 
