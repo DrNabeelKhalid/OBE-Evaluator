@@ -169,17 +169,41 @@ class OBEApp {
   }
 
   bindDOM() {
-    // Course Plan input listener
-    document.getElementById('input-course-plan')?.addEventListener('input', (e) => {
-      this.coursePlanText = e.target.value;
+    // Course Plan input & direct toolbar controls
+    const planInput = document.getElementById('input-course-plan');
+    const updatePlanStats = (val) => {
+      this.coursePlanText = val;
       const statusText = document.getElementById('course-plan-status-text');
+      const charCount = document.getElementById('course-plan-char-count');
+      if (charCount) charCount.textContent = `${val.length} chars`;
       if (statusText) {
-        if (e.target.value.trim().length > 15) {
-          const linesCount = e.target.value.trim().split(/\r?\n/).filter(l => l.trim().length > 0).length;
-          statusText.innerHTML = `<span class="text-emerald-700 font-bold">✓ Course Plan content active (${linesCount} weekly modules detected). Click <strong>"✨ Suggest CLOs from Course Plan"</strong> above to auto-generate aligned outcomes.</span>`;
+        if (val.trim().length > 15) {
+          const linesCount = val.trim().split(/\r?\n/).filter(l => l.trim().length > 0).length;
+          statusText.innerHTML = `<span class="text-emerald-700 font-bold">✓ Course Plan content active (${linesCount} lines/topics). Click <strong>"✨ Suggest CLOs from Course Plan"</strong> above to auto-generate aligned outcomes.</span>`;
         } else {
-          statusText.textContent = 'Enter weekly topics or click a sample above, then press "Suggest CLOs" to auto-generate aligned outcomes.';
+          statusText.textContent = 'Upload outline or paste weekly lecture topics, then click "✨ Suggest CLOs from Course Plan" to synthesize accredited outcomes.';
         }
+      }
+    };
+
+    planInput?.addEventListener('input', (e) => updatePlanStats(e.target.value));
+
+    // Direct Upload Button inside Course Plan card
+    document.getElementById('btn-upload-plan-direct')?.addEventListener('click', () => {
+      document.getElementById('syllabus-file-input')?.click();
+    });
+
+    // Direct Paste Button inside Course Plan card
+    document.getElementById('btn-paste-plan-direct')?.addEventListener('click', () => {
+      this.openPasteSyllabusModal();
+    });
+
+    // Direct Clear Button inside Course Plan card
+    document.getElementById('btn-clear-course-plan')?.addEventListener('click', () => {
+      if (planInput) {
+        planInput.value = '';
+        updatePlanStats('');
+        planInput.focus();
       }
     });
 
@@ -1525,8 +1549,16 @@ class OBEApp {
     document.getElementById('input-course-name').value = sample.name;
     document.getElementById('input-course-desc').value = sample.description;
     const planInput = document.getElementById('input-course-plan');
-    if (planInput) planInput.value = sample.coursePlan || '';
-    this.coursePlanText = sample.coursePlan || '';
+    const pVal = sample.coursePlan || '';
+    if (planInput) planInput.value = pVal;
+    this.coursePlanText = pVal;
+    const planStatusText = document.getElementById('course-plan-status-text');
+    const planCharCount = document.getElementById('course-plan-char-count');
+    if (planCharCount) planCharCount.textContent = `${pVal.length} chars`;
+    if (planStatusText && pVal) {
+      const linesCount = pVal.split(/\r?\n/).filter(l => l.trim().length > 0).length;
+      planStatusText.innerHTML = `<span class="text-emerald-700 font-bold">✓ Sample Course Plan loaded (${linesCount} topics). Click <strong>"✨ Suggest CLOs from Course Plan"</strong> above to auto-generate aligned outcomes.</span>`;
+    }
     this.courseTopics = sample.topics ? JSON.parse(JSON.stringify(sample.topics)) : [];
     this.clos = JSON.parse(JSON.stringify(sample.clos));
     this.renderCLOInputs();
@@ -1779,6 +1811,14 @@ class OBEApp {
         if (planInput) planInput.value = cPlan;
         this.coursePlanText = cPlan;
 
+        const planStatusText = document.getElementById('course-plan-status-text');
+        const planCharCount = document.getElementById('course-plan-char-count');
+        if (planCharCount) planCharCount.textContent = `${cPlan.length} chars`;
+        if (planStatusText) {
+          const linesCount = cPlan.split(/\r?\n/).filter(l => l.trim().length > 0).length;
+          planStatusText.innerHTML = `<span class="text-emerald-700 font-bold">✓ Course Plan loaded (${linesCount} weekly modules). Click <strong>"✨ Suggest CLOs from Course Plan"</strong> above to auto-generate aligned outcomes.</span>`;
+        }
+
         if (extracted.clos && extracted.clos.length > 0) {
           this.clos = extracted.clos.map((c, i) => ({
             id: i + 1,
@@ -1885,6 +1925,14 @@ class OBEApp {
         if (courseDescInput) courseDescInput.value = cDesc;
         if (planInput) planInput.value = cPlan;
         this.coursePlanText = cPlan;
+
+        const planStatusText = document.getElementById('course-plan-status-text');
+        const planCharCount = document.getElementById('course-plan-char-count');
+        if (planCharCount) planCharCount.textContent = `${cPlan.length} chars`;
+        if (planStatusText) {
+          const linesCount = cPlan.split(/\r?\n/).filter(l => l.trim().length > 0).length;
+          planStatusText.innerHTML = `<span class="text-emerald-700 font-bold">✓ Course Plan pasted (${linesCount} weekly modules). Click <strong>"✨ Suggest CLOs from Course Plan"</strong> above to auto-generate aligned outcomes.</span>`;
+        }
 
         if (parsed.clos && parsed.clos.length > 0) {
           this.clos = parsed.clos.map((c, i) => ({

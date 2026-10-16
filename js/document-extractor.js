@@ -658,6 +658,26 @@ export function extractCoursePlanFromDocument(rawText) {
 
   const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
+  // Common filters & classifiers
+  const citationRe = /(?:[A-Za-z]+:\s*Ch(?:apter)?[- ]?[\d,\s–-]+|\b(?:Goodrich|Weiss|Stallings|Deitel|Tanenbaum|Mazidi|Cormen|Silberschatz|Patterson|Pressman|Sommerville|Sedgewick|Knuth|Haykin|Oppenheim|Proakis|Boylestad|Floyd|Nilsson|Chapra|Kreyszig)\b|•?\s*(?:ref|reference|book|textbook)\b|\bCh(?:apter)?\.?\s*[-–]?\s*\d+)/i;
+  const activityRe = /^(?:quiz|assignment|homework|project|review|all|exam|lab)\b/i;
+  const outcomeRe = /^(?:clo|plo|so|po)[-_ ]?\d+|[cpa][1-7]$|\d+\s*\/\s*(?:clo|plo|so|po)[-_ ]?\d+/i;
+  const dayNamesRe = /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+
+  function isMetadataCol(col) {
+    if (!col) return true;
+    const c = col.trim();
+    if (!c) return true;
+    if (/^(?:weeks?\s*[-_#]?\s*)?\d{1,2}$/i.test(c)) return true;
+    if (outcomeRe.test(c) || /^(?:clo|plo|so|po)[-_ ]?\d+/i.test(c)) return true;
+    if (activityRe.test(c)) return true;
+    if (citationRe.test(c)) return true;
+    if (dayNamesRe.test(c)) return true;
+    if (/^\d+(?:,\s*\d+)*$/.test(c)) return true;
+    if (/^[•\-*]$/.test(c)) return true;
+    return false;
+  }
+
   // 1. Locate start of Weekly Plan section
   let startIdx = -1;
   for (let i = 0; i < lines.length; i++) {
@@ -672,6 +692,16 @@ export function extractCoursePlanFromDocument(rawText) {
     if (/\b(?:week\s*no\.?|week)\b.*\b(?:topics?|contents?)\b/i.test(l)) {
       startIdx = i;
       break;
+    }
+  }
+
+  // Fallback: Check if document directly starts with week entries (e.g. pasted topics)
+  if (startIdx === -1) {
+    for (let i = 0; i < lines.length; i++) {
+      if (/^\s*weeks?\s*\d+/i.test(lines[i])) {
+        startIdx = Math.max(0, i - 1);
+        break;
+      }
     }
   }
 
@@ -701,7 +731,6 @@ export function extractCoursePlanFromDocument(rawText) {
   const rawSectionLines = lines.slice(startIdx + 1, endIdx);
 
   // Common filters: Day names, Timetable rows, Serial numbers
-  const dayNamesRe = /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
   const timeSlotRe = /\b\d{1,2}:\d{2}\s*(?:am|pm)?\s*[-–]\s*\d{1,2}:\d{2}\s*(?:am|pm)?/i;
   const venueRe = /\b(?:venue|room\s*no\.?|[a-z]-\d{3,4}|building\s*[a-z]|lab\s*\d+)\b/i;
 
@@ -735,7 +764,7 @@ export function extractCoursePlanFromDocument(rawText) {
       const parts = l.split('|').map(p => p.trim()).filter(Boolean);
       if (parts.length >= 2 && /^(?:weeks?\s*[-_#]?\s*)?(\d{1,2})$/i.test(parts[0])) {
         const topic = parts[1];
-        if (topic.length > 5 && !topic.startsWith('•') && !/^(?:clo|plo|quiz|assignment|ref|chapter|monday|tuesday|wednesday)/i.test(topic)) {
+        if (topic.length > 5 && !topic.startsWith('•') && !isMetadataCol(topic)) {
           singleLineCount++;
         }
       }
@@ -760,7 +789,7 @@ export function extractCoursePlanFromDocument(rawText) {
         if (m && parts.length >= 2) {
           const wNum = m[1];
           let topic = parts[1].replace(/^week\s*\d+[:\-–\s]*/i, '').trim();
-          if (topic.length > 3 && !/^(?:clo|plo|quiz|assignment|ref|chapter|monday|tuesday|wednesday)/i.test(topic)) {
+          if (topic.length > 3 && !isMetadataCol(topic)) {
             result.push(`Week ${wNum}: ${topic}`);
           }
         }
@@ -771,13 +800,23 @@ export function extractCoursePlanFromDocument(rawText) {
 
   // Multi-line table mode (PDF.js / LaTeX)
   const rawItems = [];
+  let nextIsBullet = false;
+
   for (const l of validLines) {
     if (/^\s*(?:mid-?term\s*exam(?:ination)?)\s*$/i.test(l)) {
       rawItems.push({ type: 'exam', text: 'Midterm Examination' });
+      nextIsBullet = false;
       continue;
     }
     if (/^\s*(?:final\s*exam(?:ination)?)\s*$/i.test(l)) {
       rawItems.push({ type: 'exam', text: 'Final Examination' });
+      nextIsBullet = false;
+      continue;
+    }
+
+    // Check if line is solely a bullet character
+    if (/^[•\-*]$/.test(l.trim())) {
+      nextIsBullet = true;
       continue;
     }
 
@@ -788,25 +827,13 @@ export function extractCoursePlanFromDocument(rawText) {
       const parts = l.split('|').map(p => p.trim()).filter(Boolean);
       if (/^(?:weeks?\s*[-_#]?\s*)?(\d{1,2})$/i.test(parts[0])) {
         foundWeekNum = parseInt(parts[0].match(/\d+/)[0]);
-        for (let c = 1; c < parts.length; c++) {
-          let col = parts[c];
-          if (/^(?:clo|plo|so|po)[-_ ]?\d+/i.test(col) || /^[cpa][1-7]$/i.test(col)) continue;
-          if (/^(?:quiz|assignment|homework|project|review|all)\b/i.test(col)) continue;
-          if (/^(?:•?\s*(?:ref|book|ch(?:apter)?)\b)/i.test(col) || /^\d+(?:,\s*\d+)*$/.test(col)) continue;
-          if (dayNamesRe.test(col)) continue;
-          lineText = col;
-          break;
-        }
-      } else {
-        for (let c = 0; c < parts.length; c++) {
-          let col = parts[c];
-          if (/^(?:clo|plo|so|po)[-_ ]?\d+/i.test(col) || /^[cpa][1-7]$/i.test(col)) continue;
-          if (/^(?:quiz|assignment|homework|project)\b/i.test(col)) continue;
-          if (/^(?:•?\s*(?:ref|book|ch(?:apter)?)\b)/i.test(col) || /^\d+(?:,\s*\d+)*$/.test(col)) continue;
-          if (dayNamesRe.test(col)) continue;
-          lineText = col;
-          break;
-        }
+      }
+      if (parts.some(p => /^[•\-*]$/.test(p))) {
+        nextIsBullet = true;
+      }
+      const nonMeta = parts.filter(p => !isMetadataCol(p));
+      if (nonMeta.length > 0) {
+        lineText = nonMeta.join(' ');
       }
     } else {
       const loneDigit = l.match(/^(\d{1,2})$/);
@@ -814,7 +841,9 @@ export function extractCoursePlanFromDocument(rawText) {
         const val = parseInt(loneDigit[1]);
         if (val >= 1 && val <= 18) foundWeekNum = val;
       } else {
-        lineText = l;
+        if (!isMetadataCol(l)) {
+          lineText = l;
+        }
       }
     }
 
@@ -824,14 +853,14 @@ export function extractCoursePlanFromDocument(rawText) {
       lineText = lineText.replace(/\s*(?:(?:CLO|PLO|SO|PO)[-_ ]?\d*|\d+\s*\/\s*(?:CLO|PLO|SO|PO)[-_ ]?\d*|[CPA][1-7])$/i, '').trim();
       lineText = lineText.replace(/\s*,\s*$/, '').trim();
 
-      if (/^(?:•?\s*(?:ref|book|ch(?:apter)?)\b)/i.test(lineText)) continue;
-      if (/^(?:quiz|assignment|homework|project)\s*\d*$/i.test(lineText)) continue;
-      if (/^(?:clo|plo|so|po)[-_ ]?\d*$/i.test(lineText) || /^[cpa][1-7]$/i.test(lineText)) continue;
-      if (dayNamesRe.test(lineText)) continue;
+      if (isMetadataCol(lineText)) continue;
       if (/^week\s*(?:no\.?)?\s*topics?\b/i.test(lineText)) continue;
-      if (!lineText) continue;
 
-      rawItems.push({ type: 'text', text: lineText, week: foundWeekNum });
+      let isBullet = nextIsBullet || lineText.startsWith('•') || lineText.startsWith('-') || lineText.startsWith('*');
+      lineText = lineText.replace(/^[•\-*]\s*/, '').trim();
+      nextIsBullet = false;
+
+      rawItems.push({ type: 'text', text: lineText, week: foundWeekNum, isBullet });
     }
   }
 
@@ -860,11 +889,9 @@ export function extractCoursePlanFromDocument(rawText) {
     }
 
     let text = it.text.trim();
-    const isBullet = text.startsWith('•') || text.startsWith('-') || text.startsWith('*');
 
-    if (isBullet) {
-      const cleanBullet = text.replace(/^[•\-*]\s*/, '').trim();
-      currentBullets.push(cleanBullet);
+    if (it.isBullet) {
+      currentBullets.push(text);
     } else {
       if (currentBullets.length > 0) {
         const lastBullet = currentBullets[currentBullets.length - 1];
@@ -914,7 +941,12 @@ export function extractCoursePlanFromDocument(rawText) {
     wNum++;
   }
 
-  return outLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  const finalPlan = outLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  // Sanity check: Ensure plan is not solely citations or empty
+  if (finalPlan.length < 20 || (finalPlan.match(/Week \d+:/g) || []).length < 2) {
+    return '';
+  }
+  return finalPlan;
 }
 
 /**
