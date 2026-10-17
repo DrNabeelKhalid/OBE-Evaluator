@@ -122,37 +122,195 @@ Week 13-16: Thermal Management, EMI/EMC Regulations & Closed-Loop Motor Drives (
   }
 };
 
-export const SAMPLE_ASSESSMENT = {
-  courseName: 'EE-312 Microcontroller & Embedded Systems',
-  title: 'Midterm Examination (Spring 2026)',
-  totalMarks: 50,
-  questions: [
-    {
-      id: 1,
-      qNumber: 'Q1',
-      text: 'Define the term "Interrupt Vector Table" and state the default vector address for the SysTick timer in ARM Cortex-M architecture.',
-      marks: 10,
-      mappedCLO: 'CLO-1',
-      targetTaxonomy: 'C2'
-    },
-    {
-      id: 2,
-      qNumber: 'Q2',
-      text: 'Examine the provided logic analyzer trace of an SPI bus transaction showing clock jitter and missed acknowledgements. Identify the root cause of the framing error and substantiate your conclusion with bus protocol calculations.',
-      marks: 15,
-      mappedCLO: 'CLO-2',
-      targetTaxonomy: 'C4'
-    },
-    {
-      id: 3,
-      qNumber: 'Q3',
-      text: 'List 4 differences between polling and interrupt mechanisms in embedded systems.',
-      marks: 25,
-      mappedCLO: 'CLO-3',
-      targetTaxonomy: 'C6'
-    }
-  ]
+export const ASSESSMENT_TYPES = [
+  { id: 'midterm', title: 'Midterm Examination', defaultMarks: 35, category: 'Summative Exam', desc: 'Mid-semester analytical examination evaluating foundational theory and problem-solving (C2–C4).' },
+  { id: 'final', title: 'Final Term Examination', defaultMarks: 50, category: 'Terminal Exam', desc: 'Comprehensive summative terminal exam evaluating Washington Accord Complex Engineering Problems (WP1–WP7) and C4–C6 cognitive design.' },
+  { id: 'quiz', title: 'Quiz', defaultMarks: 10, category: 'Formative Assessment', desc: 'Short, focused continuous knowledge check evaluating specific weekly modules and conceptual clarity (C1–C3).' },
+  { id: 'assignment', title: 'Assignment / Homework', defaultMarks: 20, category: 'Continuous Assessment', desc: 'Open-ended problem set or simulation assignment demanding multi-step calculations and trade-off analysis (C3–C5).' },
+  { id: 'lab', title: 'Lab Assessment / OEL', defaultMarks: 25, category: 'Practical & Psychomotor', desc: 'Hands-on practical testbench exam, apparatus calibration, experimental debugging, and viva voce (P3–P5).' },
+  { id: 'project', title: 'Semester Project / Capstone', defaultMarks: 30, category: 'Design Synthesis', desc: 'Team-based or individual hardware/software design synthesis with standards compliance and formal documentation (C6, A2–A5).' }
+];
+
+export const SAMPLE_ASSESSMENTS = {
+  midterm: {
+    type: 'midterm',
+    title: 'Midterm Examination (Spring 2026)',
+    courseName: 'EE-312 Microcontroller & Embedded Systems',
+    totalMarks: 50,
+    questions: [
+      {
+        id: 1,
+        qNumber: 'Q1',
+        text: 'Define the term "Interrupt Vector Table" and state the default vector address for the SysTick timer in ARM Cortex-M architecture.',
+        marks: 10,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C2'
+      },
+      {
+        id: 2,
+        qNumber: 'Q2',
+        text: 'Examine the provided logic analyzer trace of an SPI bus transaction showing clock jitter and missed acknowledgements. Identify the root cause of the framing error and substantiate your conclusion with bus protocol calculations.',
+        marks: 15,
+        mappedCLO: 'CLO-2',
+        targetTaxonomy: 'C4'
+      },
+      {
+        id: 3,
+        qNumber: 'Q3',
+        text: 'List 4 differences between polling and interrupt mechanisms in embedded systems.',
+        marks: 25,
+        mappedCLO: 'CLO-3',
+        targetTaxonomy: 'C6'
+      }
+    ]
+  },
+  final: {
+    type: 'final',
+    title: 'Final Term Examination (Spring 2026)',
+    courseName: 'EE-312 Microcontroller & Embedded Systems',
+    totalMarks: 50,
+    questions: [
+      {
+        id: 1,
+        qNumber: 'Q1',
+        text: 'Explain the internal memory architecture and bus matrix arbitration scheme of a 32-bit ARM Cortex-M microcontroller during simultaneous DMA and CPU SRAM accesses.',
+        marks: 10,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C2'
+      },
+      {
+        id: 2,
+        qNumber: 'Q2',
+        text: 'Calculate the reload value, prescaler settings, and quantization error for a 16-bit hardware timer generating a 25 kHz complementary PWM waveform with 200 ns dead-time insertion at a 72 MHz system clock.',
+        marks: 10,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C3'
+      },
+      {
+        id: 3,
+        qNumber: 'Q3',
+        text: 'Analyze the provided multi-master I2C bus oscilloscope trace exhibiting clock stretching timeouts and bus lockup. Diagnose the fault mechanism, calculate pull-up resistor constraints under 400 pF bus capacitance, and formulate firmware recovery routines.',
+        marks: 15,
+        mappedCLO: 'CLO-2',
+        targetTaxonomy: 'C4'
+      },
+      {
+        id: 4,
+        qNumber: 'Q4',
+        text: 'Design a low-power, interrupt-driven multi-sensor industrial telemetry node using STM32 and FreeRTOS. Synthesize the complete task priority architecture, mutex locking scheme, power-saving sleep modes, and fail-safe watchdog timer routines.',
+        marks: 15,
+        mappedCLO: 'CLO-3',
+        targetTaxonomy: 'C6'
+      }
+    ]
+  },
+  quiz: {
+    type: 'quiz',
+    title: 'Quiz 1: Fundamentals & Pointer Mechanics',
+    courseName: 'EE-312 Microcontroller & Embedded Systems',
+    totalMarks: 5,
+    questions: [
+      {
+        id: 1,
+        qNumber: 'Q1(a)',
+        text: 'Calculate the average of four sensor readings stored in a consecutive integer buffer: readings[4] = {20, 30, 40, 50}.',
+        marks: 1,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C3'
+      },
+      {
+        id: 2,
+        qNumber: 'Q1(b)',
+        text: 'Given int *ptr = readings;, what value is stored in ptr and what value is returned by dereferencing *ptr?',
+        marks: 1,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C3'
+      },
+      {
+        id: 3,
+        qNumber: 'Q1(c)',
+        text: 'Explain why an indexed array is more suitable than four individual integer variables for real-time sensor processing.',
+        marks: 1,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C2'
+      },
+      {
+        id: 4,
+        qNumber: 'Q1(d)',
+        text: 'Identify one suitable data attribute and one member function for an object-oriented Sensor class modeling a distance detector.',
+        marks: 1,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C1'
+      },
+      {
+        id: 5,
+        qNumber: 'Q1(e)',
+        text: 'Explain how class encapsulation and object instantiation help organize embedded sensor telemetry operations.',
+        marks: 1,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C2'
+      }
+    ]
+  },
+  assignment: {
+    type: 'assignment',
+    title: 'Assignment 2: Embedded Firmware Architecture & Bus Analysis',
+    courseName: 'EE-312 Microcontroller & Embedded Systems',
+    totalMarks: 20,
+    questions: [
+      {
+        id: 1,
+        qNumber: 'Q1',
+        text: 'Analyze the worst-case interrupt response latency for an ARM Cortex-M4 microcontroller running at 80 MHz with 12 nested interrupt sources. Formulate the mathematical equation accounting for tail-chaining, late arrival, and context stacking cycles.',
+        marks: 10,
+        mappedCLO: 'CLO-2',
+        targetTaxonomy: 'C4'
+      },
+      {
+        id: 2,
+        qNumber: 'Q2',
+        text: 'Evaluate the trade-offs between SPI, I2C, and UART serial protocols for interfacing a 100 Hz IMU sensor, an EEPROM, and a GPS receiver on an autonomous drone flight controller. Propose the optimal pinout and register configuration.',
+        marks: 10,
+        mappedCLO: 'CLO-2',
+        targetTaxonomy: 'C5'
+      }
+    ]
+  },
+  lab: {
+    type: 'lab',
+    title: 'Open-Ended Lab Assessment 1: Peripheral Debugging',
+    courseName: 'EE-312L Microcontroller & Embedded Systems Lab',
+    totalMarks: 25,
+    questions: [
+      {
+        id: 1,
+        qNumber: 'Task 1',
+        text: 'Calibrate the digital storage oscilloscope and probe connections to measure rise time, fall time, and signal overshoot on the high-speed SPI SCK line.',
+        marks: 5,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'P3'
+      },
+      {
+        id: 2,
+        qNumber: 'Task 2',
+        text: 'Conduct systematic serial packet capture using a logic analyzer testbench to verify byte alignment and decode I2C acknowledge bits during multi-byte burst reads.',
+        marks: 10,
+        mappedCLO: 'CLO-2',
+        targetTaxonomy: 'P4'
+      },
+      {
+        id: 3,
+        qNumber: 'Task 3',
+        text: 'Construct and troubleshoot an interrupt-driven firmware routine on the STM32 workbench that captures rotary encoder quadrature pulses without missing steps.',
+        marks: 10,
+        mappedCLO: 'CLO-3',
+        targetTaxonomy: 'P5'
+      }
+    ]
+  }
 };
+
+export const SAMPLE_ASSESSMENT = SAMPLE_ASSESSMENTS.midterm;
 
 export const AI_RLI_FRAMEWORK_PILLARS = [
   {

@@ -739,6 +739,76 @@
           </div>
         </div>
 
+        <!-- Assessment Instrument Type Selector & Metadata Configuration Bar -->
+        <div class="mt-3.5 p-4 bg-gradient-to-r from-slate-50 via-blue-50/40 to-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <!-- Assessment Type Selector & Title Input -->
+            <div class="flex-1 flex flex-wrap items-center gap-2.5">
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-800">Instrument:</span>
+                <select id="assessment-type-select" class="text-xs font-bold px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs">
+                  <option value="midterm" selected>Midterm Examination (Summative C2–C4)</option>
+                  <option value="final">Final Term Examination (Terminal Complex Problems WP1–WP7, C4–C6)</option>
+                  <option value="quiz">Quiz (Rapid Formative Knowledge Check C1–C3)</option>
+                  <option value="assignment">Assignment / Homework (Open-ended analytical C3–C5)</option>
+                  <option value="lab">Lab Assessment / Open-Ended Lab (Hands-on Psychomotor P1–P7)</option>
+                  <option value="project">Semester Project / Capstone (Design Synthesis C6, A2–A5)</option>
+                </select>
+              </div>
+
+              <!-- Title Input -->
+              <div class="flex items-center gap-1.5 flex-1 min-w-[200px]">
+                <label for="assessment-title-input" class="text-[11px] font-bold text-slate-600 shrink-0 uppercase">Title:</label>
+                <input 
+                  type="text" 
+                  id="assessment-title-input" 
+                  value="Midterm Examination (Spring 2026)" 
+                  class="w-full px-2.5 py-1 text-xs font-bold bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-blue-500"
+                  placeholder="e.g., Quiz 1, Assignment 2, Midterm Exam..."
+                />
+              </div>
+            </div>
+
+            <!-- Stats Counters -->
+            <div class="flex items-center gap-2 shrink-0 self-end lg:self-center">
+              <span id="assessment-total-marks-badge" class="px-3 py-1 rounded-xl bg-white border border-blue-200 font-mono font-black text-xs text-blue-900 shadow-2xs">
+                Total Marks: 50
+              </span>
+              <span id="assessment-q-count-badge" class="px-3 py-1 rounded-xl bg-white border border-slate-200 font-bold text-xs text-slate-700 shadow-2xs">
+                3 Questions
+              </span>
+            </div>
+          </div>
+
+          <!-- Quick Benchmark Preset Chips for All Assessment Types -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/70 text-xs">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[11px] font-black uppercase text-slate-500 tracking-wide mr-1">Load Presets:</span>
+              <button type="button" class="btn-assess-preset px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-700 text-white hover:bg-blue-800 transition-all shadow-2xs" data-preset="midterm">
+                Midterm Exam (50m)
+              </button>
+              <button type="button" class="btn-assess-preset px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-blue-200 text-blue-900 hover:bg-blue-50 transition-all shadow-2xs" data-preset="final">
+                Final Exam (50m, WP1–WP7)
+              </button>
+              <button type="button" class="btn-assess-preset px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-amber-200 text-amber-900 hover:bg-amber-50 transition-all shadow-2xs" data-preset="quiz">
+                Quiz 1 (5m, OOP/Pointers)
+              </button>
+              <button type="button" class="btn-assess-preset px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-purple-200 text-purple-900 hover:bg-purple-50 transition-all shadow-2xs" data-preset="assignment">
+                Assignment 2 (20m)
+              </button>
+              <button type="button" class="btn-assess-preset px-2.5 py-1 text-xs font-bold rounded-lg bg-white border border-emerald-200 text-emerald-900 hover:bg-emerald-50 transition-all shadow-2xs" data-preset="lab">
+                Lab Assessment (25m, P3–P5)
+              </button>
+            </div>
+
+            <!-- Accreditation Guidance Text -->
+            <div id="assessment-type-guidance" class="text-[11px] text-slate-600 font-medium flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span id="assessment-type-guidance-text">Mid-semester analytical examination evaluating foundational theory and problem-solving (C2–C4).</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Dynamic Assessment Status / Feedback Banner -->
         <div id="assessment-status-banner" class="hidden mt-3 p-3 bg-blue-50/90 border border-blue-200 rounded-2xl text-xs font-medium transition-all flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
@@ -756,15 +826,15 @@
         <!-- Left: Questions Input & Upload Dropzone -->
         <div class="lg:col-span-6 space-y-4">
 
-          <!-- Dropzone Card for Exam / Quiz Paper -->
+          <!-- Dropzone Card for Any Assessment Paper -->
           <div id="assessment-dropzone" class="p-4 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-slate-50 border-2 border-dashed border-orange-300 hover:border-orange-500 hover:bg-orange-50/90 rounded-2xl flex items-center justify-between gap-4 cursor-pointer transition-all shadow-2xs" title="Click or drag &amp; drop an assessment file here">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 shadow-2xs font-black">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
               </div>
               <div>
-                <span class="text-xs font-black text-slate-950 block">Upload Assessment (Exam / Quiz Paper)</span>
-                <span class="text-[11px] text-slate-600 block mt-0.5">Click or drag &amp; drop Word (.docx), PDF, or Text file to auto-extract questions</span>
+                <span class="text-xs font-black text-slate-950 block">Upload Assessment (Quiz, Assignment, Midterm, Final, or Lab)</span>
+                <span class="text-[11px] text-slate-600 block mt-0.5">Click or drag &amp; drop Word (.docx), PDF, or Text file to auto-extract questions &amp; marks</span>
               </div>
             </div>
             <span class="px-3 py-1.5 rounded-xl bg-white border border-orange-200 text-xs font-bold text-orange-700 shrink-0 shadow-2xs hover:bg-orange-50">
@@ -2454,7 +2524,7 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=4.4"></script>
-  <script type="module" src="./js/demo-video.js?v=4.4"></script>
+  <script type="module" src="./js/app.js?v=4.5"></script>
+  <script type="module" src="./js/demo-video.js?v=4.5"></script>
 </body>
 </html>

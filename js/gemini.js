@@ -1,7 +1,7 @@
 // Gemini AI Engine & Multimodal Document Evaluator
 // Integrates with Google Gemini API (gemini-2.5-flash / gemini-1.5-flash)
 
-import { parseSyllabusText, extractQuestionsFromDocument } from './document-extractor.js';
+import { parseSyllabusText, extractQuestionsFromDocument, detectAssessmentType } from './document-extractor.js';
 
 export class GeminiOBEEvaluator {
   constructor() {
@@ -129,28 +129,39 @@ Target Taxonomy Level: ${c.taxonomy}`).join('\n\n')}`;
   }
 
   /**
-   * Evaluates an Assessment (Exam/Quiz) against mapped CLOs
+   * Evaluates an Assessment (Exam/Quiz/Assignment/Lab/Project) against mapped CLOs
    */
-  async evaluateAssessment({ courseName, clos, questions }) {
+  async evaluateAssessment({ courseName, clos, questions, assessmentType = 'midterm', assessmentTitle = 'Assessment Examination' }) {
     if (!this.hasApiKey()) {
-      return this.simulateAssessmentEvaluation({ courseName, clos, questions });
+      return this.simulateAssessmentEvaluation({ courseName, clos, questions, assessmentType, assessmentTitle });
     }
 
-    const systemPrompt = `You are a Senior OBE Assessment Auditor for an Engineering program.
-Your task is to audit exam/quiz questions to verify whether they authentically test the intended Course Learning Outcomes (CLOs) at their specified Bloom's Taxonomy cognitive levels (Cognitive Match).
+    const instrumentGuidance = {
+      final: 'INSTRUMENT: Final Term Examination (Terminal Summative). Under Washington Accord and PEC Criterion 3, the final exam must assess Complex Engineering Problems (WP1–WP7) and Higher-Order Cognitive skills (C4–C6). Low-level rote recall (C1) is unacceptable as a primary question in terminal exams. Ensure rigorous engineering depth, boundary condition analysis, and design synthesis.',
+      midterm: 'INSTRUMENT: Midterm Examination (Summative Mid-Semester). Checks foundational theory, mathematical derivations, and medium-complexity analytical problem-solving (C2–C4). Flag instances where C5/C6 CLOs are tested with trivial recall.',
+      quiz: 'INSTRUMENT: Quiz (Rapid Formative Knowledge Check). Quizzes are formative, rapid (5–15 mins, 5–15 marks), and assess immediate weekly modules. Short conceptual checks (C1 Recall, C2 Understanding, C3 Application) and multipart sub-questions (a)–(e) are valid and encouraged. Verify prompt clarity and appropriate time-to-mark ratio rather than penalizing for lack of complex multi-hour synthesis.',
+      assignment: 'INSTRUMENT: Assignment / Homework (Continuous Assessment). Students have open access to textbooks and tools. It must require multi-step calculations, trade-off analysis, simulation modeling, or design formulation (C3–C5). Flag questions that can be trivially copied from textbook definitions.',
+      lab: 'INSTRUMENT: Lab Assessment / Open-Ended Lab (Hands-on Practical & Psychomotor). Evaluates apparatus operation, precision calibration, signal measurement, troubleshooting, and viva voce across Psychomotor (P1–P7) and Cognitive (C3–C5) domains. Ensure tasks require active experimental procedure or diagnostic synthesis rather than passive essay writing.',
+      project: 'INSTRUMENT: Semester Project / Capstone Evaluation. Evaluates open-ended design synthesis (C6), engineering standards compliance, realistic constraints (economic, safety, environmental), and professional ethics/teamwork (Affective A2–A5).'
+    }[assessmentType] || 'INSTRUMENT: Standard Engineering Assessment.';
+
+    const systemPrompt = `You are a Senior OBE Assessment Auditor for an Engineering program accredited under Washington Accord / PEC standards.
+Your task is to audit assessment questions to verify whether they authentically test the intended Course Learning Outcomes (CLOs) at their specified Bloom's / Psychomotor Taxonomy levels (Cognitive & Domain Match).
+
+${instrumentGuidance}
 
 Critical Audit Rules:
-1. Cognitive Depth Check: If a question is mapped to a high-order CLO (like C6 Design or C4 Analysis) but only asks for recall/definition (C1/C2), flag a severe "Cognitive Mismatch".
+1. Cognitive/Domain Depth Check: Compare the question's actual demand against the mapped CLO's target taxonomy level. Flag severe mismatches (e.g., C6 CLO tested via simple C1 listing, or hands-on lab tested purely by theoretical essay).
 2. Content Alignment: Verify if the question content directly evaluates the competency stated in the mapped CLO.
-3. Clarity and Marks Proportion: Evaluate if the question phrasing is unambiguous and if the marks allocated are justified by the required cognitive effort.
+3. Clarity and Marks Proportion: Evaluate if the question phrasing is unambiguous and if the marks allocated are justified by the required cognitive/practical effort.
 4. Score each question from 1 to 10.
 5. Verdict MUST be "ALIGNED" (score >= 8), "NEEDS_REFINEMENT" (score 6-7), or "MISALIGNED" (score < 6).
 
 Respond strictly with a valid JSON object matching this structure:
 {
   "totalAlignmentScore": 7.4,
-  "overallSummary": "Audit summary of the assessment instrument...",
-  "marksDistribution": "Analysis of mark weights across cognitive domains...",
+  "overallSummary": "Audit summary tailored to the assessment instrument...",
+  "marksDistribution": "Analysis of mark weights across cognitive/psychomotor domains...",
   "questions": [
     {
       "qId": 1,
@@ -158,13 +169,15 @@ Respond strictly with a valid JSON object matching this structure:
       "alignmentVerdict": "MISALIGNED",
       "cognitiveMatch": "Question tests C1 (recall) but is mapped to CLO-3 (C6 Design)",
       "strengths": ["Clearly phrased prompt"],
-      "weaknesses": ["Significant cognitive level deflation: requires listing rather than synthesis", "Marks (25) excessively high for rote memorization"],
-      "suggestedRevision": "Rewritten question that authentically challenges students at C6 level..."
+      "weaknesses": ["Significant cognitive level deflation: requires listing rather than synthesis", "Marks excessively high for rote memorization"],
+      "suggestedRevision": "Rewritten question that authentically challenges students at the intended level..."
     }
   ]
 }`;
 
     const userPrompt = `Course Name: ${courseName}
+Assessment Instrument Type: ${assessmentType.toUpperCase()}
+Assessment Title: ${assessmentTitle}
 Target CLOs:
 ${clos.map(c => `CLO-${c.id}: ${c.statement} [${c.plo}, ${c.taxonomy}]`).join('\n')}
 
@@ -180,7 +193,7 @@ Target Taxonomy: ${q.targetTaxonomy}`).join('\n\n')}`;
       return this.parseJSONResponse(response);
     } catch (err) {
       console.warn('Gemini API call failed, falling back to simulated evaluation engine:', err);
-      return this.simulateAssessmentEvaluation({ courseName, clos, questions, errorNote: err.message });
+      return this.simulateAssessmentEvaluation({ courseName, clos, questions, assessmentType, assessmentTitle, errorNote: err.message });
     }
   }
 
@@ -312,6 +325,7 @@ Respond strictly with valid JSON:
         const parsed = this.parseJSONResponse(response);
         if (parsed && parsed.questions && parsed.questions.length > 0) {
           const totalMarks = parsed.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+          const assessmentType = detectAssessmentType(parsed.assessmentTitle || fileName, rawText);
           return {
             questions: parsed.questions.map((q, idx) => ({
               id: idx + 1,
@@ -323,6 +337,7 @@ Respond strictly with valid JSON:
             })),
             courseTitle: parsed.courseTitle || null,
             assessmentTitle: parsed.assessmentTitle || null,
+            assessmentType,
             totalMarks
           };
         }
@@ -359,6 +374,7 @@ Respond strictly with valid JSON:
         const parsed = this.parseJSONResponse(response);
         if (parsed && parsed.questions && parsed.questions.length > 0) {
           const totalMarks = parsed.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+          const assessmentType = detectAssessmentType(parsed.assessmentTitle || fileName, '');
           return {
             questions: parsed.questions.map((q, idx) => ({
               id: idx + 1,
@@ -370,6 +386,7 @@ Respond strictly with valid JSON:
             })),
             courseTitle: parsed.courseTitle || null,
             assessmentTitle: parsed.assessmentTitle || null,
+            assessmentType,
             totalMarks
           };
         }
@@ -1179,52 +1196,173 @@ Respond strictly with valid JSON matching this schema:
     });
   }
 
-  simulateAssessmentEvaluation({ courseName, clos, questions, errorNote }) {
+  simulateAssessmentEvaluation({ courseName, clos, questions, assessmentType = 'midterm', assessmentTitle = 'Assessment Examination', errorNote }) {
+    const totalMarks = questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+
     const questionAudits = questions.map((q, idx) => {
-      const isQ3RecallDeflation = q.text.toLowerCase().includes('list') && q.targetTaxonomy === 'C6';
-      
-      if (isQ3RecallDeflation) {
+      const qNum = q.qNumber || `Q${idx + 1}`;
+      const textLower = (q.text || '').toLowerCase();
+      const tax = q.targetTaxonomy || 'C3';
+
+      // 1. Deflation check: Low-level verb mapped to C5/C6
+      const isDeflation = (textLower.includes('list') || textLower.includes('define') || textLower.includes('state')) && (tax === 'C5' || tax === 'C6');
+
+      if (isDeflation) {
         return {
           qId: q.id || idx + 1,
           score: 4.0,
           alignmentVerdict: 'MISALIGNED',
-          cognitiveMatch: 'Severe Cognitive Deflation: Question requires simple C1/C2 listing, but is mapped to C6 (Design).',
+          cognitiveMatch: `Severe Cognitive Deflation: Question requires simple recall/listing, but is mapped to high-order ${tax} (${tax === 'C6' ? 'Design' : 'Evaluation'}).`,
           strengths: [
-            'Clear and grammatically sound question prompt'
+            'Clear and grammatically sound question prompt',
+            'Unambiguous terminology'
           ],
           weaknesses: [
-            'Tests basic memory retrieval rather than high-order synthesis or design.',
-            `Allocates ${q.marks} marks (50% of assessment) to a low-level recall task.`,
+            'Tests basic memory retrieval rather than high-order engineering synthesis or design.',
+            `Allocates ${q.marks} marks to a low-level recall task.`,
             `Directly misaligned with target outcome (${q.mappedCLO})`
           ],
           suggestedRevision: 'Design an interrupt-handling architecture for a battery-powered sensor node. Provide the complete C initialization routine for SysTick and GPIO edge triggers, and calculate the worst-case interrupt latency under 16 MHz clock constraints.'
         };
-      } else {
+      }
+
+      // 2. Instrument-specific checks
+      if (assessmentType === 'quiz') {
         return {
           qId: q.id || idx + 1,
-          score: 8.8,
+          score: 9.3,
           alignmentVerdict: 'ALIGNED',
-          cognitiveMatch: `Question cognitive demand matches target level (${q.targetTaxonomy}) and evaluates ${q.mappedCLO}.`,
+          cognitiveMatch: `Cognitive demand (${tax}) authentically matches formative knowledge check objectives for ${q.mappedCLO}.`,
           strengths: [
-            'Demands analytical reasoning and technical calculation.',
-            'Uses realistic oscilloscope/bus waveforms for problem context.',
-            'Well-calibrated mark distribution.'
+            'Concise, unambiguous question statement ideal for rapid formative evaluation.',
+            'Directly tests module fundamentals and conceptual precision.',
+            `Appropriate mark weighting (${q.marks}m) for a continuous quiz item.`
           ],
           weaknesses: [
-            'Include specific tolerance parameters for boundary calculations.'
+            'Consider adding a 30-second time allocation guideline for student pacing.'
           ],
           suggestedRevision: q.text
         };
       }
+
+      if (assessmentType === 'lab') {
+        const isPsychomotor = tax.startsWith('P');
+        return {
+          qId: q.id || idx + 1,
+          score: isPsychomotor ? 9.4 : 8.7,
+          alignmentVerdict: 'ALIGNED',
+          cognitiveMatch: isPsychomotor 
+            ? `Psychomotor competency (${tax}) verified: authentic hands-on testbench task evaluating ${q.mappedCLO}.`
+            : `Practical laboratory reasoning (${tax}) matches experiment analysis for ${q.mappedCLO}.`,
+          strengths: [
+            'Directly assesses hands-on testbench execution, apparatus handling, and waveform analysis.',
+            'Requires active experimental measurement rather than passive theoretical recall.',
+            'Includes clear observable criteria for laboratory viva voce and rubric marking.'
+          ],
+          weaknesses: [
+            'Explicitly specify instrument calibration tolerances (e.g. ±2% voltage/timebase accuracy).'
+          ],
+          suggestedRevision: q.text
+        };
+      }
+
+      if (assessmentType === 'assignment') {
+        return {
+          qId: q.id || idx + 1,
+          score: 9.1,
+          alignmentVerdict: 'ALIGNED',
+          cognitiveMatch: `Analytical depth (${tax}) matches open-ended continuous assignment expectations for ${q.mappedCLO}.`,
+          strengths: [
+            'Demands multi-step engineering calculations and protocol trade-off comparisons.',
+            'Unsuitable for simple verbatim copying from textbooks; requires independent modeling.',
+            'Well-calibrated mark weight for an extensive problem set.'
+          ],
+          weaknesses: [
+            'Provide reference data sheet excerpt or register map if specific timing constraints are assumed.'
+          ],
+          suggestedRevision: q.text
+        };
+      }
+
+      if (assessmentType === 'final') {
+        return {
+          qId: q.id || idx + 1,
+          score: 9.4,
+          alignmentVerdict: 'ALIGNED',
+          cognitiveMatch: `Comprehensive summative depth (${tax}) authentically assesses Washington Accord Complex Engineering Problems (WP1–WP7) for ${q.mappedCLO}.`,
+          strengths: [
+            'Rigorously tests system-level design and diagnostic troubleshooting.',
+            'Combines theoretical principles with real-world bus protocols and hardware constraints.',
+            'Conforms to terminal examination Bloom taxonomy weightings.'
+          ],
+          weaknesses: [
+            'State allowable assumptions regarding clock jitter and supply voltage variations.'
+          ],
+          suggestedRevision: q.text
+        };
+      }
+
+      // Default (midterm / general)
+      return {
+        qId: q.id || idx + 1,
+        score: 8.8,
+        alignmentVerdict: 'ALIGNED',
+        cognitiveMatch: `Question cognitive demand matches target level (${tax}) and evaluates ${q.mappedCLO}.`,
+        strengths: [
+          'Demands analytical reasoning and technical calculation.',
+          'Uses realistic oscilloscope/bus waveforms for problem context.',
+          'Well-calibrated mark distribution.'
+        ],
+        weaknesses: [
+          'Include specific tolerance parameters for boundary calculations.'
+        ],
+        suggestedRevision: q.text
+      };
     });
 
+    const hasDeflation = questionAudits.some(a => a.alignmentVerdict === 'MISALIGNED');
+
+    let totalScore = 8.9;
+    let overallSummary = '';
+    let marksDistribution = '';
+
+    if (hasDeflation) {
+      totalScore = 7.2;
+      overallSummary = `Assessment "${assessmentTitle}" for "${courseName}" contains high-quality analytical questions, but exhibits significant cognitive misalignment in questions where high-order design/evaluation was tested through low-level recall.`;
+      marksDistribution = `Recall & Comprehension (C1/C2: 60%), Analytical Diagnosis (C4: 30%), Deflated Design (C6: 0% actual depth). Total: ${totalMarks} Marks.`;
+    } else if (assessmentType === 'quiz') {
+      totalScore = 9.2;
+      overallSummary = `Formative Quiz "${assessmentTitle}" for "${courseName}" demonstrates sound pedagogical calibration. The ${questions.length} items effectively evaluate immediate weekly module comprehension and calculation mechanics (C1–C3) without cognitive inflation.`;
+      marksDistribution = `Formative Recall & Concept (C1/C2: 60%), Focused Application & Pointer Math (C3: 40%). Total: ${totalMarks} Marks.`;
+    } else if (assessmentType === 'lab') {
+      totalScore = 9.3;
+      overallSummary = `Laboratory Assessment "${assessmentTitle}" for "${courseName}" satisfies Washington Accord / PEC Psychomotor accreditation requirements. Successfully evaluates hands-on testbench calibration, signal capture, and firmware debugging (P3–P5).`;
+      marksDistribution = `Hands-on Apparatus Operation & Calibration (P3: 20%), Testbench Signal Analysis & Acquisition (P4: 40%), Experimental Debugging & Synthesis (P5: 40%). Total: ${totalMarks} Marks.`;
+    } else if (assessmentType === 'assignment') {
+      totalScore = 9.0;
+      overallSummary = `Continuous Assignment "${assessmentTitle}" for "${courseName}" presents challenging, multi-step engineering calculations and protocol trade-off evaluations (C4–C5), fulfilling higher-order analytical problem-solving criteria.`;
+      marksDistribution = `Analytical Latency Modeling (C4: 50%), Communication Protocol Trade-off Evaluation (C5: 50%). Total: ${totalMarks} Marks.`;
+    } else if (assessmentType === 'final') {
+      totalScore = 9.4;
+      overallSummary = `Terminal Final Examination "${assessmentTitle}" for "${courseName}" rigorously evaluates Washington Accord Complex Engineering Problems (WP1–WP7). Strong coverage of timer calculations (C3), protocol fault diagnosis (C4), and low-power system synthesis (C6).`;
+      marksDistribution = `Comprehension (C2: 20%), Engineering Math (C3: 20%), Protocol Diagnostics (C4: 30%), Embedded System Synthesis (C6: 30%). Total: ${totalMarks} Marks.`;
+    } else if (assessmentType === 'project') {
+      totalScore = 9.2;
+      overallSummary = `Capstone / Semester Project Assessment "${assessmentTitle}" for "${courseName}" rigorously evaluates end-to-end design synthesis (C6), multidisciplinary constraints, and professional engineering practice (Affective A2–A5).`;
+      marksDistribution = `System Architecture & Implementation (C6: 70%), Standards, Ethics & Teamwork (A3/A4: 30%). Total: ${totalMarks} Marks.`;
+    } else {
+      totalScore = 8.8;
+      overallSummary = `Midterm Examination "${assessmentTitle}" for "${courseName}" demonstrates sound alignment across foundational theory and analytical problem-solving (C2–C4).`;
+      marksDistribution = `Foundational Theory (C2: 30%), Applied Calculation (C3: 30%), Analytical Diagnostics (C4: 40%). Total: ${totalMarks} Marks.`;
+    }
+
     return {
-      totalAlignmentScore: 7.2,
-      overallSummary: `Assessment for "${courseName}" contains high-quality analytical questions, but exhibits significant cognitive misalignment in Q3 where a C6 design CLO was tested through low-level recall.`,
-      marksDistribution: 'C1/C2 (30 marks / 60%), C4 (15 marks / 30%), C6 (0 marks actual depth / inflated mapping).',
+      totalAlignmentScore: totalScore,
+      overallSummary,
+      marksDistribution,
       questions: questionAudits,
       isSimulated: true,
-      simulationNotice: errorNote ? `Live API note: ${errorNote}` : 'Generated via Academic Accreditation Audit Engine (Demo Mode)'
+      simulationNotice: errorNote ? `Live API note: ${errorNote}` : `Generated via Academic Accreditation Audit Engine (${assessmentType.toUpperCase()} mode)`
     };
   }
   /**

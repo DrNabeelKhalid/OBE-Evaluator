@@ -3,13 +3,13 @@
 // Faculty of Engineering - Department of Electrical Engineering
 
 import { 
-  PLO_LIST, TAXONOMY_LEVELS, UNMEASURABLE_VERBS_WARNING, SAMPLE_COURSES, SAMPLE_ASSESSMENT, SAMPLE_RESILIENCE_PRESETS,
+  PLO_LIST, TAXONOMY_LEVELS, UNMEASURABLE_VERBS_WARNING, SAMPLE_COURSES, SAMPLE_ASSESSMENT, SAMPLE_ASSESSMENTS, ASSESSMENT_TYPES, SAMPLE_RESILIENCE_PRESETS,
   LBAI_METADATA, LBAI_PILLARS, HARVARD_PZ_THINKING_ROUTINES, FINK_TAXONOMY_DIMENSIONS, SPP_PROCESS_PHASES, SPP_ROLES,
   TWO_LANES_MODEL, AIAS_PERMITTED_USE_SCALE, LBAI_DEFAULT_WEIGHTING_MODEL, LBAI_SAMPLE_COURSES
 } from './constants.js';
 import { geminiEngine } from './gemini.js';
 import { PDFReportGenerator } from './pdf-export.js';
-import { extractTextFromFile, parseSyllabusText, synthesizeDefaultOutlineForCourse, extractQuestionsFromDocument } from './document-extractor.js';
+import { extractTextFromFile, parseSyllabusText, synthesizeDefaultOutlineForCourse, extractQuestionsFromDocument, detectAssessmentType } from './document-extractor.js';
 
 class OBEApp {
   constructor() {
@@ -19,6 +19,8 @@ class OBEApp {
       { id: 2, statement: 'Analyze timing diagrams and register configurations for high-speed serial peripherals (SPI and I2C) to diagnose data transmission bottlenecks.', plo: 'PLO-2', taxonomy: 'C4' },
       { id: 3, statement: 'Design an interrupt-driven embedded data acquisition system that interfaces multi-sensor inputs and transmits real-time telemetry within strict power constraints.', plo: 'PLO-3', taxonomy: 'C6' }
     ];
+    this.assessmentType = 'midterm';
+    this.assessmentTitle = 'Midterm Examination (Spring 2026)';
     this.questions = [...SAMPLE_ASSESSMENT.questions];
     this.cloEvaluationResult = null;
     this.assessmentEvaluationResult = null;
@@ -224,7 +226,9 @@ class OBEApp {
 
     // Dynamic Assessment question controls
     document.getElementById('btn-add-question')?.addEventListener('click', () => this.addQuestion());
-    document.getElementById('btn-load-sample-exam')?.addEventListener('click', () => this.loadSampleAssessment());
+    document.getElementById('btn-load-sample-exam')?.addEventListener('click', () => {
+      this.loadAssessmentPreset(this.assessmentType || 'midterm');
+    });
     document.getElementById('btn-clear-questions')?.addEventListener('click', () => this.clearQuestions());
     document.getElementById('btn-upload-assessment')?.addEventListener('click', () => {
       document.getElementById('assessment-file-input')?.click();
@@ -232,6 +236,22 @@ class OBEApp {
     document.getElementById('btn-paste-assessment')?.addEventListener('click', () => this.openPasteAssessmentModal());
     document.getElementById('btn-dismiss-assessment-status')?.addEventListener('click', () => {
       document.getElementById('assessment-status-banner')?.classList.add('hidden');
+    });
+
+    // Assessment Instrument Type Selector & Title Input
+    document.getElementById('assessment-type-select')?.addEventListener('change', (e) => {
+      this.setAssessmentType(e.target.value);
+    });
+    document.getElementById('assessment-title-input')?.addEventListener('input', (e) => {
+      this.assessmentTitle = e.target.value.trim();
+    });
+
+    // Quick Benchmark Presets across All Assessment Types
+    document.querySelectorAll('.btn-assess-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.getAttribute('data-preset');
+        if (preset) this.loadAssessmentPreset(preset);
+      });
     });
 
     // Evaluator action buttons
@@ -1612,12 +1632,12 @@ class OBEApp {
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-xs flex items-center justify-center">
-              Q${idx + 1}
+              ${q.qNumber || `Q${idx + 1}`}
             </span>
-            <span class="font-extrabold text-slate-900 text-sm tracking-wide">Question ${idx + 1}</span>
+            <span class="font-extrabold text-slate-900 text-sm tracking-wide">Question ${q.qNumber || idx + 1}</span>
           </div>
           ${this.questions.length > 1 ? `
-            <button class="btn-remove-q text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors" data-index="${idx}">
+            <button class="btn-remove-q text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors" data-index="${idx}" title="Remove question">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           ` : ''}
@@ -1631,6 +1651,7 @@ class OBEApp {
             rows="2" 
             class="q-text-input w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 focus:outline-none transition-all font-medium text-slate-800" 
             data-index="${idx}"
+            placeholder="Enter question statement, code snippet, or circuit scenario..."
           >${q.text}</textarea>
         </div>
 
@@ -1661,12 +1682,24 @@ class OBEApp {
 
           <div>
             <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
-              Target Bloom Level
+              Target Bloom / Domain Level
             </label>
             <select class="q-tax-select w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-orange-500 font-semibold text-slate-800" data-index="${idx}">
-              ${TAXONOMY_LEVELS.filter(t => t.domain === 'Cognitive').map(t => `
-                <option value="${t.level}" ${q.targetTaxonomy === t.level ? 'selected' : ''}>${t.title}</option>
-              `).join('')}
+              <optgroup label="Cognitive Domain (Theory & Design)">
+                ${TAXONOMY_LEVELS.filter(t => t.domain === 'Cognitive').map(t => `
+                  <option value="${t.level}" ${q.targetTaxonomy === t.level ? 'selected' : ''}>${t.title}</option>
+                `).join('')}
+              </optgroup>
+              <optgroup label="Psychomotor Domain (Labs & Practical)">
+                ${TAXONOMY_LEVELS.filter(t => t.domain === 'Psychomotor').map(t => `
+                  <option value="${t.level}" ${q.targetTaxonomy === t.level ? 'selected' : ''}>${t.title}</option>
+                `).join('')}
+              </optgroup>
+              <optgroup label="Affective Domain (Ethics & Teamwork)">
+                ${TAXONOMY_LEVELS.filter(t => t.domain === 'Affective').map(t => `
+                  <option value="${t.level}" ${q.targetTaxonomy === t.level ? 'selected' : ''}>${t.title}</option>
+                `).join('')}
+              </optgroup>
             </select>
           </div>
         </div>
@@ -1674,6 +1707,13 @@ class OBEApp {
 
       container.appendChild(qCard);
     });
+
+    // Update real-time stats badges
+    const totalMarks = this.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+    const marksBadge = document.getElementById('assessment-total-marks-badge');
+    if (marksBadge) marksBadge.textContent = `Total Marks: ${totalMarks}`;
+    const qCountBadge = document.getElementById('assessment-q-count-badge');
+    if (qCountBadge) qCountBadge.textContent = `${this.questions.length} Question${this.questions.length === 1 ? '' : 's'}`;
 
     // Bind listeners
     container.querySelectorAll('.q-text-input').forEach(t => {
@@ -1687,6 +1727,9 @@ class OBEApp {
       m.addEventListener('input', e => {
         const idx = parseInt(e.target.getAttribute('data-index'));
         this.questions[idx].marks = parseInt(e.target.value) || 0;
+        const currentTotal = this.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+        const badge = document.getElementById('assessment-total-marks-badge');
+        if (badge) badge.textContent = `Total Marks: ${currentTotal}`;
       });
     });
 
@@ -1717,28 +1760,112 @@ class OBEApp {
     this.updateAssessmentContextBanner();
   }
 
+  setAssessmentType(type, customTitle = null) {
+    this.assessmentType = type;
+    const typeSelect = document.getElementById('assessment-type-select');
+    if (typeSelect && typeSelect.value !== type) {
+      typeSelect.value = type;
+    }
+
+    const typeDef = ASSESSMENT_TYPES.find(t => t.id === type) || ASSESSMENT_TYPES[0];
+
+    if (customTitle !== null && customTitle !== undefined) {
+      this.assessmentTitle = customTitle;
+    } else {
+      this.assessmentTitle = SAMPLE_ASSESSMENTS[type]?.title || typeDef?.title || 'Assessment';
+    }
+
+    const titleInput = document.getElementById('assessment-title-input');
+    if (titleInput) {
+      titleInput.value = this.assessmentTitle;
+    }
+
+    const guidanceText = document.getElementById('assessment-type-guidance-text');
+    if (guidanceText && typeDef) {
+      guidanceText.textContent = typeDef.desc;
+    }
+
+    // Highlight active preset chip if matching
+    document.querySelectorAll('.btn-assess-preset').forEach(btn => {
+      const preset = btn.getAttribute('data-preset');
+      if (preset === type) {
+        btn.className = 'btn-assess-preset px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-700 text-white shadow-2xs transition-all';
+      } else {
+        const borderCls = preset === 'final' ? 'border-blue-200 text-blue-900 hover:bg-blue-50'
+          : preset === 'quiz' ? 'border-amber-200 text-amber-900 hover:bg-amber-50'
+          : preset === 'assignment' ? 'border-purple-200 text-purple-900 hover:bg-purple-50'
+          : preset === 'lab' ? 'border-emerald-200 text-emerald-900 hover:bg-emerald-50'
+          : 'border-slate-200 text-slate-800 hover:bg-slate-50';
+        btn.className = `btn-assess-preset px-2.5 py-1 text-xs font-bold rounded-lg bg-white border ${borderCls} shadow-2xs transition-all`;
+      }
+    });
+  }
+
+  loadAssessmentPreset(presetId = 'midterm') {
+    const sampleObj = SAMPLE_ASSESSMENTS[presetId] || SAMPLE_ASSESSMENTS.midterm;
+    if (!sampleObj) return;
+
+    this.setAssessmentType(presetId, sampleObj.title);
+
+    const cloIds = (this.clos || []).map((c, i) => `CLO-${c.id || i+1}`);
+    const sampleQuestions = JSON.parse(JSON.stringify(sampleObj.questions));
+
+    // Align mappedCLO to active course CLOs if possible
+    sampleQuestions.forEach((q, idx) => {
+      if (cloIds.length > 0 && !cloIds.includes(q.mappedCLO)) {
+        q.mappedCLO = cloIds[idx % cloIds.length];
+      }
+    });
+
+    this.questions = sampleQuestions;
+    this.assessmentEvaluationResult = null;
+    this.renderAssessmentQuestions();
+    document.getElementById('assessment-results-filled')?.classList.add('hidden');
+    document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+
+    const totalMarks = sampleQuestions.reduce((sum, q) => sum + (q.marks || 0), 0);
+    this.showAssessmentStatus(
+      `✓ Preset "${sampleObj.title}" loaded (${sampleQuestions.length} questions, Total: ${totalMarks} Marks). You can edit questions, upload an assessment paper, or click "Audit Exam Alignment & Cognitive Match".`,
+      'success'
+    );
+
+    setTimeout(() => {
+      document.getElementById('question-inputs-container')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  }
+
   addQuestion() {
     const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
+    const isLab = this.assessmentType === 'lab';
+    const isQuiz = this.assessmentType === 'quiz';
+    const defaultTax = isLab ? 'P3' : (isQuiz ? 'C2' : 'C3');
+    const defaultMarks = isQuiz ? 1 : 10;
+
     this.questions.push({
       id: this.questions.length + 1,
       qNumber: `Q${this.questions.length + 1}`,
       text: '',
-      marks: 10,
+      marks: defaultMarks,
       mappedCLO: defaultClo,
-      targetTaxonomy: 'C3'
+      targetTaxonomy: defaultTax
     });
     this.renderAssessmentQuestions();
   }
 
   clearQuestions() {
     const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
+    const isLab = this.assessmentType === 'lab';
+    const isQuiz = this.assessmentType === 'quiz';
+    const defaultTax = isLab ? 'P3' : (isQuiz ? 'C2' : 'C3');
+    const defaultMarks = isQuiz ? 1 : 10;
+
     this.questions = [{
       id: 1,
       qNumber: 'Q1',
       text: '',
-      marks: 10,
+      marks: defaultMarks,
       mappedCLO: defaultClo,
-      targetTaxonomy: 'C3'
+      targetTaxonomy: defaultTax
     }];
     this.assessmentEvaluationResult = null;
     this.renderAssessmentQuestions();
@@ -1748,31 +1875,7 @@ class OBEApp {
   }
 
   loadSampleAssessment() {
-    const cloIds = (this.clos || []).map((c, i) => `CLO-${c.id || i+1}`);
-    const sample = JSON.parse(JSON.stringify(SAMPLE_ASSESSMENT.questions));
-    
-    // Dynamically align mappedCLOs to active course CLOs
-    sample.forEach((q, idx) => {
-      if (cloIds.length > 0) {
-        q.mappedCLO = cloIds[idx % cloIds.length];
-      }
-    });
-
-    this.questions = sample;
-    this.assessmentEvaluationResult = null;
-    this.renderAssessmentQuestions();
-    document.getElementById('assessment-results-filled')?.classList.add('hidden');
-    document.getElementById('assessment-results-empty')?.classList.remove('hidden');
-
-    const totalMarks = sample.reduce((sum, q) => sum + (q.marks || 0), 0);
-    this.showAssessmentStatus(
-      `✓ Benchmark assessment loaded (${sample.length} questions, Total: ${totalMarks} Marks). You can edit them, upload your exam paper, or click "Audit Exam Alignment & Cognitive Match".`,
-      'success'
-    );
-
-    setTimeout(() => {
-      document.getElementById('question-inputs-container')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
+    this.loadAssessmentPreset(this.assessmentType || 'midterm');
   }
 
   showAssessmentStatus(message, type = 'info') {
@@ -2181,6 +2284,17 @@ class OBEApp {
         document.getElementById('assessment-results-filled')?.classList.add('hidden');
         document.getElementById('assessment-results-empty')?.classList.remove('hidden');
 
+        // Auto-detect and set assessment type and title
+        if (extracted.assessmentType) {
+          this.setAssessmentType(extracted.assessmentType, extracted.assessmentTitle || null);
+        } else if (extracted.assessmentTitle) {
+          const detectedType = detectAssessmentType(extracted.assessmentTitle, file.name);
+          this.setAssessmentType(detectedType, extracted.assessmentTitle);
+        } else {
+          const detectedType = detectAssessmentType('', file.name);
+          this.setAssessmentType(detectedType, null);
+        }
+
         // If assessment document contains course title and current course name is default/empty, optionally reflect it
         if (extracted.courseTitle) {
           const courseInput = document.getElementById('input-course-name');
@@ -2260,6 +2374,14 @@ class OBEApp {
         this.renderAssessmentQuestions();
         document.getElementById('assessment-results-filled')?.classList.add('hidden');
         document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+
+        // Auto-detect and set assessment type and title
+        if (extracted.assessmentType) {
+          this.setAssessmentType(extracted.assessmentType, extracted.assessmentTitle || null);
+        } else if (extracted.assessmentTitle) {
+          const detectedType = detectAssessmentType(extracted.assessmentTitle, pastedText);
+          this.setAssessmentType(detectedType, extracted.assessmentTitle);
+        }
 
         const totalMarks = extracted.totalMarks || questions.reduce((sum, q) => sum + (q.marks || 0), 0);
         this.closePasteAssessmentModal();
@@ -2611,7 +2733,9 @@ class OBEApp {
       const result = await geminiEngine.evaluateAssessment({
         courseName,
         clos: this.clos,
-        questions: validQuestions
+        questions: validQuestions,
+        assessmentType: this.assessmentType || 'midterm',
+        assessmentTitle: this.assessmentTitle || 'Assessment Examination'
       });
 
       this.assessmentEvaluationResult = result;
@@ -2721,6 +2845,8 @@ class OBEApp {
 
     const dossier = PDFReportGenerator.generateAssessmentReport({
       courseName,
+      assessmentTitle: this.assessmentTitle || 'Assessment Examination',
+      assessmentType: this.assessmentType || 'midterm',
       questions: this.questions,
       evaluation: this.assessmentEvaluationResult
     });
@@ -2767,13 +2893,17 @@ class OBEApp {
         <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
         <span class="text-xs font-bold text-emerald-700">Live Gemini AI Active</span>
       `;
-      badge.parentElement.className = 'px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center gap-2 cursor-pointer hover:bg-emerald-100 transition-colors';
+      if (badge.parentElement) {
+        badge.parentElement.className = 'px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center gap-2 cursor-pointer hover:bg-emerald-100 transition-colors';
+      }
     } else {
       badge.innerHTML = `
         <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
         <span class="text-xs font-bold text-amber-800">Demo / Simulation Mode</span>
       `;
-      badge.parentElement.className = 'px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 flex items-center gap-2 cursor-pointer hover:bg-amber-100 transition-colors';
+      if (badge.parentElement) {
+        badge.parentElement.className = 'px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 flex items-center gap-2 cursor-pointer hover:bg-amber-100 transition-colors';
+      }
     }
   }
 

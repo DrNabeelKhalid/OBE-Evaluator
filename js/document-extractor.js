@@ -378,12 +378,19 @@ export async function extractTextFromPdfStreams(arrayBuffer) {
   return textBlocks.join('\n');
 }
 
+function decodePdfLiteralString(raw) {
+  return raw
+    .replace(/\\([0-7]{1,3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)))
+    .replace(/\\([()\\])/g, '$1')
+    .trim();
+}
+
 function extractPdfOperators(text, textBlocks) {
   // Tj: (text) Tj
   const tjRegex = /\(([^)]+)\)\s*Tj/g;
   let match;
   while ((match = tjRegex.exec(text)) !== null) {
-    const str = match[1].replace(/\\([()\\])/g, '$1').trim();
+    const str = decodePdfLiteralString(match[1]);
     if (str.length > 0) {
       if (textBlocks.length === 0 || textBlocks[textBlocks.length - 1] !== str) {
         textBlocks.push(str);
@@ -398,7 +405,7 @@ function extractPdfOperators(text, textBlocks) {
     let subMatch;
     let phrase = '';
     while ((subMatch = subRegex.exec(match[1])) !== null) {
-      phrase += subMatch[1].replace(/\\([()\\])/g, '$1') + ' ';
+      phrase += decodePdfLiteralString(subMatch[1]) + ' ';
     }
     const clean = phrase.trim();
     if (clean.length > 0) {
@@ -1655,10 +1662,13 @@ export function extractQuestionsFromDocument(rawText = '', activeCLOs = ['CLO-1'
     return { questions: [], courseTitle: null, assessmentTitle: null, totalMarks: 0 };
   }
 
+  // Decode any literal PDF octal sequences if present
+  const normalizedText = rawText.replace(/\\([0-7]{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
+
   // 1. Truncate answer keys, solutions, marking rubrics, and end-of-exam markers
   const cutoffRegex = /(?:\b(?:instructor['’]?s?\s+)?answer\s*key\b|\bmarking\s*(?:guide|scheme|rubric)\b|\bsolutions?\s*(?:to\s*questions?|section)?\b|\bmodel\s*answers?\b|\bend\s*of\s*(?:quiz|paper|exam|test)\b)/i;
-  const cutoffMatch = rawText.search(cutoffRegex);
-  const examText = (cutoffMatch > 100) ? rawText.slice(0, cutoffMatch) : rawText;
+  const cutoffMatch = normalizedText.search(cutoffRegex);
+  const examText = (cutoffMatch > 100) ? normalizedText.slice(0, cutoffMatch) : normalizedText;
 
   // Clean form feeds, repetitive page headers, and doc artifacts
   const cleanText = examText
@@ -1675,7 +1685,7 @@ export function extractQuestionsFromDocument(rawText = '', activeCLOs = ['CLO-1'
     courseTitle = courseMatch[1].trim();
   }
 
-  const examMatch = cleanText.match(/(?:^|\n)\s*(Quiz\s*[-–#]?\s*\d+|Mid\s*Term(?:\s*Examination|\s*Exam)?|Final\s*Term(?:\s*Examination|\s*Exam)?|Assignment\s*[-–#]?\s*\d+|Test\s*[-–#]?\s*\d+)/i);
+  const examMatch = cleanText.match(/(?:^|\n)\s*(Quiz\s*[-–#]?\s*\d+|Mid\s*Term(?:\s*Examination|\s*Exam)?|Final\s*Term(?:\s*Examination|\s*Exam)?|Assignment\s*[-–#]?\s*\d+|Test\s*[-–#]?\s*\d+|Open[- ]Ended\s*Lab|Lab\s*Assessment(?:\s*[-–#]?\s*\d+)?|Semester\s*Project|Capstone\s*Project)/i);
   if (examMatch) {
     assessmentTitle = examMatch[1].trim();
   }
@@ -1857,12 +1867,28 @@ export function extractQuestionsFromDocument(rawText = '', activeCLOs = ['CLO-1'
   }
 
   const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+  const assessmentType = detectAssessmentType(assessmentTitle, cleanText);
 
   return {
     questions,
     courseTitle,
     assessmentTitle,
+    assessmentType,
     totalMarks
   };
 }
 
+/**
+ * Detects assessment instrument type from title or document text
+ * Supported: midterm, final, quiz, assignment, lab, project
+ */
+export function detectAssessmentType(title = '', text = '') {
+  const combined = `${title || ''} ${typeof text === 'string' ? text.slice(0, 1000) : ''}`.toLowerCase();
+  if (/\b(?:quiz|pop\s*quiz)\b/.test(combined)) return 'quiz';
+  if (/\b(?:assignment|homework|hw|problem\s*set)\b/.test(combined)) return 'assignment';
+  if (/\b(?:lab|oel|open[- ]ended\s*lab|practical|experiment|testbench|viva)\b/.test(combined)) return 'lab';
+  if (/\b(?:final|terminal|terminal\s*exam)\b/.test(combined)) return 'final';
+  if (/\b(?:mid|midterm|mid-term|sessional|one\s*hour\s*test|oht)\b/.test(combined)) return 'midterm';
+  if (/\b(?:project|capstone|semester\s*project|term\s*project)\b/.test(combined)) return 'project';
+  return 'midterm';
+}

@@ -234,7 +234,7 @@ export class PDFReportGenerator {
   /**
    * Generates a formal, printable Assessment Alignment Audit Dossier
    */
-  static generateAssessmentReport({ courseName, questions, evaluation }) {
+  static generateAssessmentReport({ courseName, assessmentTitle = 'Assessment Examination', assessmentType = 'midterm', questions, evaluation }) {
     const printContainer = document.createElement('div');
     printContainer.id = 'print-assessment-dossier';
     printContainer.className = 'print-dossier';
@@ -249,6 +249,15 @@ export class PDFReportGenerator {
 
     const qResults = evaluation.questions || [];
 
+    const badgeText = {
+      final: 'FINAL EXAM ALIGNMENT AUDIT',
+      midterm: 'MIDTERM EXAM ALIGNMENT AUDIT',
+      quiz: 'QUIZ ALIGNMENT AUDIT',
+      assignment: 'ASSIGNMENT ALIGNMENT AUDIT',
+      lab: 'LAB ASSESSMENT / OEL AUDIT',
+      project: 'CAPSTONE / PROJECT AUDIT'
+    }[assessmentType] || 'ASSESSMENT ALIGNMENT AUDIT';
+
     printContainer.innerHTML = `
       <div style="font-family: 'Inter', system-ui, sans-serif; color: #0f172a; max-width: 800px; margin: 0 auto; padding: 24px;">
         <div style="border-bottom: 2px solid #f27d26; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
@@ -262,7 +271,7 @@ export class PDFReportGenerator {
           </div>
           <div style="text-align: right;">
             <span style="display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">
-              EXAM ALIGNMENT AUDIT
+              ${badgeText}
             </span>
             <p style="margin: 4px 0 0; font-size: 10px; color: #94a3b8;">Ref: EXAM-EED-${Date.now().toString().slice(-6)}</p>
           </div>
@@ -275,6 +284,12 @@ export class PDFReportGenerator {
               <td style="padding: 4px 8px; font-weight: 600; color: #0f172a;">${courseName || 'N/A'}</td>
               <td style="padding: 4px 8px; font-weight: 700; color: #475569; width: 140px;">Audit Timestamp:</td>
               <td style="padding: 4px 8px; color: #334155;">${timestamp}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Assessment Title:</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #0f172a;">${assessmentTitle}</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Instrument Type:</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #1d4ed8; text-transform: uppercase;">${assessmentType}</td>
             </tr>
             <tr>
               <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Total Alignment:</td>
