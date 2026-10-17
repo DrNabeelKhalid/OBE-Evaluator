@@ -1409,6 +1409,191 @@ export class PDFReportGenerator {
   }
 
   /**
+   * Generates a formal, printable AI-Resilience Assessment Audit & Fortification Dossier
+   * Evaluates an uploaded assessment against the AI-RLI 3 Pillars Framework with before/after redesigns
+   */
+  static generateResilienceAuditReport({ auditData, courseName }) {
+    const printContainer = document.createElement('div');
+    printContainer.id = 'print-resilience-audit-dossier';
+    printContainer.className = 'print-dossier';
+
+    const timestamp = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const data = auditData || {};
+    const p1 = data.pillarsAudit?.p1Process || {};
+    const p2 = data.pillarsAudit?.p2Context || {};
+    const p3 = data.pillarsAudit?.p3ConceptualDepth || {};
+    const qEvals = data.questionEvaluations || [];
+    const roadmap = data.actionableFortificationPlan || [];
+
+    printContainer.innerHTML = `
+      <div style="font-family: 'Inter', system-ui, sans-serif; color: #0f172a; max-width: 800px; margin: 0 auto; padding: 24px;">
+        <!-- Official Institutional Header -->
+        <div style="border-bottom: 2px solid #7e22ce; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="./public/assets/FOE_Logo_WBG.png" style="height: 44px; width: auto; object-fit: contain;" alt="Faculty of Engineering" />
+            <div style="border-left: 2px solid #7e22ce; padding-left: 12px;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">FACULTY OF ENGINEERING</h1>
+              <h2 style="margin: 2px 0 0; font-size: 13px; font-weight: 700; color: #7e22ce; text-transform: uppercase;">Department of Electrical Engineering</h2>
+              <p style="margin: 3px 0 0; font-size: 10px; color: #64748b;">AI-Resilient Learning Initiative (AI-RLI) • Examination Vulnerability Audit Dossier</p>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span style="display: inline-block; background: #faf5ff; border: 1px solid #d8b4fe; color: #7e22ce; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px;">
+              AI-RLI AUDIT REPORT
+            </span>
+            <p style="margin: 4px 0 0; font-size: 10px; color: #94a3b8;">Ref: AI-RLI-AUDIT-${Date.now().toString().slice(-6)}</p>
+          </div>
+        </div>
+
+        <!-- Assessment Metadata Box -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569; width: 140px;">Course Title:</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #0f172a;">${courseName || data.courseName || 'Electrical Engineering Course'}</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569; width: 140px;">Audit Date:</td>
+              <td style="padding: 4px 8px; color: #334155;">${timestamp}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Assessment Paper:</td>
+              <td style="padding: 4px 8px; font-weight: 600; color: #7e22ce;">${data.assessmentTitle || 'Course Assessment'} (${(data.assessmentType || 'Midterm').toUpperCase()})</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Total Questions:</td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #1e293b;">${qEvals.length} Questions Evaluated</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Resilience Score:</td>
+              <td style="padding: 4px 8px; font-weight: 800; color: ${data.overallResilienceScore >= 7 ? '#059669' : '#dc2626'}; font-size: 14px;">
+                ${data.overallResilienceScore} / 10 (${data.overallResilienceRating})
+              </td>
+              <td style="padding: 4px 8px; font-weight: 700; color: #475569;">Standard:</td>
+              <td style="padding: 4px 8px; color: #64748b;">Spring 2026 AI-RLI 3 Pillars</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Executive Summary -->
+        <div style="background: #faf5ff; border-left: 4px solid #7e22ce; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 11px; line-height: 1.6;">
+          <strong style="color: #6b21a8; font-size: 12px; display: block; margin-bottom: 4px;">Executive Integrity Finding:</strong>
+          <p style="margin: 0; color: #334155;">${data.summary || ''}</p>
+        </div>
+
+        <!-- Section 1: Three Pillars Accreditation Matrix -->
+        <div style="margin-bottom: 24px; break-inside: avoid;">
+          <h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+            1. Three Pillars Accreditation Breakdown
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background: #f1f5f9; color: #334155;">
+                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: left; width: 140px;">Pillar</th>
+                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; width: 60px; text-align: center;">Score</th>
+                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; width: 80px; text-align: center;">Status</th>
+                <th style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: left;">Findings & Recommendations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-weight: 700; color: #c2410c;">P1: Process &gt; Product</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800;">${p1.score || 0}/10</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: 700; color: #dc2626;">${p1.status}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; color: #334155;"><strong>${p1.findings}</strong><br/><em>Rule: ${p1.recommendations}</em></td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-weight: 700; color: #047857;">P2: Contextualization</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800;">${p2.score || 0}/10</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: 700; color: #d97706;">${p2.status}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; color: #334155;"><strong>${p2.findings}</strong><br/><em>Rule: ${p2.recommendations}</em></td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; font-weight: 700; color: #1d4ed8;">P3: Depth &amp; AI Critique</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800;">${p3.score || 0}/10</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: 700; color: #2563eb;">${p3.status}</td>
+                <td style="padding: 6px 8px; border: 1px solid #e2e8f0; color: #334155;"><strong>${p3.findings}</strong><br/><em>Rule: ${p3.recommendations}</em></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section 2: Question-by-Question Vulnerability & Fortified Redesign -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+            2. Question-by-Question Diagnostic &amp; Fortified Redesigns
+          </h3>
+          ${qEvals.map((q, idx) => {
+            const refactor = q.suggestedRefactor || {};
+            return `
+              <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-bottom: 16px; break-inside: avoid; background: #ffffff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px;">
+                  <strong style="color: #6b21a8; font-size: 12px;">${q.qNumber || `Q${idx+1}`} (${q.marks || 10} Marks • ${q.mappedCLO || 'CLO-1'} • ${q.targetTaxonomy || 'C3'})</strong>
+                  <span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;">
+                    ${q.vulnerabilityLevel || 'High Vulnerability'}
+                  </span>
+                </div>
+                <div style="font-size: 11px; margin-bottom: 8px;">
+                  <span style="color: #64748b; font-weight: 700;">Current Prompt:</span>
+                  <div style="font-style: italic; color: #334155; margin-top: 2px;">"${q.originalText}"</div>
+                </div>
+                <div style="font-size: 10px; color: #991b1b; background: #fff1f2; border: 1px solid #ffe4e6; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px;">
+                  <strong>Assessment Fracture:</strong> ${q.assessmentFracture}
+                </div>
+                <div style="font-size: 11px; background: #fdf4ff; border: 1px solid #e9d5ff; padding: 8px 10px; border-radius: 4px;">
+                  <strong style="color: #6b21a8; display: block; margin-bottom: 4px;">✨ Fortified AI-Resilient Redesign:</strong>
+                  <div style="color: #0f172a; font-weight: 600; margin-bottom: 6px; line-height: 1.5;">${refactor.redesignedText || ''}</div>
+                  <div style="font-size: 10px; color: #475569; line-height: 1.4;">
+                    <span style="color: #c2410c; font-weight: 700;">• P1 Required Deliverables:</span> ${(refactor.requiredProcessArtifacts || []).join('; ')}<br/>
+                    <span style="color: #047857; font-weight: 700;">• P2 Grounding:</span> ${refactor.hyperLocalConstraint || ''}<br/>
+                    <span style="color: #1d4ed8; font-weight: 700;">• P3 AI Critique:</span> ${refactor.aiCritiqueTask || ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Section 3: Actionable Immediate Fortification Roadmap -->
+        <div style="margin-bottom: 24px; break-inside: avoid;">
+          <h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+            3. Examiner Immediate Action Checklist
+          </h3>
+          <ol style="margin: 0; padding-left: 20px; font-size: 11px; line-height: 1.7; color: #334155;">
+            ${roadmap.map(item => `<li>${item}</li>`).join('')}
+          </ol>
+        </div>
+
+        <!-- Sign-Off Block -->
+        <div style="border-top: 1px solid #cbd5e1; padding-top: 20px; margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; text-align: center; font-size: 11px; color: #475569; break-inside: avoid;">
+          <div>
+            <div style="border-bottom: 1px dashed #94a3b8; height: 35px; margin-bottom: 6px;"></div>
+            <strong>Course Examiner</strong>
+          </div>
+          <div>
+            <div style="border-bottom: 1px dashed #94a3b8; height: 35px; margin-bottom: 6px;"></div>
+            <strong>Assessment Quality Moderator</strong>
+          </div>
+          <div>
+            <div style="border-bottom: 1px dashed #94a3b8; height: 35px; margin-bottom: 6px;"></div>
+            <strong>OBE Coordinator (EED)</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
+          OBE-ICAS EED Platform • AI-Resilient Learning Initiative (AI-RLI) • System Architecture &amp; Implementation: <strong>Engr. Dr. Nabeel Khalid</strong><br/>
+          Department of Electrical Engineering • Faculty of Engineering • © 2026
+        </div>
+      </div>
+    `;
+
+    return printContainer;
+  }
+
+  /**
    * Generates a formal, printable Learning Beyond AI (LBAI) Course Redesign & Two-Lane Assessment Dossier
    * Compliant with Learning Innovation Center (LIC) - SPP Partnership Model
    */

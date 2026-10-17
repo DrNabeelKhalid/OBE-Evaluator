@@ -71,6 +71,36 @@ class OBEApp {
       'PLO-11': 'C4'
     };
 
+    // AI-Resilience Assessment Audit State
+    this.resilienceStudioMode = 'audit'; // 'audit' | 'synthesize'
+    this.resilienceAuditResult = null;
+    this.resilienceAuditQuestions = [
+      {
+        id: 1,
+        qNumber: 'Q1',
+        text: 'Explain the working principle of the I2C serial communication protocol and derive the equations to determine minimum and maximum pull-up resistor values.',
+        marks: 15,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C2'
+      },
+      {
+        id: 2,
+        qNumber: 'Q2',
+        text: 'Write an embedded C firmware driver using hardware registers to configure the master controller and transmit a 4-byte payload to an external DS3231 RTC module.',
+        marks: 15,
+        mappedCLO: 'CLO-2',
+        targetTaxonomy: 'C3'
+      },
+      {
+        id: 3,
+        qNumber: 'Q3',
+        text: 'Analyze the behavior of clock stretching during multi-master bus arbitration and design a recovery routine for an I2C bus lockup scenario.',
+        marks: 20,
+        mappedCLO: 'CLO-3',
+        targetTaxonomy: 'C4'
+      }
+    ];
+
     this.init();
   }
 
@@ -86,6 +116,7 @@ class OBEApp {
     this.renderCLOInputs();
     this.populateResilienceCLODropdown();
     this.renderAssessmentQuestions();
+    this.renderResilienceAuditQuestions();
     this.renderStandardsHub();
     this.renderLBAIRoutines();
     this.renderLBAITasksTable();
@@ -2205,6 +2236,37 @@ class OBEApp {
         }
       });
     }
+
+    // 3. AI Resilience Assessment Exam / Quiz Paper Dropzone & Input
+    const resDropzone = document.getElementById('resilience-upload-dropzone');
+    const resFileInput = document.getElementById('resilience-file-input');
+
+    if (resDropzone && resFileInput) {
+      resDropzone.addEventListener('click', () => resFileInput.click());
+
+      resDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        resDropzone.classList.add('border-purple-600', 'bg-purple-100/60');
+      });
+
+      resDropzone.addEventListener('dragleave', () => {
+        resDropzone.classList.remove('border-purple-600', 'bg-purple-100/60');
+      });
+
+      resDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        resDropzone.classList.remove('border-purple-600', 'bg-purple-100/60');
+        if (e.dataTransfer.files.length) {
+          this.handleResilienceAssessmentFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      resFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          this.handleResilienceAssessmentFile(e.target.files[0]);
+        }
+      });
+    }
   }
 
   async handleSyllabusFile(file) {
@@ -3262,6 +3324,46 @@ class OBEApp {
         this.copyResilienceBrief();
       });
     }
+
+    // 7. Studio Mode Switcher (Audit vs Synthesize)
+    document.getElementById('btn-resilience-mode-audit')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.switchResilienceStudioMode('audit');
+    });
+    document.getElementById('btn-resilience-mode-synthesize')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.switchResilienceStudioMode('synthesize');
+    });
+
+    // 8. Assessment Audit Controls
+    document.getElementById('btn-resilience-import-active-assess')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.importFromAssessmentTabToResilience();
+    });
+    document.getElementById('btn-resilience-load-sample-audit')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.loadSampleResilienceAudit();
+    });
+    document.getElementById('btn-resilience-clear-audit-qs')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.clearResilienceAuditQuestions();
+    });
+    document.getElementById('btn-resilience-add-audit-q')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.addResilienceAuditQuestion();
+    });
+    document.getElementById('btn-run-resilience-assessment-audit')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.runAssessmentResilienceAudit();
+    });
+    document.getElementById('btn-transfer-fortified-to-assess')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.transferFortifiedQuestionsToAssessmentTab();
+    });
+    document.getElementById('btn-export-resilience-audit-pdf')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.exportResilienceAuditPDF();
+    });
   }
 
   setResilienceAssessmentType(type) {
@@ -3552,6 +3654,641 @@ ${p3.expectedStudentCritique || ''}
       clo: { statement: meta.cloStatement, plo: meta.plo, taxonomy: meta.taxonomy },
       plo: meta.plo,
       taxonomy: meta.taxonomy
+    });
+
+    PDFReportGenerator.triggerPrint(reportElement);
+  }
+
+  // --- AI-Resilience Assessment Audit & Upload Management Methods ---
+  switchResilienceStudioMode(mode = 'audit') {
+    this.resilienceStudioMode = mode;
+
+    const btnAudit = document.getElementById('btn-resilience-mode-audit');
+    const btnSynth = document.getElementById('btn-resilience-mode-synthesize');
+    const panelAudit = document.getElementById('resilience-panel-audit');
+    const panelSynth = document.getElementById('resilience-panel-synthesize');
+    const emptyState = document.getElementById('resilience-empty-state');
+    const cardAuditResults = document.getElementById('resilience-audit-results-card');
+    const cardSynthResults = document.getElementById('resilience-results-card');
+
+    if (mode === 'audit') {
+      if (btnAudit) {
+        btnAudit.className = 'flex-1 py-2.5 px-3 rounded-xl transition-all text-center bg-white text-purple-950 shadow-2xs border border-purple-200 flex items-center justify-center gap-1.5 cursor-pointer font-black';
+      }
+      if (btnSynth) {
+        btnSynth.className = 'flex-1 py-2.5 px-3 rounded-xl transition-all text-center text-slate-700 hover:text-slate-950 flex items-center justify-center gap-1.5 cursor-pointer font-black';
+      }
+      if (panelAudit) panelAudit.classList.remove('hidden');
+      if (panelSynth) panelSynth.classList.add('hidden');
+
+      if (this.resilienceAuditResult) {
+        if (cardAuditResults) cardAuditResults.classList.remove('hidden');
+        if (cardSynthResults) cardSynthResults.classList.add('hidden');
+        if (emptyState) emptyState.classList.add('hidden');
+      } else {
+        if (cardAuditResults) cardAuditResults.classList.add('hidden');
+        if (cardSynthResults) cardSynthResults.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+      }
+    } else {
+      if (btnSynth) {
+        btnSynth.className = 'flex-1 py-2.5 px-3 rounded-xl transition-all text-center bg-white text-purple-950 shadow-2xs border border-purple-200 flex items-center justify-center gap-1.5 cursor-pointer font-black';
+      }
+      if (btnAudit) {
+        btnAudit.className = 'flex-1 py-2.5 px-3 rounded-xl transition-all text-center text-slate-700 hover:text-slate-950 flex items-center justify-center gap-1.5 cursor-pointer font-black';
+      }
+      if (panelSynth) panelSynth.classList.remove('hidden');
+      if (panelAudit) panelAudit.classList.add('hidden');
+
+      if (this.resilienceAssessmentData) {
+        if (cardSynthResults) cardSynthResults.classList.remove('hidden');
+        if (cardAuditResults) cardAuditResults.classList.add('hidden');
+        if (emptyState) emptyState.classList.add('hidden');
+      } else {
+        if (cardAuditResults) cardAuditResults.classList.add('hidden');
+        if (cardSynthResults) cardSynthResults.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+      }
+    }
+  }
+
+  async handleResilienceAssessmentFile(file) {
+    if (!file) return;
+    const statusMsg = document.getElementById('resilience-upload-status');
+    if (statusMsg) {
+      statusMsg.classList.remove('hidden');
+      statusMsg.innerHTML = `<span class="inline-flex items-center gap-2 text-purple-700 font-bold"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Scanning assessment document: "${file.name}"...</span>`;
+    }
+
+    try {
+      let rawText = '';
+      try {
+        rawText = await extractTextFromFile(file);
+      } catch (extractErr) {
+        console.warn('Resilience extractTextFromFile warning:', extractErr);
+      }
+
+      let base64Data = '';
+      const mimeType = file.type || 'application/pdf';
+      if (!rawText || file.type.startsWith('image/') || file.type === 'application/pdf') {
+        try {
+          base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result || '');
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+          });
+        } catch (readErr) {
+          console.warn('FileReader error:', readErr);
+        }
+      }
+
+      const activeCLOIds = (this.clos || []).map((c, i) => `CLO-${c.id || i+1}`);
+
+      let extracted = null;
+      if (geminiEngine.hasApiKey()) {
+        try {
+          extracted = await geminiEngine.extractAssessmentQuestions(base64Data, mimeType, file.name, rawText, activeCLOIds);
+        } catch (apiErr) {
+          console.warn('Gemini assessment extraction failed, using local extractor:', apiErr);
+        }
+      }
+
+      if (!extracted || !extracted.questions || extracted.questions.length === 0) {
+        extracted = extractQuestionsFromDocument(rawText, activeCLOIds);
+      }
+
+      const questions = extracted.questions || [];
+      if (questions.length > 0) {
+        this.resilienceAuditQuestions = questions;
+        this.renderResilienceAuditQuestions();
+
+        if (extracted.assessmentTitle) {
+          const titleInput = document.getElementById('resilience-audit-title-input');
+          if (titleInput) titleInput.value = extracted.assessmentTitle;
+        }
+        if (extracted.assessmentType) {
+          const typeSelect = document.getElementById('resilience-audit-type-select');
+          if (typeSelect) typeSelect.value = extracted.assessmentType;
+        }
+
+        if (statusMsg) {
+          statusMsg.innerHTML = `<span class="text-emerald-700 font-bold">✓ Successfully extracted ${questions.length} questions from "${file.name}". Click "Audit Assessment Against AI-RLI Framework" below to evaluate.</span>`;
+        }
+      } else {
+        if (statusMsg) {
+          statusMsg.innerHTML = `<span class="text-amber-700 font-bold">Document scanned, but could not detect distinct question numbering. You can manually enter or paste questions below.</span>`;
+        }
+      }
+    } catch (err) {
+      if (statusMsg) {
+        statusMsg.innerHTML = `<span class="text-rose-600 font-bold">Error reading file: ${err.message}. Please enter questions manually below.</span>`;
+      }
+    }
+  }
+
+  importFromAssessmentTabToResilience() {
+    if (!this.questions || this.questions.length === 0) {
+      alert('No assessment questions found in the Assessment tab to import.');
+      return;
+    }
+    this.resilienceAuditQuestions = JSON.parse(JSON.stringify(this.questions));
+    const titleInput = document.getElementById('resilience-audit-title-input');
+    if (titleInput && this.assessmentTitle) {
+      titleInput.value = this.assessmentTitle;
+    }
+    const typeSelect = document.getElementById('resilience-audit-type-select');
+    if (typeSelect && this.assessmentType) {
+      typeSelect.value = this.assessmentType;
+    }
+    this.renderResilienceAuditQuestions();
+
+    const statusMsg = document.getElementById('resilience-upload-status');
+    if (statusMsg) {
+      statusMsg.classList.remove('hidden');
+      statusMsg.innerHTML = `<span class="text-purple-700 font-bold">✓ Imported ${this.resilienceAuditQuestions.length} questions from Assessment tab. Ready to audit against AI-RLI framework!</span>`;
+    }
+  }
+
+  loadSampleResilienceAudit() {
+    this.resilienceAuditQuestions = [
+      {
+        id: 1,
+        qNumber: 'Q1',
+        text: 'Explain the working principle of the I2C serial communication protocol and derive the equations to determine minimum and maximum pull-up resistor values.',
+        marks: 15,
+        mappedCLO: 'CLO-1',
+        targetTaxonomy: 'C2'
+      },
+      {
+        id: 2,
+        qNumber: 'Q2',
+        text: 'Write an embedded C firmware driver using hardware registers to configure the master controller and transmit a 4-byte payload to an external DS3231 RTC module.',
+        marks: 15,
+        mappedCLO: 'CLO-2',
+        targetTaxonomy: 'C3'
+      },
+      {
+        id: 3,
+        qNumber: 'Q3',
+        text: 'Analyze the behavior of clock stretching during multi-master bus arbitration and design a recovery routine for an I2C bus lockup scenario.',
+        marks: 20,
+        mappedCLO: 'CLO-3',
+        targetTaxonomy: 'C4'
+      }
+    ];
+
+    const titleInput = document.getElementById('resilience-audit-title-input');
+    if (titleInput) titleInput.value = 'EE-312 Midterm Examination (Sample Paper)';
+    const typeSelect = document.getElementById('resilience-audit-type-select');
+    if (typeSelect) typeSelect.value = 'midterm';
+
+    this.renderResilienceAuditQuestions();
+
+    const statusMsg = document.getElementById('resilience-upload-status');
+    if (statusMsg) {
+      statusMsg.classList.remove('hidden');
+      statusMsg.innerHTML = `<span class="text-purple-700 font-bold">✓ Loaded sample EE-312 Midterm Paper (3 Questions, 50 Marks). Click "Audit Assessment Against AI-RLI Framework" to evaluate.</span>`;
+    }
+  }
+
+  clearResilienceAuditQuestions() {
+    const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
+    this.resilienceAuditQuestions = [{
+      id: 1,
+      qNumber: 'Q1',
+      text: '',
+      marks: 10,
+      mappedCLO: defaultClo,
+      targetTaxonomy: 'C2'
+    }];
+    this.renderResilienceAuditQuestions();
+    const statusMsg = document.getElementById('resilience-upload-status');
+    if (statusMsg) {
+      statusMsg.classList.remove('hidden');
+      statusMsg.innerHTML = `<span class="text-slate-600 font-medium">Assessment questions cleared. Upload a file or add questions to audit.</span>`;
+    }
+  }
+
+  addResilienceAuditQuestion() {
+    const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
+    const nextNum = this.resilienceAuditQuestions.length + 1;
+    this.resilienceAuditQuestions.push({
+      id: Date.now() + Math.random(),
+      qNumber: `Q${nextNum}`,
+      text: '',
+      marks: 10,
+      mappedCLO: defaultClo,
+      targetTaxonomy: 'C3'
+    });
+    this.renderResilienceAuditQuestions();
+
+    setTimeout(() => {
+      const textareas = document.querySelectorAll('.res-q-text-input');
+      if (textareas.length > 0) {
+        const last = textareas[textareas.length - 1];
+        last.focus();
+        last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  }
+
+  removeResilienceAuditQuestion(index) {
+    if (this.resilienceAuditQuestions.length <= 1) {
+      this.clearResilienceAuditQuestions();
+      return;
+    }
+    this.resilienceAuditQuestions.splice(index, 1);
+    this.renderResilienceAuditQuestions();
+  }
+
+  renderResilienceAuditQuestions() {
+    const container = document.getElementById('resilience-audit-questions-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    this.resilienceAuditQuestions.forEach((q, idx) => {
+      const card = document.createElement('div');
+      card.className = 'p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs space-y-2';
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-md bg-purple-100 text-purple-800 font-extrabold text-[11px] flex items-center justify-center shrink-0">
+              #${idx + 1}
+            </span>
+            <input 
+              type="text" 
+              class="res-q-num-input px-2 py-0.5 text-xs font-black bg-slate-50 border border-slate-200 rounded-md text-slate-900 w-20 focus:bg-white focus:border-purple-500" 
+              data-index="${idx}" 
+              value="${q.qNumber || `Q${idx + 1}`}" 
+              title="Question label"
+            />
+          </div>
+          <button type="button" class="btn-remove-res-q text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors" data-index="${idx}" title="Remove question">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+
+        <div>
+          <textarea 
+            rows="2" 
+            class="res-q-text-input w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:border-purple-500 focus:outline-none" 
+            data-index="${idx}" 
+            placeholder="Enter question statement..."
+          >${q.text || ''}</textarea>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-[11px]">
+          <div>
+            <label class="block font-bold text-slate-600">Marks:</label>
+            <input 
+              type="number" 
+              class="res-q-marks-input w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-md font-bold text-slate-800" 
+              data-index="${idx}" 
+              value="${q.marks || 10}" 
+              min="1" 
+            />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600">CLO:</label>
+            <select class="res-q-clo-select w-full px-1.5 py-1 bg-slate-50 border border-slate-200 rounded-md font-semibold text-slate-800" data-index="${idx}">
+              ${(this.clos || []).map((c, i) => `
+                <option value="CLO-${c.id || i+1}" ${q.mappedCLO === `CLO-${c.id || i+1}` ? 'selected' : ''}>CLO-${c.id || i+1}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600">Taxonomy:</label>
+            <select class="res-q-tax-select w-full px-1.5 py-1 bg-slate-50 border border-slate-200 rounded-md font-semibold text-slate-800" data-index="${idx}">
+              ${TAXONOMY_LEVELS.filter(t => t.domain === 'Cognitive').map(t => `
+                <option value="${t.level}" ${q.targetTaxonomy === t.level ? 'selected' : ''}>${t.level}</option>
+              `).join('')}
+              ${TAXONOMY_LEVELS.filter(t => t.domain === 'Psychomotor').map(t => `
+                <option value="${t.level}" ${q.targetTaxonomy === t.level ? 'selected' : ''}>${t.level}</option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+
+    // Update count & marks badges
+    const totalMarks = this.resilienceAuditQuestions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+    const marksBadge = document.getElementById('resilience-audit-total-marks-badge');
+    if (marksBadge) marksBadge.textContent = `Total: ${totalMarks} Marks`;
+    const qCountBadge = document.getElementById('resilience-audit-q-count-badge');
+    if (qCountBadge) qCountBadge.textContent = `${this.resilienceAuditQuestions.length} Question${this.resilienceAuditQuestions.length === 1 ? '' : 's'}`;
+    const importBadge = document.getElementById('badge-resilience-import-count');
+    if (importBadge) importBadge.textContent = `${this.questions?.length || 0} Qs`;
+
+    // Bind item listeners
+    container.querySelectorAll('.res-q-num-input').forEach(input => {
+      input.addEventListener('input', e => {
+        const idx = parseInt(e.target.getAttribute('data-index'));
+        if (this.resilienceAuditQuestions[idx]) {
+          this.resilienceAuditQuestions[idx].qNumber = e.target.value.trim() || `Q${idx + 1}`;
+        }
+      });
+    });
+
+    container.querySelectorAll('.res-q-text-input').forEach(t => {
+      t.addEventListener('input', e => {
+        const idx = parseInt(e.target.getAttribute('data-index'));
+        if (this.resilienceAuditQuestions[idx]) {
+          this.resilienceAuditQuestions[idx].text = e.target.value;
+        }
+      });
+    });
+
+    container.querySelectorAll('.res-q-marks-input').forEach(m => {
+      m.addEventListener('input', e => {
+        const idx = parseInt(e.target.getAttribute('data-index'));
+        if (this.resilienceAuditQuestions[idx]) {
+          this.resilienceAuditQuestions[idx].marks = parseInt(e.target.value) || 0;
+          const currentTotal = this.resilienceAuditQuestions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+          const badge = document.getElementById('resilience-audit-total-marks-badge');
+          if (badge) badge.textContent = `Total: ${currentTotal} Marks`;
+        }
+      });
+    });
+
+    container.querySelectorAll('.res-q-clo-select').forEach(s => {
+      s.addEventListener('change', e => {
+        const idx = parseInt(e.target.getAttribute('data-index'));
+        if (this.resilienceAuditQuestions[idx]) {
+          this.resilienceAuditQuestions[idx].mappedCLO = e.target.value;
+        }
+      });
+    });
+
+    container.querySelectorAll('.res-q-tax-select').forEach(s => {
+      s.addEventListener('change', e => {
+        const idx = parseInt(e.target.getAttribute('data-index'));
+        if (this.resilienceAuditQuestions[idx]) {
+          this.resilienceAuditQuestions[idx].targetTaxonomy = e.target.value;
+        }
+      });
+    });
+
+    container.querySelectorAll('.btn-remove-res-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'));
+        this.removeResilienceAuditQuestion(idx);
+      });
+    });
+  }
+
+  async runAssessmentResilienceAudit() {
+    if (!this.resilienceAuditQuestions || this.resilienceAuditQuestions.length === 0) {
+      alert('Please add or upload at least one question to audit.');
+      return;
+    }
+
+    const courseNameInput = document.getElementById('input-course-name');
+    const courseName = courseNameInput?.value?.trim() || 'EE-312 Microcontroller & Embedded Systems';
+    const assessmentTitle = document.getElementById('resilience-audit-title-input')?.value?.trim() || 'Assessment Examination';
+    const assessmentType = document.getElementById('resilience-audit-type-select')?.value || 'midterm';
+    const localContext = document.getElementById('resilience-audit-bench-context')?.value?.trim() || '';
+
+    this.setEvaluatingState(true, 'Auditing Assessment against AI-RLI Framework (P1: Process, P2: Context, P3: Depth)...');
+
+    try {
+      const result = await geminiEngine.auditAssessmentForAIResilience({
+        courseName,
+        assessmentTitle,
+        assessmentType,
+        questions: this.resilienceAuditQuestions,
+        localContext
+      });
+
+      this.resilienceAuditResult = result;
+      this.renderResilienceAuditResults(result);
+    } catch (err) {
+      console.error('Error auditing assessment for AI resilience:', err);
+      const fallback = geminiEngine.simulateAssessmentAIResilienceAudit({
+        courseName,
+        assessmentTitle,
+        assessmentType,
+        questions: this.resilienceAuditQuestions,
+        localContext,
+        errorNote: err.message
+      });
+      this.resilienceAuditResult = fallback;
+      this.renderResilienceAuditResults(fallback);
+    } finally {
+      this.setEvaluatingState(false);
+    }
+  }
+
+  renderResilienceAuditResults(data) {
+    if (!data) return;
+
+    // Toggle right-hand containers
+    const emptyState = document.getElementById('resilience-empty-state');
+    const synthResults = document.getElementById('resilience-results-card');
+    const auditResults = document.getElementById('resilience-audit-results-card');
+
+    if (emptyState) emptyState.classList.add('hidden');
+    if (synthResults) synthResults.classList.add('hidden');
+    if (auditResults) auditResults.classList.remove('hidden');
+
+    // Meta & Header
+    const typeBadge = document.getElementById('resilience-audit-res-type-badge');
+    if (typeBadge) typeBadge.textContent = (data.assessmentType || 'Assessment').toUpperCase();
+
+    const qCountBadge = document.getElementById('resilience-audit-res-qcount-badge');
+    if (qCountBadge) qCountBadge.textContent = `${data.questionEvaluations?.length || 0} Questions Audited`;
+
+    const vulnBadge = document.getElementById('resilience-audit-res-vuln-badge');
+    if (vulnBadge) {
+      vulnBadge.textContent = data.overallResilienceRating || 'Severe AI Vulnerability';
+      if (data.overallResilienceScore >= 7) {
+        vulnBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/30 text-emerald-200 border border-emerald-400/40';
+      } else if (data.overallResilienceScore >= 5) {
+        vulnBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/30 text-amber-200 border border-amber-400/40';
+      } else {
+        vulnBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500/30 text-rose-200 border border-rose-400/40 animate-pulse';
+      }
+    }
+
+    const titleEl = document.getElementById('resilience-audit-res-title');
+    if (titleEl) titleEl.textContent = `${data.assessmentTitle || 'Assessment'}: AI Resilience Audit`;
+
+    const courseEl = document.getElementById('resilience-audit-res-course');
+    if (courseEl) courseEl.textContent = `${data.courseName || 'Course'} • AI-Resilient Learning Initiative (AI-RLI) Framework`;
+
+    const scoreEl = document.getElementById('resilience-audit-res-score');
+    if (scoreEl) scoreEl.innerHTML = `${data.overallResilienceScore} <span class="text-xs text-purple-300 font-bold">/ 10</span>`;
+
+    const summaryEl = document.getElementById('resilience-audit-res-summary');
+    if (summaryEl) summaryEl.textContent = data.summary || '';
+
+    // Pillars Breakdown
+    const p1 = data.pillarsAudit?.p1Process || {};
+    const p2 = data.pillarsAudit?.p2Context || {};
+    const p3 = data.pillarsAudit?.p3ConceptualDepth || {};
+
+    const p1Score = document.getElementById('p1-res-score');
+    if (p1Score) p1Score.textContent = `${p1.score || 0} / 10`;
+    const p1Meter = document.getElementById('p1-res-meter');
+    if (p1Meter) p1Meter.style.width = `${Math.min(100, (p1.score || 0) * 10)}%`;
+    const p1Status = document.getElementById('p1-res-status-badge');
+    if (p1Status) p1Status.textContent = p1.status || 'Vulnerable';
+    const p1Findings = document.getElementById('p1-res-findings');
+    if (p1Findings) p1Findings.textContent = p1.findings || '';
+
+    const p2Score = document.getElementById('p2-res-score');
+    if (p2Score) p2Score.textContent = `${p2.score || 0} / 10`;
+    const p2Meter = document.getElementById('p2-res-meter');
+    if (p2Meter) p2Meter.style.width = `${Math.min(100, (p2.score || 0) * 10)}%`;
+    const p2Status = document.getElementById('p2-res-status-badge');
+    if (p2Status) p2Status.textContent = p2.status || 'Partial';
+    const p2Findings = document.getElementById('p2-res-findings');
+    if (p2Findings) p2Findings.textContent = p2.findings || '';
+
+    const p3Score = document.getElementById('p3-res-score');
+    if (p3Score) p3Score.textContent = `${p3.score || 0} / 10`;
+    const p3Meter = document.getElementById('p3-res-meter');
+    if (p3Meter) p3Meter.style.width = `${Math.min(100, (p3.score || 0) * 10)}%`;
+    const p3Status = document.getElementById('p3-res-status-badge');
+    if (p3Status) p3Status.textContent = p3.status || 'Threshold';
+    const p3Findings = document.getElementById('p3-res-findings');
+    if (p3Findings) p3Findings.textContent = p3.findings || '';
+
+    // Questions Diagnostic Cards
+    const qListContainer = document.getElementById('resilience-audit-questions-results-list');
+    if (qListContainer) {
+      qListContainer.innerHTML = '';
+      (data.questionEvaluations || []).forEach((qEval, idx) => {
+        const card = document.createElement('div');
+        card.className = 'p-5 bg-slate-50/80 border border-slate-200 rounded-2xl shadow-2xs space-y-4';
+
+        const refactor = qEval.suggestedRefactor || {};
+
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200/80">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-purple-100 text-purple-900 font-extrabold text-xs flex items-center justify-center">
+                ${qEval.qNumber || `Q${idx + 1}`}
+              </span>
+              <span class="font-black text-slate-900 text-sm">${qEval.qNumber || `Question ${idx + 1}`} (${qEval.marks || 10} Marks • ${qEval.mappedCLO || 'CLO-1'} • ${qEval.targetTaxonomy || 'C3'})</span>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-black ${
+              qEval.vulnerabilityLevel?.toLowerCase().includes('critical') ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+              qEval.vulnerabilityLevel?.toLowerCase().includes('high') ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+              'bg-blue-100 text-blue-800 border border-blue-300'
+            }">
+              ${qEval.vulnerabilityLevel || 'High Vulnerability'}
+            </span>
+          </div>
+
+          <!-- Original Prompt vs Fracture -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 bg-white rounded-xl border border-slate-200">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Current Question Text:</span>
+              <p class="text-slate-800 font-medium leading-relaxed italic">"${qEval.originalText}"</p>
+            </div>
+            <div class="p-3 bg-rose-50/70 rounded-xl border border-rose-200 text-rose-950">
+              <span class="text-[10px] font-black uppercase tracking-wider text-rose-800 block mb-1">Assessment Fracture (Why AI Solves It):</span>
+              <p class="text-xs leading-relaxed font-medium">${qEval.assessmentFracture}</p>
+            </div>
+          </div>
+
+          <!-- Fortified AI-Resilient Redesign -->
+          <div class="p-4 bg-gradient-to-r from-purple-50/90 via-indigo-50/50 to-white rounded-xl border-2 border-purple-200 shadow-2xs space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                ✨ Fortified AI-Resilient Redesign:
+              </span>
+              <span class="text-[11px] font-bold text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full">P1 + P2 + P3 Enforced</span>
+            </div>
+
+            <p class="text-xs text-slate-900 font-semibold leading-relaxed bg-white p-3 rounded-lg border border-purple-100">
+              ${refactor.redesignedText || ''}
+            </p>
+
+            <div class="space-y-1.5 text-xs pt-1">
+              <div class="flex items-start gap-2 text-orange-950 font-medium">
+                <strong class="text-orange-700 shrink-0 text-[11px] uppercase">P1 Process Artifacts:</strong>
+                <span>${(refactor.requiredProcessArtifacts || []).join('; ')}</span>
+              </div>
+              <div class="flex items-start gap-2 text-emerald-950 font-medium">
+                <strong class="text-emerald-700 shrink-0 text-[11px] uppercase">P2 Bench Reality:</strong>
+                <span>${refactor.hyperLocalConstraint || ''}</span>
+              </div>
+              <div class="flex items-start gap-2 text-blue-950 font-medium">
+                <strong class="text-blue-700 shrink-0 text-[11px] uppercase">P3 AI Critique Task:</strong>
+                <span>${refactor.aiCritiqueTask || ''}</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        qListContainer.appendChild(card);
+      });
+    }
+
+    // Fortification Roadmap
+    const roadmapContainer = document.getElementById('resilience-audit-roadmap-list');
+    if (roadmapContainer) {
+      roadmapContainer.innerHTML = (data.actionableFortificationPlan || []).map((step, idx) => `
+        <li class="flex items-start gap-2.5 p-2 bg-white rounded-xl border border-purple-100 shadow-2xs">
+          <span class="w-5 h-5 rounded-full bg-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
+          <span class="leading-relaxed text-slate-900">${step}</span>
+        </li>
+      `).join('');
+    }
+
+    setTimeout(() => {
+      auditResults.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  }
+
+  transferFortifiedQuestionsToAssessmentTab() {
+    if (!this.resilienceAuditResult || !this.resilienceAuditResult.questionEvaluations) {
+      alert('Please run the AI resilience audit first to generate fortified redesigns.');
+      return;
+    }
+
+    const qEvals = this.resilienceAuditResult.questionEvaluations;
+    const newQuestions = qEvals.map((qEval, idx) => {
+      const refactor = qEval.suggestedRefactor || {};
+      const newText = refactor.redesignedText || qEval.originalText || '';
+      return {
+        id: Date.now() + idx,
+        qNumber: qEval.qNumber || `Q${idx + 1}`,
+        text: newText,
+        marks: qEval.marks || 10,
+        mappedCLO: qEval.mappedCLO || 'CLO-1',
+        targetTaxonomy: qEval.targetTaxonomy || 'C4'
+      };
+    });
+
+    this.questions = newQuestions;
+    this.renderAssessmentQuestions();
+    this.switchTab('assessment', true);
+
+    this.showAssessmentStatus(
+      `✓ Successfully applied ${newQuestions.length} fortified AI-resilient questions to the Assessment tab! Review or click "Audit Exam Alignment" to evaluate.`,
+      'success'
+    );
+  }
+
+  exportResilienceAuditPDF() {
+    if (!this.resilienceAuditResult) {
+      alert('Please audit an assessment first before exporting the AI Resilience Audit PDF.');
+      return;
+    }
+
+    const courseNameInput = document.getElementById('input-course-name');
+    const courseName = courseNameInput?.value?.trim() || 'EE-312 Microcontroller & Embedded Systems';
+    const reportElement = PDFReportGenerator.generateResilienceAuditReport({
+      auditData: this.resilienceAuditResult,
+      courseName
     });
 
     PDFReportGenerator.triggerPrint(reportElement);

@@ -1358,13 +1358,133 @@
         <!-- ==================== LEFT COLUMN: ASSESSMENT ARCHITECT FORM ==================== -->
         <div class="lg:col-span-5 space-y-6">
           <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
-            <div class="border-b border-slate-100 pb-4">
-              <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                <span>Assessment Configuration</span>
-              </h3>
-              <p class="text-xs text-slate-600 mt-0.5 font-medium">Provide the targeted CLO statement, mapped PLO, and taxonomy level to engineer a resilient prompt.</p>
+            <!-- Resilience Studio Mode Switcher -->
+            <div class="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-black">
+              <button type="button" id="btn-resilience-mode-audit" class="flex-1 py-2.5 px-3 rounded-xl transition-all text-center bg-white text-purple-950 shadow-2xs border border-purple-200 flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <span>Upload &amp; Audit Assessment</span>
+              </button>
+              <button type="button" id="btn-resilience-mode-synthesize" class="flex-1 py-2.5 px-3 rounded-xl transition-all text-center text-slate-700 hover:text-slate-950 flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Synthesize from CLO</span>
+              </button>
             </div>
+
+            <!-- ==================== PANEL 1: UPLOAD & AUDIT EXISTING ASSESSMENT ==================== -->
+            <div id="resilience-panel-audit" class="space-y-5">
+              <div class="border-b border-slate-100 pb-3">
+                <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                  <span>Upload &amp; Evaluate Assessment</span>
+                </h3>
+                <p class="text-xs text-slate-600 mt-0.5 font-medium">Upload or import your examination, assignment, or quiz to diagnose AI vulnerabilities and receive fortified AI-resilient redesigns.</p>
+              </div>
+
+              <!-- Upload Dropzone -->
+              <div>
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
+                  Upload Assessment File <span class="text-rose-500">*</span>
+                </label>
+                <div id="resilience-upload-dropzone" class="p-4 border-2 border-dashed border-purple-300 hover:border-purple-500 rounded-2xl bg-purple-50/60 hover:bg-purple-100/60 cursor-pointer transition-all flex items-center justify-between gap-3 shadow-2xs group">
+                  <input type="file" id="resilience-file-input" class="hidden" accept=".docx,.pdf,.txt,.md,.csv" />
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    </div>
+                    <div>
+                      <span class="text-xs font-black text-slate-900 block">Click or Drop Assessment File Here</span>
+                      <span class="text-[11px] text-slate-600 block mt-0.5">Word (.docx), PDF (.pdf), or Text file to auto-extract questions</span>
+                    </div>
+                  </div>
+                  <span class="px-3 py-1.5 rounded-xl bg-white border border-purple-200 text-xs font-bold text-purple-800 shrink-0 shadow-2xs group-hover:bg-purple-50">
+                    📁 Browse
+                  </span>
+                </div>
+                <div id="resilience-upload-status" class="hidden text-xs mt-2 font-medium"></div>
+              </div>
+
+              <!-- Quick Action Bar -->
+              <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                <button type="button" id="btn-resilience-import-active-assess" class="btn-interactive px-3 py-1.5 rounded-lg bg-white border border-purple-300 hover:bg-purple-50 text-purple-900 font-extrabold flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Import questions already loaded in Assessment Audit tab">
+                  <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                  <span>📥 Import Current Assessment</span>
+                  <span id="badge-resilience-import-count" class="px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black">3 Qs</span>
+                </button>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" id="btn-resilience-load-sample-audit" class="px-2 py-1 text-[11px] font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 shadow-2xs cursor-pointer" title="Load sample EE-312 exam questions">
+                    Sample Exam
+                  </button>
+                  <button type="button" id="btn-resilience-clear-audit-qs" class="px-2 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer" title="Clear questions">
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <!-- Title & Instrument Type -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Assessment Title:</label>
+                  <input type="text" id="resilience-audit-title-input" value="Midterm Examination (Spring 2026)" class="w-full px-3 py-2 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:border-purple-500 shadow-2xs" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Instrument Type:</label>
+                  <select id="resilience-audit-type-select" class="w-full px-3 py-2 text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:border-purple-500 shadow-2xs">
+                    <option value="midterm" selected>Midterm Exam (Summative C2–C4)</option>
+                    <option value="final">Final Exam (Complex Problems WP1–WP7, C4–C6)</option>
+                    <option value="quiz">Quiz (Rapid Knowledge Check C1–C3)</option>
+                    <option value="assignment">Assignment / Problem Set (C3–C5)</option>
+                    <option value="lab">Lab Assessment (Hands-on P1–P7)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Questions Header -->
+              <div class="flex items-center justify-between pt-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-black uppercase text-slate-800 tracking-wider">Questions in Paper:</span>
+                  <span id="resilience-audit-q-count-badge" class="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-900 font-extrabold text-[11px]">3 Questions</span>
+                </div>
+                <span id="resilience-audit-total-marks-badge" class="font-mono text-xs font-bold text-slate-600">Total: 50 Marks</span>
+              </div>
+
+              <!-- Dynamic Questions List -->
+              <div id="resilience-audit-questions-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                <!-- Populated dynamically -->
+              </div>
+
+              <!-- Question Action Bar -->
+              <div class="flex items-center justify-between gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                <button type="button" id="btn-resilience-add-audit-q" class="btn-interactive px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs flex items-center gap-1 shadow-2xs cursor-pointer">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                  <span>+ Add Question</span>
+                </button>
+                <span class="text-[11px] text-slate-500 font-medium">Add, remove, or customize any question</span>
+              </div>
+
+              <!-- Local Lab Bench Context (Optional) -->
+              <div>
+                <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                  Local Lab Bench / Physical Reality (Optional Context Anchor):
+                </label>
+                <textarea id="resilience-audit-bench-context" rows="2" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:border-purple-500 shadow-2xs" placeholder="e.g. Department Hardware Lab Bench #3, Rigol DS1054Z DSO, STM32F401RE Nucleo, 2.2k pull-up on 3.3V bus, 180pF capacitance..."></textarea>
+              </div>
+
+              <!-- Audit Submit Button -->
+              <button type="button" id="btn-run-resilience-assessment-audit" class="btn-interactive w-full py-4 rounded-2xl text-sm font-black uppercase tracking-wider bg-purple-700 text-white hover:bg-purple-800 shadow-lg shadow-purple-700/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-5 h-5 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <span>Audit Assessment Against AI-RLI Framework</span>
+              </button>
+            </div>
+
+            <!-- ==================== PANEL 2: SYNTHESIZE FROM CLO (GENESIS STUDIO) ==================== -->
+            <div id="resilience-panel-synthesize" class="space-y-6 hidden">
+              <div class="border-b border-slate-100 pb-4">
+                <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  <span>Synthesize Resilient Prompt from CLO</span>
+                </h3>
+                <p class="text-xs text-slate-600 mt-0.5 font-medium">Select a targeted CLO statement, mapped PLO, and taxonomy level to engineer a brand new AI-impervious assessment brief.</p>
+              </div>
 
             <!-- Assessment Type Selector -->
             <div>
@@ -1528,15 +1648,16 @@
               </label>
             </div>
 
-            <!-- Action Button -->
-            <button 
-              id="btn-generate-resilient-assessment" 
-              type="button" 
-              class="btn-interactive w-full py-4 rounded-2xl text-sm font-black uppercase tracking-wider bg-purple-700 text-white hover:bg-purple-800 shadow-lg shadow-purple-700/25 transition-all flex items-center justify-center gap-2"
-            >
-              <svg class="w-5 h-5 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-              <span>Generate AI-Resilient Assessment</span>
-            </button>
+              <!-- Action Button -->
+              <button 
+                id="btn-generate-resilient-assessment" 
+                type="button" 
+                class="btn-interactive w-full py-4 rounded-2xl text-sm font-black uppercase tracking-wider bg-purple-700 text-white hover:bg-purple-800 shadow-lg shadow-purple-700/25 transition-all flex items-center justify-center gap-2"
+              >
+                <svg class="w-5 h-5 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <span>Generate AI-Resilient Assessment</span>
+              </button>
+            </div> <!-- end resilience-panel-synthesize -->
 
           </div>
         </div>
@@ -1549,24 +1670,161 @@
             <div class="w-16 h-16 rounded-3xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center mx-auto mb-4">
               <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             </div>
-            <h3 class="text-xl font-black text-slate-900 mb-2">AI-RLI Assessment Architect Ready</h3>
+            <h3 class="text-xl font-black text-slate-900 mb-2">AI-RLI Assessment Studio Ready</h3>
             <p class="text-sm text-slate-700 max-w-lg mx-auto leading-relaxed mb-6 font-normal">
-              Select a framework preset above or configure your course CLO, target PLO, and taxonomy level on the left. Click <strong>Generate AI-Resilient Assessment</strong> to formulate an authentic, AI-impervious assessment brief with fracture diagnosis, traceable deliverables, and scoring rubric.
+              Upload an assessment paper (.docx, .pdf, .txt) or click <strong>"📥 Import Current Assessment"</strong> to audit questions against the AI Resilience Framework, diagnose AI vulnerabilities, and receive actionable fortified redesigns.
             </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-md mx-auto">
               <div class="p-3.5 bg-purple-50 rounded-xl border border-purple-200/80 shadow-2xs">
-                <span class="text-xs font-black text-purple-950 block mb-1">Bloom's Critical Pivot (C4)</span>
-                <span class="text-xs text-purple-800 leading-relaxed font-medium">Where AI fluency most frequently mimics understanding without authentic reasoning.</span>
+                <span class="text-xs font-black text-purple-950 block mb-1">P1 &amp; P2: Process &amp; Context</span>
+                <span class="text-xs text-purple-800 leading-relaxed font-medium">Enforce visible cognitive traces (waveforms/decision logs) anchored to local hardware bench reality.</span>
               </div>
               <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200/80 shadow-2xs">
                 <span class="text-xs font-black text-emerald-950 block mb-1">P3: Intentional AI Critique</span>
-                <span class="text-xs text-emerald-800 leading-relaxed font-medium">Turns AI into an object of student scrutiny rather than an automated surrogate.</span>
+                <span class="text-xs text-emerald-800 leading-relaxed font-medium">Turns generative AI into an object of student scrutiny rather than an automated surrogate.</span>
               </div>
             </div>
           </div>
 
-          <!-- Active Results Card (Hidden Initially) -->
+          <!-- ==================== ACTIVE ASSESSMENT AUDIT RESULTS CARD ==================== -->
+          <div id="resilience-audit-results-card" class="hidden space-y-6">
+            
+            <!-- Result Meta & Score Banner -->
+            <div class="bg-gradient-to-br from-purple-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 sm:p-7 shadow-md border border-purple-900/40">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                    <span id="resilience-audit-res-type-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-purple-500/30 text-purple-200 border border-purple-400/40">
+                      Midterm Exam
+                    </span>
+                    <span id="resilience-audit-res-qcount-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                      3 Questions Audited
+                    </span>
+                    <span id="resilience-audit-res-vuln-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500/30 text-rose-200 border border-rose-400/40">
+                      Severe AI Vulnerability
+                    </span>
+                  </div>
+                  <h3 id="resilience-audit-res-title" class="text-lg sm:text-xl font-black text-white">
+                    Assessment AI Resilience Audit Dossier
+                  </h3>
+                  <p id="resilience-audit-res-course" class="text-xs text-slate-300 mt-1 font-medium">
+                    Course Examination • AI-Resilient Learning Initiative (AI-RLI) Framework
+                  </p>
+                </div>
+
+                <div class="shrink-0 flex flex-wrap items-center gap-2">
+                  <div class="p-3 bg-purple-900/40 border border-purple-500/30 rounded-2xl text-center min-w-[110px] shadow-2xs">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 block">Resilience Score</span>
+                    <span id="resilience-audit-res-score" class="text-2xl font-black text-white">3.4 <span class="text-xs text-purple-300 font-bold">/ 10</span></span>
+                  </div>
+                  <button type="button" id="btn-export-resilience-audit-pdf" class="btn-interactive px-3.5 py-2.5 rounded-xl text-xs font-black bg-purple-600 hover:bg-purple-500 text-white shadow-md flex items-center gap-1.5 transition-all cursor-pointer" title="Export Official AI-Resilience Assessment Audit PDF">
+                    <svg class="w-4 h-4 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>Export Audit PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Executive Summary -->
+              <div class="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-200 leading-relaxed font-normal">
+                <span class="text-purple-300 font-black uppercase tracking-wider text-[11px] block mb-1">Executive Integrity Finding:</span>
+                <p id="resilience-audit-res-summary" class="leading-relaxed"></p>
+              </div>
+            </div>
+
+            <!-- 3 Pillars Accreditation Breakdown Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- Pillar 1 Card -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-orange-600 text-white font-black text-xs flex items-center justify-center">P1</span>
+                    <h5 class="text-xs font-black text-slate-900">Process &gt; Product</h5>
+                  </div>
+                  <span id="p1-res-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">Vulnerable</span>
+                </div>
+                <div class="flex items-baseline justify-between text-xs pt-1">
+                  <span class="text-[11px] font-bold text-slate-500">Pillar Score:</span>
+                  <span id="p1-res-score" class="font-mono font-black text-slate-900 text-sm">3.0 / 10</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div id="p1-res-meter" class="h-full bg-orange-500 rounded-full transition-all" style="width: 30%"></div>
+                </div>
+                <p id="p1-res-findings" class="text-[11px] text-slate-600 leading-relaxed font-normal pt-1"></p>
+              </div>
+
+              <!-- Pillar 2 Card -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center">P2</span>
+                    <h5 class="text-xs font-black text-slate-900">Contextualization</h5>
+                  </div>
+                  <span id="p2-res-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">Partial</span>
+                </div>
+                <div class="flex items-baseline justify-between text-xs pt-1">
+                  <span class="text-[11px] font-bold text-slate-500">Pillar Score:</span>
+                  <span id="p2-res-score" class="font-mono font-black text-slate-900 text-sm">4.0 / 10</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div id="p2-res-meter" class="h-full bg-emerald-500 rounded-full transition-all" style="width: 40%"></div>
+                </div>
+                <p id="p2-res-findings" class="text-[11px] text-slate-600 leading-relaxed font-normal pt-1"></p>
+              </div>
+
+              <!-- Pillar 3 Card -->
+              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-blue-600 text-white font-black text-xs flex items-center justify-center">P3</span>
+                    <h5 class="text-xs font-black text-slate-900">Depth &amp; AI Critique</h5>
+                  </div>
+                  <span id="p3-res-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">Threshold</span>
+                </div>
+                <div class="flex items-baseline justify-between text-xs pt-1">
+                  <span class="text-[11px] font-bold text-slate-500">Pillar Score:</span>
+                  <span id="p3-res-score" class="font-mono font-black text-slate-900 text-sm">4.5 / 10</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div id="p3-res-meter" class="h-full bg-blue-500 rounded-full transition-all" style="width: 45%"></div>
+                </div>
+                <p id="p3-res-findings" class="text-[11px] text-slate-600 leading-relaxed font-normal pt-1"></p>
+              </div>
+            </div>
+
+            <!-- Per-Question Diagnostic & Redesign Matrix -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+                <div>
+                  <h4 class="text-base font-black text-slate-900">Question-by-Question Vulnerability &amp; Redesign Matrix</h4>
+                  <p class="text-xs text-slate-600 font-medium">Detailed vulnerability diagnosis and fortified AI-resilient redesign for each question.</p>
+                </div>
+                <button type="button" id="btn-transfer-fortified-to-assess" class="btn-interactive px-3.5 py-1.5 rounded-xl bg-purple-50 text-purple-900 border border-purple-200 hover:bg-purple-100 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Transfer the fortified resilient questions into the Assessment Audit tab">
+                  <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  <span>Apply Fortified Questions to Assessment Tab</span>
+                </button>
+              </div>
+
+              <!-- List of Question Diagnostic & Redesign Cards -->
+              <div id="resilience-audit-questions-results-list" class="space-y-5">
+                <!-- Dynamically rendered per question -->
+              </div>
+            </div>
+
+            <!-- Actionable Immediate Fortification Roadmap -->
+            <div class="p-6 bg-gradient-to-r from-purple-50 via-indigo-50/50 to-slate-50 border border-purple-200 rounded-3xl shadow-xs space-y-3">
+              <h4 class="text-sm font-black text-purple-950 flex items-center gap-2">
+                <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span>Immediate Fortification Roadmap (Examiner Action Checklist)</span>
+              </h4>
+              <ul id="resilience-audit-roadmap-list" class="space-y-2 text-xs font-medium text-slate-800">
+                <!-- Populated dynamically -->
+              </ul>
+            </div>
+
+          </div>
+
+          <!-- Active Results Card for Synthesizer (Hidden Initially) -->
           <div id="resilience-results-card" class="hidden space-y-6">
             
             <!-- Result Meta Banner -->
@@ -2561,7 +2819,7 @@
     </div>
   </div>
 
-  <script type="module" src="./js/app.js?v=4.6"></script>
-  <script type="module" src="./js/demo-video.js?v=4.6"></script>
+  <script type="module" src="./js/app.js?v=4.7"></script>
+  <script type="module" src="./js/demo-video.js?v=4.7"></script>
 </body>
 </html>

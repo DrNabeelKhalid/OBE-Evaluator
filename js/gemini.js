@@ -2081,6 +2081,303 @@ Active Pillars: Process>Product (${pillars.p1 ? 'YES' : 'NO'}), Contextualizatio
   }
 
   /**
+   * Audits an Uploaded Assessment against the AI-Resilient Learning Initiative (AI-RLI) Framework
+   * Evaluates P1 (Process>Product), P2 (Contextualization), P3 (Conceptual Depth & AI Critique),
+   * diagnoses question fractures, and provides AI-resilient redesign suggestions.
+   */
+  async auditAssessmentForAIResilience({
+    courseName = 'Engineering Course',
+    assessmentTitle = 'Assessment Examination',
+    assessmentType = 'midterm',
+    questions = [],
+    localContext = ''
+  }) {
+    if (!this.hasApiKey()) {
+      return this.simulateAssessmentAIResilienceAudit({
+        courseName,
+        assessmentTitle,
+        assessmentType,
+        questions,
+        localContext
+      });
+    }
+
+    const questionsListStr = (questions || []).map((q, i) => 
+      `${q.qNumber || `Q${i+1}`} (${q.marks || 10} marks, Mapped: ${q.mappedCLO || 'CLO-1'}, Taxonomy: ${q.targetTaxonomy || 'C3'}): "${(q.text || '').replace(/"/g, "'")}"`
+    ).join('\n\n');
+
+    const systemPrompt = `You are an elite Senior Academic Integrity Consultant and AI-Resilience Assessment Auditor specializing in Washington Accord (Criterion 3, WP1-WP7) and PEC higher education accreditation.
+You audit complete engineering assessment papers against the official AI-Resilient Learning Initiative (AI-RLI) Framework (Spring 2026), utilizing the Three Pillars of AI Resilience:
+1. P1: Process > Product (Does this paper evaluate intermediate cognitive traces—drafts, derivations, waveform captures, failure journals, reflection notes—or merely final answers that LLMs generate in seconds?)
+2. P2: Contextualization & Traceability (Does this paper anchor problems to specific, empirical physical reality—lab equipment serials, component tolerances, measured noise floors, local telemetry—or generic textbook prompts?)
+3. P3: Conceptual Depth & AI Critique (Does this paper stress-test loadbearing physical principles vs incidental trivia, and intentionally direct students to query AI and critique its omissions/flaws?)
+
+Audit all provided questions. For each question, explain why AI solves it, identify the assessment fracture, and formulate an actionable AI-Resilient redesign incorporating the 3 pillars.
+
+Respond ONLY with valid JSON matching this exact structure:
+{
+  "assessmentTitle": "${assessmentTitle}",
+  "courseName": "${courseName}",
+  "assessmentType": "${assessmentType}",
+  "overallResilienceScore": 4.2,
+  "overallResilienceRating": "High Vulnerability",
+  "summary": "Executive summary of the audit and why the assessment is currently vulnerable to AI fluency.",
+  "pillarsAudit": {
+    "p1Process": {
+      "score": 3.0,
+      "maxScore": 10,
+      "status": "Vulnerable",
+      "findings": "Specific evaluation of process vs product requirements across the paper.",
+      "recommendations": "Concrete recommendations to enforce visible cognitive traces."
+    },
+    "p2Context": {
+      "score": 4.0,
+      "maxScore": 10,
+      "status": "Partially Contextualized",
+      "findings": "Evaluation of whether problems are grounded in empirical hardware or generic textbook scenarios.",
+      "recommendations": "How to anchor problems into specific bench measurements and non-ideal parameters."
+    },
+    "p3ConceptualDepth": {
+      "score": 5.0,
+      "maxScore": 10,
+      "status": "Threshold",
+      "findings": "Evaluation of Bloom levels, cognitive depth, and presence of intentional AI critique.",
+      "recommendations": "How to probe non-negotiable physical laws and incorporate student AI critique."
+    }
+  },
+  "questionEvaluations": [
+    {
+      "qNumber": "Q1",
+      "marks": 15,
+      "mappedCLO": "CLO-1",
+      "targetTaxonomy": "C3",
+      "originalText": "...",
+      "vulnerabilityLevel": "Critical / High / Moderate / Resilient",
+      "aiSolvability": "How easily LLMs solve this in 1 prompt with zero student thinking",
+      "assessmentFracture": "Why conventional prompt fails under AI assistance",
+      "suggestedRefactor": {
+        "title": "Fortified Resilient Question Title",
+        "redesignedText": "Complete rewritten question statement incorporating P1, P2, and P3",
+        "requiredProcessArtifacts": ["Array of 2-3 specific process deliverables required"],
+        "hyperLocalConstraint": "Specific physical bench constraint or tolerance injected",
+        "aiCritiqueTask": "Specific prompt student must feed to AI and critique"
+      }
+    }
+  ],
+  "actionableFortificationPlan": [
+    "Immediate action 1",
+    "Immediate action 2",
+    "Immediate action 3",
+    "Immediate action 4"
+  ],
+  "moderationNotes": "Official note for OBE moderation committee"
+}`;
+
+    const userPrompt = `Audit this engineering assessment paper against the AI-RLI framework:
+Course: ${courseName}
+Assessment Title: ${assessmentTitle}
+Instrument Type: ${assessmentType}
+Local Hardware Bench Context: ${localContext || 'Department laboratory environment with physical bench hardware'}
+
+Questions to evaluate:
+${questionsListStr}`;
+
+    try {
+      const responseText = await this.callGeminiAPI(systemPrompt, userPrompt);
+      const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(cleaned);
+    } catch (err) {
+      console.warn('Gemini AI-Resilience Assessment Audit API call failed, falling back to Simulator:', err);
+      return this.simulateAssessmentAIResilienceAudit({
+        courseName,
+        assessmentTitle,
+        assessmentType,
+        questions,
+        localContext,
+        errorNote: err.message
+      });
+    }
+  }
+
+  /**
+   * Academic Simulation Fallback for AI-Resilience Assessment Audit
+   */
+  simulateAssessmentAIResilienceAudit({
+    courseName = 'Engineering Course',
+    assessmentTitle = 'Assessment Examination',
+    assessmentType = 'midterm',
+    questions = [],
+    localContext = '',
+    errorNote = null
+  }) {
+    const qList = (questions && questions.length > 0) ? questions : [
+      { qNumber: 'Q1', text: 'Explain the working of I2C protocol and derive pull-up resistor values.', marks: 15, mappedCLO: 'CLO-1', targetTaxonomy: 'C2' },
+      { qNumber: 'Q2', text: 'Write an embedded C program to read temperature from DS3231 over I2C.', marks: 15, mappedCLO: 'CLO-2', targetTaxonomy: 'C3' },
+      { qNumber: 'Q3', text: 'Design a multi-master arbitration algorithm for high speed sensor telemetry.', marks: 20, mappedCLO: 'CLO-3', targetTaxonomy: 'C4' }
+    ];
+
+    let p1Hits = 0;
+    let p2Hits = 0;
+    let p3Hits = 0;
+
+    const p1Keywords = ['sketch', 'trace', 'waveform', 'derivation', 'step-by-step', 'decision log', 'journal', 'margin note', 'intermediate', 'scratchpad'];
+    const p2Keywords = ['bench', 'oscilloscope', 'rigol', 'tolerance', 'nucleo', 'stm32', 'serial', 'measured', 'capacitance', 'noise', 'ground bounce', 'room', 'hardware'];
+    const p3Keywords = ['critique', 'hallucin', 'limitation', 'boundary', 'failure mode', 'non-negotiable', 'evaluate ai', 'oversimplif'];
+
+    const questionEvaluations = qList.map((q, idx) => {
+      const qNum = q.qNumber || `Q${idx + 1}`;
+      const qText = q.text || '';
+      const qMarks = q.marks || 10;
+      const qCLO = q.mappedCLO || `CLO-${(idx % 3) + 1}`;
+      const qTax = q.targetTaxonomy || (idx === 0 ? 'C2' : (idx === 1 ? 'C3' : 'C4'));
+      const qLower = qText.toLowerCase();
+
+      // Check pillar hits
+      const hasP1 = p1Keywords.some(kw => qLower.includes(kw));
+      const hasP2 = p2Keywords.some(kw => qLower.includes(kw)) || Boolean(localContext && localContext.length > 15);
+      const hasP3 = p3Keywords.some(kw => qLower.includes(kw));
+
+      if (hasP1) p1Hits++;
+      if (hasP2) p2Hits++;
+      if (hasP3) p3Hits++;
+
+      // Assess vulnerability
+      let vulnLevel = 'High Vulnerability';
+      let aiSolvability = 'Generative AI produces an authoritative, textbook-perfect solution in under 4 seconds with zero student cognitive effort.';
+      let fracture = 'The prompt evaluates product completion (standard explanation/formula/code) rather than human investigative diagnostic reasoning under physical friction.';
+
+      if (['C1', 'C2'].includes(qTax)) {
+        vulnLevel = 'Critical Vulnerability';
+        aiSolvability = 'Direct recall/comprehension prompt. Solved instantaneously by any basic LLM with 100% precision.';
+        fracture = 'Testing memory or standard textbook definitions creates a total illusion of learning when students use AI surrogates.';
+      } else if (qTax === 'C3') {
+        vulnLevel = 'High Vulnerability';
+        aiSolvability = 'Standard algorithmic application and boilerplate code. Readily generated by Claude/ChatGPT without requiring hardware comprehension.';
+        fracture = 'Bypasses physical peripheral limitations, bus contention, and pin driver constraints.';
+      } else if (qTax === 'C4') {
+        vulnLevel = 'Threshold Level (C4 Pivot)';
+        aiSolvability = 'AI provides structurally coherent analytical prose, but often hallucinates subtle real-world timing parasitics or boundary constraints.';
+        fracture = 'Without mandatory physical evidence or failure logs, student merely regurgitates AI analytical summaries.';
+      } else if (['P3', 'P4', 'P5'].includes(qTax)) {
+        vulnLevel = 'Moderate Resilience';
+        aiSolvability = 'AI cannot physically manipulate hardware or probes, but can easily fabricate fake data/measurements.';
+        fracture = 'Requires verifiable digital/analog traces and live observation to prevent fabricated lab reports.';
+      }
+
+      // Generate Domain-Appropriate Redesign
+      const isPower = qLower.includes('power') || qLower.includes('inverter') || qLower.includes('converter') || qLower.includes('pwm') || courseName.toLowerCase().includes('power');
+      const isDsp = qLower.includes('dsp') || qLower.includes('filter') || qLower.includes('fft') || courseName.toLowerCase().includes('signal');
+      
+      let refactoredTitle = `Fortified Diagnostic & AI-Critique Problem for ${qNum}`;
+      let redesignedText = '';
+      let reqArtifacts = [];
+      let hyperLocal = '';
+      let critiqueTask = '';
+
+      if (isPower) {
+        hyperLocal = localContext || 'Power Systems Bench #2, 10kW SiC MOSFET prototype, 400V DC rail, measured 250ns dead-time margin.';
+        redesignedText = `Using the recorded gate-drive timing waveform on Lab Bench #2, evaluate shoot-through risks under a 400V DC link with inductive reverse-recovery. Rather than deriving textbook formulas, you must diagnose why the upper SiC MOSFET experienced thermal runaway at 50kHz switching frequency.`;
+        reqArtifacts = [
+          'Annotated oscilloscope capture of high-side vs low-side V_GS signals with measured dead-time t_dead cursors',
+          'Mathematical thermal calculation scratchpad showing P_cond vs P_sw trade-off calculations',
+          'Chronological Engineering Decision Log detailing 3 trial dead-time adjustments'
+        ];
+        critiqueTask = `Prompt ChatGPT with: "Calculate minimum dead-time for 10kW SiC MOSFET bridge at 400V". Submit a 150-word critique detailing how the AI omitted the effect of Miller capacitance C_gd charge injection during high dV/dt switching.`;
+      } else if (isDsp) {
+        hyperLocal = localContext || 'Signals Lab Rig #4, fixed-point DSP processor, 16-bit ADC with 2.5V reference, 50Hz mains hum interference.';
+        redesignedText = `Analyze the attached fixed-point Q15 FIR filter coefficient table on DSP Lab Rig #4. Due to coefficient quantization, a limit-cycle oscillation was recorded at 2.4kHz. Identify the minimal loadbearing pole-zero placement necessary to maintain stability without arithmetic overflow.`;
+        reqArtifacts = [
+          'Fixed-point manual arithmetic scratchpad verifying Q15 product truncation overflow limits',
+          'FFT spectrum analyzer screenshot showing limit-cycle spurious frequency spike',
+          'Debug journal showing pole migration on the z-plane before and after coefficient scaling'
+        ];
+        critiqueTask = `Prompt Gemini with: "Design a 5-tap lowpass FIR filter in Q15 format". Identify where the AI assumed floating-point infinite precision and failed to address coefficient quantization rounding.`;
+      } else {
+        hyperLocal = localContext || 'Hardware Lab Bench #3, STM32F401RE Nucleo interfaced with DS3231 RTC, 2.2kΩ pull-up on 3.3V bus with 180pF stray capacitance.';
+        redesignedText = `Examine the oscilloscope logic capture from Hardware Lab Bench #3 showing clock stretching on the I2C bus under high capacitive loading (180pF). The slave controller fails to release SCL during multi-master arbitration. Formulate a diagnostic procedure to restore bus integrity without violating the 3mA maximum I_OL current sink limit.`;
+        reqArtifacts = [
+          'Timestamped logic analyzer / DSO waveform capture of SDA/SCL with cursors measuring 10%-90% rise time t_r',
+          'Engineering Debug Log documenting 3 trial pull-up resistor adjustments (10k, 4.7k, 2.2k)',
+          'Hand-annotated timing diagram indicating the exact microsecond when the slave held SCL low'
+        ];
+        critiqueTask = `Prompt Claude or ChatGPT with: "Write STM32 I2C master transmit code with clock stretching handling". Submit a 150-word critique identifying that the AI-generated code blocks in an infinite while loop when SCL is held low by a faulty slave.`;
+      }
+
+      return {
+        qNumber: qNum,
+        marks: qMarks,
+        mappedCLO: qCLO,
+        targetTaxonomy: qTax,
+        originalText: qText,
+        vulnerabilityLevel: vulnLevel,
+        aiSolvability,
+        assessmentFracture: fracture,
+        suggestedRefactor: {
+          title: refactoredTitle,
+          redesignedText,
+          requiredProcessArtifacts: reqArtifacts,
+          hyperLocalConstraint: hyperLocal,
+          aiCritiqueTask: critiqueTask
+        }
+      };
+    });
+
+    const totalQ = qList.length;
+    const p1Score = Math.min(10, Math.round(((p1Hits / totalQ) * 7 + 2.5) * 10) / 10);
+    const p2Score = Math.min(10, Math.round(((p2Hits / totalQ) * 6 + 3.0) * 10) / 10);
+    const p3Score = Math.min(10, Math.round(((p3Hits / totalQ) * 5 + 3.5) * 10) / 10);
+    const overallScore = Math.round(((p1Score * 0.35) + (p2Score * 0.35) + (p3Score * 0.30)) * 10) / 10;
+
+    let overallRating = 'High Vulnerability';
+    if (overallScore >= 8.0) overallRating = 'Highly AI-Resilient';
+    else if (overallScore >= 6.5) overallRating = 'Moderate Resilience';
+    else if (overallScore >= 4.5) overallRating = 'High Vulnerability';
+    else overallRating = 'Severe AI Vulnerability';
+
+    return {
+      assessmentTitle,
+      courseName,
+      assessmentType,
+      overallResilienceScore: overallScore,
+      overallResilienceRating: overallRating,
+      summary: `This ${assessmentType.toUpperCase()} assessment scored ${overallScore}/10 on the Spring 2026 AI-RLI Accreditation Scale (${overallRating}). The examination primarily evaluates end products (procedural derivations and code listings) that Generative AI models solve with 95%+ accuracy in seconds. To restore academic integrity under Washington Accord Criterion 3, the assessment must require intermediate visible cognitive traces (P1), hyper-local bench parameters (P2), and intentional AI Critique tasks (P3).`,
+      pillarsAudit: {
+        p1Process: {
+          score: p1Score,
+          maxScore: 10,
+          status: p1Score >= 7.0 ? 'Resilient' : (p1Score >= 4.5 ? 'At Risk' : 'Critical Vulnerability'),
+          findings: p1Score < 5 ? 'Questions mandate zero visible cognitive evidence. Students can submit AI-generated final answers without demonstrating their reasoning process.' : 'Partial process elements detected, but intermediate scratchpads and debugging logs are not systematically graded.',
+          recommendations: 'Mandate visible interim artifacts: chronological engineering decision logs, annotated oscilloscope/timing sketches, and friction margin notes.'
+        },
+        p2Context: {
+          score: p2Score,
+          maxScore: 10,
+          status: p2Score >= 7.0 ? 'Resilient' : (p2Score >= 4.5 ? 'Partially Grounded' : 'Generic Textbook'),
+          findings: p2Score < 5 ? 'Prompts rely on generic, unanchored textbook circuits and idealized formulas that are ubiquitously present in LLM pretraining corpuses.' : 'Some local context detected, but lacks verifiable hardware tolerances and measured laboratory noise figures.',
+          recommendations: 'Anchor every question in specific department lab bench numbers, real hardware anomalies, measured parasitic capacitances, or dated sensor logs.'
+        },
+        p3ConceptualDepth: {
+          score: p3Score,
+          maxScore: 10,
+          status: p3Score >= 7.0 ? 'Resilient' : (p3Score >= 4.5 ? 'Threshold Level' : 'Surface Fluency Trap'),
+          findings: p3Score < 5 ? 'Heavy concentration on C1-C3 direct recall and routine application where AI fluency mimics genuine understanding without authentic thinking.' : 'C4 analytical tasks present, but missing intentional AI critique components where students expose AI oversimplifications.',
+          recommendations: 'Incorporate the P3 AI Critique Strategy: direct students to generate AI answers, analyze why the AI model fails on boundary conditions, and grade the critique.'
+        }
+      },
+      questionEvaluations,
+      actionableFortificationPlan: [
+        'P1 Fortification: Add a non-negotiable rule requiring students to submit handwritten timing sketches and a 3-step trial decision log with each calculation.',
+        'P2 Fortification: Replace idealized circuit parameters with live measurements from Department Bench #3 (e.g. inject 180pF parasitic bus capacitance and 2.2kΩ pull-up limit).',
+        'P3 Fortification: Convert one question into an "AI Critique Challenge" where students evaluate a flawed AI-generated code snippet and document its missing safety timeout.',
+        'Accreditation Sign-off: Update the examination marking rubric to allocate at least 40% of total marks to process verification and diagnostic justification.'
+      ],
+      moderationNotes: 'PEC/Washington Accord Accreditation Finding: Transitioning this assessment from product-based scoring to the AI-RLI 3 Pillars framework fulfills Complex Engineering Problem (WP1-WP7) requirements by testing real-world hardware tolerances and defended human engineering judgment.',
+      isSimulated: true,
+      simulationNotice: errorNote ? `Live API note: ${errorNote}` : 'Generated via Academic AI-RLI Assessment Auditor (PEC Framework)'
+    };
+  }
+
+  /**
    * Evaluates & Redesigns Course Syllabus and Assessment under the Learning Beyond AI (LBAI) Framework
    * Learning Innovation Center (LIC) - Student Pedagogy Partnership (SPP) Model
    */
