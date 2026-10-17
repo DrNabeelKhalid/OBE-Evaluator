@@ -1,7 +1,7 @@
 // Gemini AI Engine & Multimodal Document Evaluator
 // Integrates with Google Gemini API (gemini-2.5-flash / gemini-1.5-flash)
 
-import { parseSyllabusText } from './document-extractor.js';
+import { parseSyllabusText, extractQuestionsFromDocument } from './document-extractor.js';
 
 export class GeminiOBEEvaluator {
   constructor() {
@@ -265,6 +265,121 @@ Respond strictly with valid JSON:
       coursePlan: '',
       clos: []
     };
+  }
+
+  /**
+   * Extracts exam and quiz questions, marks, mapped CLO, and target taxonomy from document
+   * Combines live Gemini multimodal inference with robust pure client-side extraction fallback
+   */
+  async extractAssessmentQuestions(fileData, mimeType, fileName, rawText = '', activeCLOs = ['CLO-1', 'CLO-2', 'CLO-3']) {
+    // 1. If API key is present and raw text is available, send to Gemini
+    if (this.hasApiKey() && rawText && rawText.trim().length > 20) {
+      const activeCLOHint = activeCLOs.join(', ');
+      const systemPrompt = `You are a Senior OBE Assessment Auditor for Washington Accord / ABET / PEC accredited engineering programs.
+Extract all examination or quiz questions, allocated marks, mapped Course Learning Outcome (CLO), and intended Bloom's Taxonomy cognitive level (e.g., C1-C6, P1-P7) from the provided assessment document text.
+Active Course Outcomes to prioritize for mapping: ${activeCLOHint}.
+
+Rules:
+1. If a question has subparts (e.g. Question 1 has parts (a), (b), (c) each with separate marks or tasks), extract each subpart as an individual question entry with its specific allocated marks (e.g. qNumber: "Q1(a)", "Q1(b)").
+2. Preserve question prompt statements accurately. If there is common problem context/stem (e.g. a circuit schematic description or code snippet), ensure students/auditors have enough context in the prompt.
+3. For each question, extract or deduce:
+   - qNumber: e.g. "Q1", "Q1(a)", "Q2"
+   - text: Question prompt statement
+   - marks: Numeric marks (e.g. 5, 10, 1)
+   - mappedCLO: e.g. "CLO-1", "CLO-2" (prefer active course CLOs)
+   - targetTaxonomy: Bloom's level (C1 Remember, C2 Understand, C3 Apply, C4 Analyze, C5 Evaluate, C6 Design/Create, P1-P7 Psychomotor)
+4. DO NOT extract answer keys, solutions, marking rubrics, or solution explanations as questions. Truncate before "Instructor's Answer Key" or "Solutions".
+
+Respond strictly with valid JSON:
+{
+  "courseTitle": "Course Code & Title if mentioned (or null)",
+  "assessmentTitle": "Exam or Quiz name if mentioned (or null)",
+  "questions": [
+    {
+      "id": 1,
+      "qNumber": "Q1",
+      "text": "Full question statement text...",
+      "marks": 10,
+      "mappedCLO": "CLO-1",
+      "targetTaxonomy": "C3"
+    }
+  ]
+}`;
+
+      try {
+        const userPrompt = `Document: ${fileName}\n\nAssessment Content:\n${rawText.slice(0, 18000)}`;
+        const response = await this.callGeminiAPI(systemPrompt, userPrompt);
+        const parsed = this.parseJSONResponse(response);
+        if (parsed && parsed.questions && parsed.questions.length > 0) {
+          const totalMarks = parsed.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+          return {
+            questions: parsed.questions.map((q, idx) => ({
+              id: idx + 1,
+              qNumber: q.qNumber || `Q${idx + 1}`,
+              text: q.text || '',
+              marks: parseInt(q.marks) || 10,
+              mappedCLO: q.mappedCLO || (activeCLOs[idx % activeCLOs.length] || 'CLO-1'),
+              targetTaxonomy: q.targetTaxonomy || 'C3'
+            })),
+            courseTitle: parsed.courseTitle || null,
+            assessmentTitle: parsed.assessmentTitle || null,
+            totalMarks
+          };
+        }
+      } catch (err) {
+        console.warn('Gemini assessment question extraction failed, using client-side extractor:', err);
+      }
+    }
+
+    // 2. Multimodal API extraction for images or binary PDFs without raw text
+    if (this.hasApiKey() && fileData && (mimeType.startsWith('image/') || mimeType === 'application/pdf')) {
+      const activeCLOHint = activeCLOs.join(', ');
+      const systemPrompt = `You are an automated assessment extraction engine for engineering examinations.
+Extract all exam or quiz questions, allocated marks, mapped CLO (from active course CLOs: ${activeCLOHint}), and target Bloom's Taxonomy cognitive level (C1-C6) from this assessment paper.
+Do not extract answer keys or solutions.
+
+Respond strictly with valid JSON:
+{
+  "courseTitle": "Course Name if found",
+  "assessmentTitle": "Exam/Quiz Title if found",
+  "questions": [
+    {
+      "id": 1,
+      "qNumber": "Q1",
+      "text": "Question statement text",
+      "marks": 10,
+      "mappedCLO": "CLO-1",
+      "targetTaxonomy": "C3"
+    }
+  ]
+}`;
+
+      try {
+        const response = await this.callGeminiAPIWithFile(systemPrompt, 'Extract exam questions from this document.', fileData, mimeType);
+        const parsed = this.parseJSONResponse(response);
+        if (parsed && parsed.questions && parsed.questions.length > 0) {
+          const totalMarks = parsed.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+          return {
+            questions: parsed.questions.map((q, idx) => ({
+              id: idx + 1,
+              qNumber: q.qNumber || `Q${idx + 1}`,
+              text: q.text || '',
+              marks: parseInt(q.marks) || 10,
+              mappedCLO: q.mappedCLO || (activeCLOs[idx % activeCLOs.length] || 'CLO-1'),
+              targetTaxonomy: q.targetTaxonomy || 'C3'
+            })),
+            courseTitle: parsed.courseTitle || null,
+            assessmentTitle: parsed.assessmentTitle || null,
+            totalMarks
+          };
+        }
+      } catch (err) {
+        console.warn('Gemini multimodal assessment extraction failed:', err);
+      }
+    }
+
+    // 3. Robust Pure Client-Side Extractor (works offline, zero dependency)
+    return extractQuestionsFromDocument(rawText, activeCLOs);
   }
 
   /**

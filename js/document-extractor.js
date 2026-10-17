@@ -1645,3 +1645,224 @@ export function synthesizeDefaultOutlineForCourse(courseName = '', courseDescrip
     `Week 13-16: Comprehensive Engineering Design Synthesis, Safety Margins & Capstone Case Study Deliverables`
   ].join('\n');
 }
+
+/**
+ * High-accuracy client-side assessment question extractor for exam, quiz, and test papers
+ * Parses Word (.docx), PDF (.pdf), and text documents into structured questions with marks, mapped CLO, and target taxonomy
+ */
+export function extractQuestionsFromDocument(rawText = '', activeCLOs = ['CLO-1', 'CLO-2', 'CLO-3']) {
+  if (!rawText || typeof rawText !== 'string' || rawText.trim().length === 0) {
+    return { questions: [], courseTitle: null, assessmentTitle: null, totalMarks: 0 };
+  }
+
+  // 1. Truncate answer keys, solutions, marking rubrics, and end-of-exam markers
+  const cutoffRegex = /(?:\b(?:instructor['’]?s?\s+)?answer\s*key\b|\bmarking\s*(?:guide|scheme|rubric)\b|\bsolutions?\s*(?:to\s*questions?|section)?\b|\bmodel\s*answers?\b|\bend\s*of\s*(?:quiz|paper|exam|test)\b)/i;
+  const cutoffMatch = rawText.search(cutoffRegex);
+  const examText = (cutoffMatch > 100) ? rawText.slice(0, cutoffMatch) : rawText;
+
+  // Clean form feeds, repetitive page headers, and doc artifacts
+  const cleanText = examText
+    .replace(/\f[^\n]*\n?/g, '\n')
+    .replace(/(?:page\s+\d+\s+of\s+\d+|page\s+\d+)/gi, '')
+    .trim();
+
+  // 2. Extract course title and assessment title hints from preamble
+  let courseTitle = null;
+  let assessmentTitle = null;
+
+  const courseMatch = cleanText.match(/(?:^|\n)\s*(?:Course(?:\s*Title|\s*Name|\s*Code)?:?\s*)?([A-Z]{2,5}\s*[-–]?\s*\d{3,4}[A-Za-z]?\s*[:\-–]\s*[^\n\r]+)/i);
+  if (courseMatch) {
+    courseTitle = courseMatch[1].trim();
+  }
+
+  const examMatch = cleanText.match(/(?:^|\n)\s*(Quiz\s*[-–#]?\s*\d+|Mid\s*Term(?:\s*Examination|\s*Exam)?|Final\s*Term(?:\s*Examination|\s*Exam)?|Assignment\s*[-–#]?\s*\d+|Test\s*[-–#]?\s*\d+)/i);
+  if (examMatch) {
+    assessmentTitle = examMatch[1].trim();
+  }
+
+  // 3. Detect any global CLO and Bloom's mapping in preamble (e.g., CLO-1 -> PLO-2 -> Bloom's Taxonomy C3)
+  const preambleCLOMap = {};
+  const globalCloMatch = cleanText.match(/\b(CLO[-_\s]?\d+)\s*(?:→|->|mapped to|to)\s*(?:PLO[-_\s]?\d+\s*(?:→|->|to)\s*)?(?:Bloom(?:'s)?\s*(?:Taxonomy)?)?\s*([CPA]\d)/i);
+  let defaultGlobalCLO = globalCloMatch ? globalCloMatch[1].toUpperCase().replace(/\s+/g, '-') : (activeCLOs[0] || 'CLO-1');
+  let defaultGlobalTax = globalCloMatch ? globalCloMatch[2].toUpperCase() : 'C3';
+
+  // 4. Detect Question-wise Assessment Mapping tables in preamble
+  // Matches e.g. (a) Apply array processing ... CLO-1 (C3) 1
+  const tableMappings = {};
+  const tableRowRegex = /(?:^|\n)\s*\(?([a-z]|\d+)\)?\s+.*?\b(CLO[-_\s]?\d+)\s*(?:\(([CPA]\d)\))?\s+(\d+)/gi;
+  let tMatch;
+  while ((tMatch = tableRowRegex.exec(cleanText)) !== null) {
+    const key = tMatch[1].toLowerCase();
+    tableMappings[key] = {
+      clo: tMatch[2].toUpperCase().replace(/\s+/g, '-'),
+      taxonomy: tMatch[3] ? tMatch[3].toUpperCase() : '',
+      marks: parseInt(tMatch[4], 10) || 1
+    };
+  }
+
+  // 5. Taxonomy & Marks inference helpers
+  const inferTaxonomyFromVerb = (txt) => {
+    const lower = txt.toLowerCase();
+    if (/\b(design|formulate|synthesize|devise|create|architect|construct|develop)\b/.test(lower)) return 'C6';
+    if (/\b(evaluate|critique|assess|appraise|justify|judge|defend)\b/.test(lower)) return 'C5';
+    if (/\b(analyze|analyse|diagnose|differentiate|investigate|distinguish|compare|contrast|examine|troubleshoot)\b/.test(lower)) return 'C4';
+    if (/\b(calculate|compute|solve|apply|implement|derive|determine|find|execute|demonstrate)\b/.test(lower)) return 'C3';
+    if (/\b(explain|describe|interpret|discuss|summarize|illustrate|why|differentiate between)\b/.test(lower)) return 'C2';
+    if (/\b(define|list|state|identify|name|recall|mention|what\s+is|write\s+down)\b/.test(lower)) return 'C1';
+    return defaultGlobalTax;
+  };
+
+  const inferMarks = (txt, fallbackMarks = 10) => {
+    const markMatch = txt.match(/[\(\[]\s*(\d+)\s*(?:marks?|pts?|points?)?\s*[\)\]]/i);
+    if (markMatch) return parseInt(markMatch[1], 10);
+    const altMarkMatch = txt.match(/\b(\d+)\s*(?:marks|pts|points)\b/i);
+    if (altMarkMatch) return parseInt(altMarkMatch[1], 10);
+    return fallbackMarks;
+  };
+
+  const inferCLO = (txt, fallbackCLO) => {
+    const cloMatch = txt.match(/\bCLO[-_\s]?(\d+)\b/i);
+    if (cloMatch) return `CLO-${cloMatch[1]}`;
+    return fallbackCLO;
+  };
+
+  const inferTaxFromText = (txt) => {
+    const match = txt.match(/[\(\[]\s*([CPA][1-7])\s*[\)\]]/i) || txt.match(/\bBloom(?:'s)?\s*(?:Taxonomy)?\s*[:\-–]?\s*([CPA][1-7])\b/i);
+    if (match) return match[1].toUpperCase();
+    return null;
+  };
+
+  const cleanPromptText = (txt) => {
+    return txt
+      .replace(/^(?:Question\s*(?:No\.?)?\s*\d+|Q(?:uestion)?\s*[-–\.:#]?\s*\d+|Problem\s*\d+|\d+[\.\)])[^\n:]*[:\.\-–]?\s*/i, '')
+      .replace(/^\s*\(\s*(?:Allocated\s*)?Marks\s*\)/i, '')
+      .replace(/[\(\[]\s*\d+\s*(?:marks?|pts?|points?)?\s*[\)\]]/gi, '')
+      .replace(/[\(\[]\s*CLO[-_\s]?\d+[^\]\)]*[\)\]]/gi, '')
+      .replace(/[\(\[]\s*[CPA][1-7]\s*[\)\]]/gi, '')
+      .replace(/\s*(?:Quiz\s*[-–#]?\s*\d+|Mid\s*Term(?:\s*Examination|\s*Exam)?|Final\s*Term(?:\s*Examination|\s*Exam)?|Assignment\s*[-–#]?\s*\d+)\s*$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // 6. Split text into Question Blocks
+  const qSplitRegex = /(?:^|\n)\s*(?:Question\s*(?:No\.?)?\s*(\d+)|Q(?:uestion)?\s*[-–\.:#]?\s*(\d+)|Problem\s*(\d+))\s*[:\.\-–]?\s*/gi;
+  let qMatches = [];
+  let m;
+  while ((m = qSplitRegex.exec(cleanText)) !== null) {
+    qMatches.push({ index: m.index, num: m[1] || m[2] || m[3] || (qMatches.length + 1) });
+  }
+
+  // Fallback 1: Numbered questions like "1. ... 2. ... 3. ..."
+  if (qMatches.length === 0) {
+    const numSplitRegex = /(?:^|\n)\s*(\d+)[\.\)]\s+/g;
+    while ((m = numSplitRegex.exec(cleanText)) !== null) {
+      const lineSnippet = cleanText.slice(m.index, m.index + 80);
+      if (!/week\s*\d|page\s*\d|\d+\s*marks?|semester|spring|fall|clo\s*-\s*\d/i.test(lineSnippet)) {
+        qMatches.push({ index: m.index, num: m[1] });
+      }
+    }
+  }
+
+  const questions = [];
+
+  if (qMatches.length > 0) {
+    for (let i = 0; i < qMatches.length; i++) {
+      const start = qMatches[i].index;
+      const end = (i + 1 < qMatches.length) ? qMatches[i + 1].index : cleanText.length;
+      const qNum = qMatches[i].num;
+      const block = cleanText.slice(start, end).trim();
+
+      const defaultCloForQ = (activeCLOs.length > 0) ? activeCLOs[i % activeCLOs.length] : defaultGlobalCLO;
+
+      // Check for subparts e.g. a) ... b) ... or (a) ... (b) ...
+      const subpartRegex = /(?:^|\n)\s*(?:\(([a-z])\)|([a-z])\))\s+/gi;
+      const subMatches = [];
+      let sm;
+      while ((sm = subpartRegex.exec(block)) !== null) {
+        subMatches.push({ index: sm.index, letter: (sm[1] || sm[2]).toLowerCase() });
+      }
+
+      if (subMatches.length >= 2) {
+        // Multi-part question with subparts
+        const stemBlock = block.slice(0, subMatches[0].index);
+        let cleanStem = cleanPromptText(stemBlock);
+        if (cleanStem.length > 200) {
+          cleanStem = cleanStem.slice(0, 197) + '...';
+        }
+
+        for (let j = 0; j < subMatches.length; j++) {
+          const pStart = subMatches[j].index;
+          const pEnd = (j + 1 < subMatches.length) ? subMatches[j + 1].index : block.length;
+          const letter = subMatches[j].letter;
+          let partText = block.slice(pStart, pEnd);
+          partText = partText.replace(/^\s*(?:\([a-z]\)|[a-z]\))\s*/i, '').trim();
+
+          const tableInfo = tableMappings[letter] || {};
+          const marks = inferMarks(partText, tableInfo.marks || 1);
+          const clo = tableInfo.clo || inferCLO(partText, defaultCloForQ);
+          const tax = tableInfo.taxonomy || inferTaxFromText(partText) || inferTaxonomyFromVerb(partText);
+          const prompt = cleanPromptText(partText);
+
+          questions.push({
+            id: questions.length + 1,
+            qNumber: `Q${qNum}(${letter})`,
+            text: prompt,
+            marks: marks,
+            mappedCLO: clo,
+            targetTaxonomy: tax
+          });
+        }
+      } else {
+        // Single monolithic question block
+        const marks = inferMarks(block, 10);
+        const clo = inferCLO(block, defaultCloForQ);
+        const tax = inferTaxFromText(block) || inferTaxonomyFromVerb(block);
+        const prompt = cleanPromptText(block);
+
+        if (prompt.length > 5) {
+          questions.push({
+            id: questions.length + 1,
+            qNumber: `Q${qNum}`,
+            text: prompt,
+            marks: marks,
+            mappedCLO: clo,
+            targetTaxonomy: tax
+          });
+        }
+      }
+    }
+  }
+
+  // Fallback 2: If no structured question numbers were found, split by question marks or double newlines
+  if (questions.length === 0) {
+    const rawParagraphs = cleanText.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 15);
+    rawParagraphs.forEach((para, idx) => {
+      // Ignore header/metadata paragraphs
+      if (/^(?:student\s*name|registration|time\s*allowed|total\s*marks|department\s*of|faculty\s*of|session\s*20)/i.test(para)) {
+        return;
+      }
+      const prompt = cleanPromptText(para);
+      if (prompt.length > 10) {
+        const clo = (activeCLOs.length > 0) ? activeCLOs[idx % activeCLOs.length] : defaultGlobalCLO;
+        questions.push({
+          id: questions.length + 1,
+          qNumber: `Q${idx + 1}`,
+          text: prompt,
+          marks: inferMarks(para, 10),
+          mappedCLO: inferCLO(para, clo),
+          targetTaxonomy: inferTaxFromText(para) || inferTaxonomyFromVerb(prompt)
+        });
+      }
+    });
+  }
+
+  const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+
+  return {
+    questions,
+    courseTitle,
+    assessmentTitle,
+    totalMarks
+  };
+}
+

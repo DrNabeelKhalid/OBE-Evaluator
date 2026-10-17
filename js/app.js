@@ -9,7 +9,7 @@ import {
 } from './constants.js';
 import { geminiEngine } from './gemini.js';
 import { PDFReportGenerator } from './pdf-export.js';
-import { extractTextFromFile, parseSyllabusText, synthesizeDefaultOutlineForCourse } from './document-extractor.js';
+import { extractTextFromFile, parseSyllabusText, synthesizeDefaultOutlineForCourse, extractQuestionsFromDocument } from './document-extractor.js';
 
 class OBEApp {
   constructor() {
@@ -226,6 +226,13 @@ class OBEApp {
     document.getElementById('btn-add-question')?.addEventListener('click', () => this.addQuestion());
     document.getElementById('btn-load-sample-exam')?.addEventListener('click', () => this.loadSampleAssessment());
     document.getElementById('btn-clear-questions')?.addEventListener('click', () => this.clearQuestions());
+    document.getElementById('btn-upload-assessment')?.addEventListener('click', () => {
+      document.getElementById('assessment-file-input')?.click();
+    });
+    document.getElementById('btn-paste-assessment')?.addEventListener('click', () => this.openPasteAssessmentModal());
+    document.getElementById('btn-dismiss-assessment-status')?.addEventListener('click', () => {
+      document.getElementById('assessment-status-banner')?.classList.add('hidden');
+    });
 
     // Evaluator action buttons
     document.getElementById('btn-evaluate-clos')?.addEventListener('click', () => this.runCLOEvaluation());
@@ -258,6 +265,11 @@ class OBEApp {
     document.getElementById('btn-close-paste-modal')?.addEventListener('click', () => this.closePasteSyllabusModal());
     document.getElementById('btn-cancel-paste-modal')?.addEventListener('click', () => this.closePasteSyllabusModal());
     document.getElementById('btn-parse-pasted-syllabus')?.addEventListener('click', () => this.handlePastedSyllabus());
+
+    // Quick Paste Assessment Modal
+    document.getElementById('btn-close-paste-assessment-modal')?.addEventListener('click', () => this.closePasteAssessmentModal());
+    document.getElementById('btn-cancel-paste-assessment-modal')?.addEventListener('click', () => this.closePasteAssessmentModal());
+    document.getElementById('btn-parse-pasted-assessment')?.addEventListener('click', () => this.handlePastedAssessment());
   }
 
   switchEvalView(view) {
@@ -1732,6 +1744,7 @@ class OBEApp {
     this.renderAssessmentQuestions();
     document.getElementById('assessment-results-filled')?.classList.add('hidden');
     document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+    this.showAssessmentStatus('Assessment cleared. Click "📁 Upload Assessment" or "Add Question" to build questions.', 'info');
   }
 
   loadSampleAssessment() {
@@ -1750,6 +1763,42 @@ class OBEApp {
     this.renderAssessmentQuestions();
     document.getElementById('assessment-results-filled')?.classList.add('hidden');
     document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+
+    const totalMarks = sample.reduce((sum, q) => sum + (q.marks || 0), 0);
+    this.showAssessmentStatus(
+      `✓ Benchmark assessment loaded (${sample.length} questions, Total: ${totalMarks} Marks). You can edit them, upload your exam paper, or click "Audit Exam Alignment & Cognitive Match".`,
+      'success'
+    );
+
+    setTimeout(() => {
+      document.getElementById('question-inputs-container')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  }
+
+  showAssessmentStatus(message, type = 'info') {
+    const banner = document.getElementById('assessment-status-banner');
+    const textEl = document.getElementById('assessment-status-text');
+    const iconEl = document.getElementById('assessment-status-icon');
+    if (!banner || !textEl) return;
+
+    textEl.textContent = message;
+    banner.classList.remove('hidden', 'bg-blue-50/90', 'border-blue-200', 'bg-emerald-50/90', 'border-emerald-300', 'bg-amber-50/90', 'border-amber-300', 'bg-rose-50/90', 'border-rose-300');
+
+    if (type === 'success') {
+      banner.classList.add('bg-emerald-50/90', 'border-emerald-300');
+      if (iconEl) iconEl.textContent = '✅';
+    } else if (type === 'warning') {
+      banner.classList.add('bg-amber-50/90', 'border-amber-300');
+      if (iconEl) iconEl.textContent = '⚠️';
+    } else if (type === 'error') {
+      banner.classList.add('bg-rose-50/90', 'border-rose-300');
+      if (iconEl) iconEl.textContent = '❌';
+    } else {
+      banner.classList.add('bg-blue-50/90', 'border-blue-200');
+      if (iconEl) iconEl.textContent = 'ℹ️';
+    }
+
+    banner.classList.remove('hidden');
   }
 
   updateAssessmentContextBanner() {
@@ -1770,6 +1819,7 @@ class OBEApp {
 
   // --- File Upload & Document Extraction ---
   setupFileUploads() {
+    // 1. Syllabus Outline Dropzone & Input
     const dropzone = document.getElementById('syllabus-dropzone');
     const fileInput = document.getElementById('syllabus-file-input');
 
@@ -1796,6 +1846,37 @@ class OBEApp {
       fileInput.addEventListener('change', (e) => {
         if (e.target.files.length) {
           this.handleSyllabusFile(e.target.files[0]);
+        }
+      });
+    }
+
+    // 2. Assessment Exam / Quiz Paper Dropzone & Input
+    const assessDropzone = document.getElementById('assessment-dropzone');
+    const assessFileInput = document.getElementById('assessment-file-input');
+
+    if (assessDropzone && assessFileInput) {
+      assessDropzone.addEventListener('click', () => assessFileInput.click());
+
+      assessDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        assessDropzone.classList.add('border-orange-500', 'bg-orange-100/50');
+      });
+
+      assessDropzone.addEventListener('dragleave', () => {
+        assessDropzone.classList.remove('border-orange-500', 'bg-orange-100/50');
+      });
+
+      assessDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        assessDropzone.classList.remove('border-orange-500', 'bg-orange-100/50');
+        if (e.dataTransfer.files.length) {
+          this.handleAssessmentFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      assessFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          this.handleAssessmentFile(e.target.files[0]);
         }
       });
     }
@@ -2038,6 +2119,164 @@ class OBEApp {
       }
     } catch (e) {
       if (statusEl) statusEl.innerHTML = `<span class="text-rose-600 font-bold">Parse error: ${e.message}</span>`;
+    }
+  }
+
+  // --- Assessment Upload & Document Extraction ---
+  async handleAssessmentFile(file) {
+    if (!file) return;
+    const statusMsg = document.getElementById('assessment-upload-status');
+    if (statusMsg) {
+      statusMsg.classList.remove('hidden');
+      statusMsg.innerHTML = `<span class="inline-flex items-center gap-2 text-orange-600 font-bold"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Scanning assessment document: "${file.name}"...</span>`;
+    }
+    this.showAssessmentStatus(`Scanning assessment file "${file.name}"...`, 'info');
+
+    try {
+      // 1. Client-side extraction for Word (.docx), PDF (.pdf), and text (.txt, .md, .csv)
+      let rawText = '';
+      try {
+        rawText = await extractTextFromFile(file);
+      } catch (extractErr) {
+        console.warn('Assessment extractTextFromFile warning:', extractErr);
+      }
+
+      // 2. Base64 data for fallback / Gemini API
+      let base64Data = '';
+      const mimeType = file.type || 'application/pdf';
+      if (!rawText || file.type.startsWith('image/') || file.type === 'application/pdf') {
+        try {
+          base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result || '');
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+          });
+        } catch (readErr) {
+          console.warn('FileReader error:', readErr);
+        }
+      }
+
+      const activeCLOIds = (this.clos || []).map((c, i) => `CLO-${c.id || i+1}`);
+
+      // 3. Extract assessment questions via Gemini or client-side extractor
+      let extracted = null;
+      if (geminiEngine.hasApiKey()) {
+        try {
+          extracted = await geminiEngine.extractAssessmentQuestions(base64Data, mimeType, file.name, rawText, activeCLOIds);
+        } catch (apiErr) {
+          console.warn('Gemini assessment extraction failed, using local extractor:', apiErr);
+        }
+      }
+
+      if (!extracted || !extracted.questions || extracted.questions.length === 0) {
+        extracted = extractQuestionsFromDocument(rawText, activeCLOIds);
+      }
+
+      const questions = extracted.questions || [];
+      if (questions.length > 0) {
+        this.questions = questions;
+        this.assessmentEvaluationResult = null;
+        this.renderAssessmentQuestions();
+        document.getElementById('assessment-results-filled')?.classList.add('hidden');
+        document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+
+        // If assessment document contains course title and current course name is default/empty, optionally reflect it
+        if (extracted.courseTitle) {
+          const courseInput = document.getElementById('input-course-name');
+          if (courseInput && (!courseInput.value || courseInput.value.includes('EE-312'))) {
+            courseInput.value = extracted.courseTitle;
+            this.updateAssessmentContextBanner();
+          }
+        }
+
+        const totalMarks = extracted.totalMarks || questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+        const titleStr = extracted.assessmentTitle ? ` (${extracted.assessmentTitle})` : '';
+
+        if (statusMsg) {
+          statusMsg.innerHTML = `<span class="inline-flex items-center gap-1.5 text-emerald-700 font-bold">✓ Successfully extracted ${questions.length} questions${titleStr} • Total Marks: ${totalMarks}</span>`;
+        }
+
+        this.showAssessmentStatus(
+          `✓ Successfully loaded ${questions.length} questions from "${file.name}"${titleStr} (Total Marks: ${totalMarks}). Review questions below or click "Audit Exam Alignment & Cognitive Match".`,
+          'success'
+        );
+
+        setTimeout(() => {
+          document.getElementById('question-inputs-container')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 150);
+      } else {
+        if (statusMsg) {
+          statusMsg.innerHTML = `<span class="text-amber-700 font-bold">No questions detected in "${file.name}". You can paste question text directly using "📋 Paste Questions".</span>`;
+        }
+        this.showAssessmentStatus(`Could not automatically detect questions in "${file.name}". You can paste question text using "📋 Paste Questions".`, 'warning');
+      }
+    } catch (err) {
+      console.error('handleAssessmentFile error:', err);
+      if (statusMsg) {
+        statusMsg.innerHTML = `<span class="text-rose-600 font-bold">Extraction error: ${err.message}</span>`;
+      }
+      this.showAssessmentStatus(`Failed to read assessment file: ${err.message}`, 'error');
+    }
+  }
+
+  // --- Quick Paste Assessment Modal Handlers ---
+  openPasteAssessmentModal() {
+    const modal = document.getElementById('modal-paste-assessment');
+    if (modal) {
+      modal.classList.remove('hidden');
+      const input = document.getElementById('input-pasted-assessment-text');
+      if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+      }
+      const statusEl = document.getElementById('paste-assessment-status');
+      if (statusEl) statusEl.innerHTML = '';
+    }
+  }
+
+  closePasteAssessmentModal() {
+    document.getElementById('modal-paste-assessment')?.classList.add('hidden');
+  }
+
+  handlePastedAssessment() {
+    const textarea = document.getElementById('input-pasted-assessment-text');
+    const statusEl = document.getElementById('paste-assessment-status');
+    const pastedText = textarea ? textarea.value.trim() : '';
+
+    if (!pastedText || pastedText.length < 5) {
+      if (statusEl) statusEl.innerHTML = '<span class="text-rose-600 font-bold">Please paste assessment or exam question text first.</span>';
+      return;
+    }
+
+    try {
+      const activeCLOIds = (this.clos || []).map((c, i) => `CLO-${c.id || i+1}`);
+      const extracted = extractQuestionsFromDocument(pastedText, activeCLOIds);
+      const questions = extracted.questions || [];
+
+      if (questions.length > 0) {
+        this.questions = questions;
+        this.assessmentEvaluationResult = null;
+        this.renderAssessmentQuestions();
+        document.getElementById('assessment-results-filled')?.classList.add('hidden');
+        document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+
+        const totalMarks = extracted.totalMarks || questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+        this.closePasteAssessmentModal();
+
+        this.showAssessmentStatus(
+          `✓ Successfully loaded ${questions.length} questions from pasted text (Total Marks: ${totalMarks}). Review questions below or click "Audit Exam Alignment & Cognitive Match".`,
+          'success'
+        );
+
+        setTimeout(() => {
+          document.getElementById('question-inputs-container')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 150);
+      } else {
+        if (statusEl) statusEl.innerHTML = '<span class="text-amber-700 font-bold">Could not parse questions from pasted text. Please format with "Question 1: ...", "Q1: ...", or numbered lines.</span>';
+      }
+    } catch (err) {
+      if (statusEl) statusEl.innerHTML = `<span class="text-rose-600 font-bold">Parse error: ${err.message}</span>`;
     }
   }
 
