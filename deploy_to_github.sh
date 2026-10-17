@@ -49,10 +49,10 @@ git config user.email "DrNabeelKhalid@users.noreply.github.com"
 
 # 4. Stage and commit changes
 echo "📦 Staging changed files..."
-git add index.html js/ css/ public/ README.md deploy_to_github.sh
+git add index.html js/ css/ public/ README.md deploy_to_github.sh deploy_to_vercel.sh vercel.json
 
 echo "📝 Creating commit..."
-git commit -m "Integrate Learning Beyond AI (LBAI) Framework and Two-Lane Assessment Workbench" || echo "No changes to commit or already committed."
+git commit -m "Update OBE-ICAS platform and deployment configurations" || echo "No changes to commit or already committed."
 
 # 5. Push to GitHub
 echo "🚀 Pushing to origin main..."
@@ -62,6 +62,6 @@ echo ""
 echo "=========================================================="
 echo "🎉 SUCCESS! Changes pushed to GitHub repository."
 echo "🔗 Repository: https://github.com/DrNabeelKhalid/OBE-Evaluator"
-echo "🌐 Live Deployment: https://drnabeelkhalid.github.io/OBE-Evaluator/"
-echo "⏳ GitHub Actions will update the live site in ~60 seconds."
+echo "🌐 GitHub Pages: https://drnabeelkhalid.github.io/OBE-Evaluator/"
+echo "▲ Vercel: Auto-deploys in ~15s if connected to GitHub"
 echo "=========================================================="
