@@ -1,5 +1,5 @@
 // Service Worker for OBE-ICAS EED PWA
-const CACHE_NAME = 'obe-icas-v14';
+const CACHE_NAME = 'obe-icas-v15';
 const ASSETS = [
   '../index.html',
   '../css/custom.css',

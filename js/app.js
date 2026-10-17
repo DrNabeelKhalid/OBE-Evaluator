@@ -254,6 +254,28 @@ class OBEApp {
       });
     });
 
+    // Bottom Question Builder Controls
+    document.getElementById('btn-add-question-bottom')?.addEventListener('click', () => this.addQuestion());
+    document.getElementById('btn-add-subpart-bottom')?.addEventListener('click', () => this.addSubpart(this.questions.length - 1));
+    document.getElementById('btn-clear-questions-bottom')?.addEventListener('click', () => this.clearQuestions());
+
+    // Interactive Question Count Stepper & Quick Count Buttons
+    document.getElementById('btn-decrease-q-count')?.addEventListener('click', () => {
+      this.setQuestionCount(this.questions.length - 1);
+    });
+    document.getElementById('btn-increase-q-count')?.addEventListener('click', () => {
+      this.setQuestionCount(this.questions.length + 1);
+    });
+    document.getElementById('input-q-count')?.addEventListener('change', (e) => {
+      this.setQuestionCount(e.target.value);
+    });
+    document.querySelectorAll('.btn-quick-q-count').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const count = btn.getAttribute('data-count');
+        if (count) this.setQuestionCount(count);
+      });
+    });
+
     // Evaluator action buttons
     document.getElementById('btn-evaluate-clos')?.addEventListener('click', () => this.runCLOEvaluation());
     document.getElementById('btn-evaluate-assessment')?.addEventListener('click', () => this.runAssessmentEvaluation());
@@ -1629,18 +1651,40 @@ class OBEApp {
       qCard.className = 'p-5 bg-white border border-slate-200 rounded-2xl shadow-xs hover:border-orange-200 transition-all mb-4';
 
       qCard.innerHTML = `
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="flex items-center gap-2">
-            <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 font-extrabold text-xs flex items-center justify-center">
-              ${q.qNumber || `Q${idx + 1}`}
+            <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center shrink-0">
+              #${idx + 1}
             </span>
-            <span class="font-extrabold text-slate-900 text-sm tracking-wide">Question ${q.qNumber || idx + 1}</span>
+            <div class="flex items-center gap-1.5">
+              <label class="text-[11px] font-extrabold uppercase text-slate-500">Label:</label>
+              <input 
+                type="text" 
+                class="q-num-input px-2.5 py-1 text-xs font-black bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none w-28" 
+                data-index="${idx}" 
+                value="${q.qNumber || `Q${idx + 1}`}" 
+                title="Editable question identifier (e.g. Q1, Q1(a), Task 1, MCQ-3)"
+              />
+            </div>
           </div>
-          ${this.questions.length > 1 ? `
-            <button class="btn-remove-q text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors" data-index="${idx}" title="Remove question">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+
+          <div class="flex items-center gap-1">
+            <button type="button" class="btn-moveup-q p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all ${idx === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}" data-index="${idx}" title="Move Question Up" ${idx === 0 ? 'disabled' : ''}>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
             </button>
-          ` : ''}
+            <button type="button" class="btn-movedown-q p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all ${idx === this.questions.length - 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}" data-index="${idx}" title="Move Question Down" ${idx === this.questions.length - 1 ? 'disabled' : ''}>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <button type="button" class="btn-subpart-q px-2 py-1 rounded-lg text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all cursor-pointer flex items-center gap-0.5" data-index="${idx}" title="Add Subpart (e.g., (a), (b))">
+              <span>+ Subpart</span>
+            </button>
+            <button type="button" class="btn-duplicate-q p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-all cursor-pointer" data-index="${idx}" title="Duplicate Question">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
+            <button type="button" class="btn-remove-q p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer" data-index="${idx}" title="Remove question">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
         </div>
 
         <div class="mb-3">
@@ -1708,52 +1752,96 @@ class OBEApp {
       container.appendChild(qCard);
     });
 
-    // Update real-time stats badges
+    // Update real-time stats badges and count stepper
     const totalMarks = this.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
     const marksBadge = document.getElementById('assessment-total-marks-badge');
     if (marksBadge) marksBadge.textContent = `Total Marks: ${totalMarks}`;
     const qCountBadge = document.getElementById('assessment-q-count-badge');
     if (qCountBadge) qCountBadge.textContent = `${this.questions.length} Question${this.questions.length === 1 ? '' : 's'}`;
+    const qCountInput = document.getElementById('input-q-count');
+    if (qCountInput) qCountInput.value = this.questions.length;
 
     // Bind listeners
+    container.querySelectorAll('.q-num-input').forEach(input => {
+      input.addEventListener('input', e => {
+        const idx = parseInt(e.target.getAttribute('data-index'));
+        if (this.questions[idx]) {
+          this.questions[idx].qNumber = e.target.value.trim() || `Q${idx + 1}`;
+        }
+      });
+    });
+
     container.querySelectorAll('.q-text-input').forEach(t => {
       t.addEventListener('input', e => {
         const idx = parseInt(e.target.getAttribute('data-index'));
-        this.questions[idx].text = e.target.value;
+        if (this.questions[idx]) {
+          this.questions[idx].text = e.target.value;
+        }
       });
     });
 
     container.querySelectorAll('.q-marks-input').forEach(m => {
       m.addEventListener('input', e => {
         const idx = parseInt(e.target.getAttribute('data-index'));
-        this.questions[idx].marks = parseInt(e.target.value) || 0;
-        const currentTotal = this.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
-        const badge = document.getElementById('assessment-total-marks-badge');
-        if (badge) badge.textContent = `Total Marks: ${currentTotal}`;
+        if (this.questions[idx]) {
+          this.questions[idx].marks = parseInt(e.target.value) || 0;
+          const currentTotal = this.questions.reduce((sum, q) => sum + (parseInt(q.marks) || 0), 0);
+          const badge = document.getElementById('assessment-total-marks-badge');
+          if (badge) badge.textContent = `Total Marks: ${currentTotal}`;
+        }
       });
     });
 
     container.querySelectorAll('.q-clo-select').forEach(s => {
       s.addEventListener('change', e => {
         const idx = parseInt(e.target.getAttribute('data-index'));
-        this.questions[idx].mappedCLO = e.target.value;
+        if (this.questions[idx]) {
+          this.questions[idx].mappedCLO = e.target.value;
+        }
       });
     });
 
     container.querySelectorAll('.q-tax-select').forEach(s => {
       s.addEventListener('change', e => {
         const idx = parseInt(e.target.getAttribute('data-index'));
-        this.questions[idx].targetTaxonomy = e.target.value;
+        if (this.questions[idx]) {
+          this.questions[idx].targetTaxonomy = e.target.value;
+        }
+      });
+    });
+
+    container.querySelectorAll('.btn-moveup-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'));
+        this.moveQuestion(idx, -1);
+      });
+    });
+
+    container.querySelectorAll('.btn-movedown-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'));
+        this.moveQuestion(idx, 1);
+      });
+    });
+
+    container.querySelectorAll('.btn-subpart-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'));
+        this.addSubpart(idx);
+      });
+    });
+
+    container.querySelectorAll('.btn-duplicate-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'));
+        this.duplicateQuestion(idx);
       });
     });
 
     container.querySelectorAll('.btn-remove-q').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-index'));
-        if (this.questions.length > 1) {
-          this.questions.splice(idx, 1);
-          this.renderAssessmentQuestions();
-        }
+        this.removeQuestion(idx);
       });
     });
 
@@ -1834,21 +1922,155 @@ class OBEApp {
     }, 100);
   }
 
-  addQuestion() {
+  addQuestion(focus = true) {
     const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
     const isLab = this.assessmentType === 'lab';
     const isQuiz = this.assessmentType === 'quiz';
     const defaultTax = isLab ? 'P3' : (isQuiz ? 'C2' : 'C3');
     const defaultMarks = isQuiz ? 1 : 10;
+    const nextNum = this.questions.length + 1;
 
     this.questions.push({
-      id: this.questions.length + 1,
-      qNumber: `Q${this.questions.length + 1}`,
+      id: Date.now() + Math.random(),
+      qNumber: `Q${nextNum}`,
       text: '',
       marks: defaultMarks,
       mappedCLO: defaultClo,
       targetTaxonomy: defaultTax
     });
+    this.renderAssessmentQuestions();
+
+    if (focus) {
+      setTimeout(() => {
+        const textareas = document.querySelectorAll('.q-text-input');
+        if (textareas.length > 0) {
+          const last = textareas[textareas.length - 1];
+          last.focus();
+          last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
+    }
+  }
+
+  duplicateQuestion(index) {
+    if (index < 0 || index >= this.questions.length) return;
+    const source = this.questions[index];
+    const clone = JSON.parse(JSON.stringify(source));
+    clone.id = Date.now() + Math.random();
+    clone.qNumber = `${source.qNumber || `Q${index + 1}`} (Copy)`;
+    this.questions.splice(index + 1, 0, clone);
+    this.renderAssessmentQuestions();
+    this.showAssessmentStatus(`Duplicated ${source.qNumber || `Question ${index + 1}`}`, 'info');
+
+    setTimeout(() => {
+      const textareas = document.querySelectorAll('.q-text-input');
+      if (textareas[index + 1]) {
+        textareas[index + 1].focus();
+        textareas[index + 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  }
+
+  addSubpart(parentIndex = -1) {
+    if (this.questions.length === 0) {
+      this.addQuestion();
+      return;
+    }
+    const idx = (parentIndex >= 0 && parentIndex < this.questions.length) ? parentIndex : this.questions.length - 1;
+    const parent = this.questions[idx];
+    const parentNum = (parent.qNumber || `Q${idx + 1}`).trim();
+    
+    // Check if parent already ends in (a), (b), etc.
+    const subMatch = parentNum.match(/^(.*?)\(([a-z])\)$/i);
+    let newNum;
+    if (subMatch) {
+      const base = subMatch[1];
+      const nextChar = String.fromCharCode(subMatch[2].toLowerCase().charCodeAt(0) + 1);
+      newNum = `${base}(${nextChar})`;
+    } else {
+      // If parent was "Q1", let's make parent "Q1(a)" and the new subpart "Q1(b)"
+      if (!parentNum.includes('(')) {
+        parent.qNumber = `${parentNum}(a)`;
+        newNum = `${parentNum}(b)`;
+      } else {
+        newNum = `${parentNum}(b)`;
+      }
+    }
+
+    const newQ = {
+      id: Date.now() + Math.random(),
+      qNumber: newNum,
+      text: '',
+      marks: Math.max(1, Math.floor((parent.marks || 10) / 2)),
+      mappedCLO: parent.mappedCLO || ((this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1'),
+      targetTaxonomy: parent.targetTaxonomy || 'C3'
+    };
+
+    // Insert right after parent
+    this.questions.splice(idx + 1, 0, newQ);
+    this.renderAssessmentQuestions();
+
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('.q-text-input');
+      if (inputs[idx + 1]) {
+        inputs[idx + 1].focus();
+        inputs[idx + 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  }
+
+  moveQuestion(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= this.questions.length) return;
+    const item = this.questions.splice(index, 1)[0];
+    this.questions.splice(targetIndex, 0, item);
+    this.renderAssessmentQuestions();
+  }
+
+  removeQuestion(index) {
+    if (this.questions.length <= 1) {
+      this.clearQuestions();
+      return;
+    }
+    const removed = this.questions.splice(index, 1)[0];
+    this.renderAssessmentQuestions();
+    this.showAssessmentStatus(`Removed ${removed.qNumber || `Question ${index + 1}`}`, 'info');
+  }
+
+  setQuestionCount(newCount) {
+    const count = parseInt(newCount, 10);
+    if (isNaN(count) || count < 1) {
+      this.renderAssessmentQuestions();
+      return;
+    }
+    const targetCount = Math.min(Math.max(count, 1), 60);
+    const currentCount = this.questions.length;
+
+    if (targetCount === currentCount) return;
+
+    if (targetCount > currentCount) {
+      const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
+      const isLab = this.assessmentType === 'lab';
+      const isQuiz = this.assessmentType === 'quiz';
+      const defaultTax = isLab ? 'P3' : (isQuiz ? 'C2' : 'C3');
+      const defaultMarks = isQuiz ? 1 : 10;
+
+      for (let i = currentCount; i < targetCount; i++) {
+        this.questions.push({
+          id: Date.now() + i,
+          qNumber: `Q${i + 1}`,
+          text: '',
+          marks: defaultMarks,
+          mappedCLO: defaultClo,
+          targetTaxonomy: defaultTax
+        });
+      }
+      this.showAssessmentStatus(`Expanded assessment to ${targetCount} questions.`, 'info');
+    } else {
+      this.questions = this.questions.slice(0, targetCount);
+      this.showAssessmentStatus(`Reduced assessment to ${targetCount} questions.`, 'info');
+    }
+
     this.renderAssessmentQuestions();
   }
 
@@ -1871,7 +2093,7 @@ class OBEApp {
     this.renderAssessmentQuestions();
     document.getElementById('assessment-results-filled')?.classList.add('hidden');
     document.getElementById('assessment-results-empty')?.classList.remove('hidden');
-    this.showAssessmentStatus('Assessment cleared. Click "📁 Upload Assessment" or "Add Question" to build questions.', 'info');
+    this.showAssessmentStatus('Assessment reset to 1 blank question. Use "+ Add Another Question" or presets to scale.', 'info');
   }
 
   loadSampleAssessment() {
