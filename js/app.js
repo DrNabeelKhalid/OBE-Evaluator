@@ -164,6 +164,11 @@ class OBEApp {
       window.location.hash = tabId;
     }
 
+    if (tabId === 'assessment-audit') {
+      this.updateAssessmentContextBanner();
+      this.renderAssessmentQuestions();
+    }
+
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -220,6 +225,7 @@ class OBEApp {
     // Dynamic Assessment question controls
     document.getElementById('btn-add-question')?.addEventListener('click', () => this.addQuestion());
     document.getElementById('btn-load-sample-exam')?.addEventListener('click', () => this.loadSampleAssessment());
+    document.getElementById('btn-clear-questions')?.addEventListener('click', () => this.clearQuestions());
 
     // Evaluator action buttons
     document.getElementById('btn-evaluate-clos')?.addEventListener('click', () => this.runCLOEvaluation());
@@ -1695,23 +1701,71 @@ class OBEApp {
         }
       });
     });
+
+    this.updateAssessmentContextBanner();
   }
 
   addQuestion() {
+    const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
     this.questions.push({
       id: this.questions.length + 1,
       qNumber: `Q${this.questions.length + 1}`,
       text: '',
       marks: 10,
-      mappedCLO: 'CLO-1',
+      mappedCLO: defaultClo,
       targetTaxonomy: 'C3'
     });
     this.renderAssessmentQuestions();
   }
 
-  loadSampleAssessment() {
-    this.questions = JSON.parse(JSON.stringify(SAMPLE_ASSESSMENT.questions));
+  clearQuestions() {
+    const defaultClo = (this.clos && this.clos.length > 0) ? `CLO-${this.clos[0].id || 1}` : 'CLO-1';
+    this.questions = [{
+      id: 1,
+      qNumber: 'Q1',
+      text: '',
+      marks: 10,
+      mappedCLO: defaultClo,
+      targetTaxonomy: 'C3'
+    }];
+    this.assessmentEvaluationResult = null;
     this.renderAssessmentQuestions();
+    document.getElementById('assessment-results-filled')?.classList.add('hidden');
+    document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+  }
+
+  loadSampleAssessment() {
+    const cloIds = (this.clos || []).map((c, i) => `CLO-${c.id || i+1}`);
+    const sample = JSON.parse(JSON.stringify(SAMPLE_ASSESSMENT.questions));
+    
+    // Dynamically align mappedCLOs to active course CLOs
+    sample.forEach((q, idx) => {
+      if (cloIds.length > 0) {
+        q.mappedCLO = cloIds[idx % cloIds.length];
+      }
+    });
+
+    this.questions = sample;
+    this.assessmentEvaluationResult = null;
+    this.renderAssessmentQuestions();
+    document.getElementById('assessment-results-filled')?.classList.add('hidden');
+    document.getElementById('assessment-results-empty')?.classList.remove('hidden');
+  }
+
+  updateAssessmentContextBanner() {
+    const courseNameInput = document.getElementById('input-course-name');
+    const courseName = courseNameInput?.value.trim() || 'EE-312 Microcontroller & Embedded Systems';
+    const courseLabel = document.getElementById('assessment-active-course-label');
+    if (courseLabel) courseLabel.textContent = courseName;
+
+    const closLabel = document.getElementById('assessment-active-clos-label');
+    if (closLabel) {
+      if (this.clos && this.clos.length > 0) {
+        closLabel.textContent = this.clos.map((c, i) => `CLO-${c.id || i+1} [${c.taxonomy || 'C3'}]`).join(', ');
+      } else {
+        closLabel.textContent = 'None defined (Configure in CLO Evaluator tab)';
+      }
+    }
   }
 
   // --- File Upload & Document Extraction ---
